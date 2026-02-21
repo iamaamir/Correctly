@@ -152,10 +152,34 @@ saveBtn.addEventListener('click', async () => {
     return;
   }
 
-  log.info('Saving settings', { providerId, model, keyLength: apiKey.length });
-  await chrome.storage.local.set({ providerId, model, apiKey });
-  log.info('Settings saved successfully');
-  showStatus('Settings saved');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Verifying…';
+  log.info('Verifying settings', { providerId, model, keyLength: apiKey.length });
+
+  try {
+    const result = await chrome.runtime.sendMessage({
+      type: 'VERIFY_SETTINGS',
+      providerId,
+      apiKey,
+      model,
+    });
+
+    if (!result.success) {
+      log.error('Verification failed:', result.error);
+      showStatus(result.error, 'error');
+      return;
+    }
+
+    await chrome.storage.local.set({ providerId, model, apiKey });
+    log.info('Settings saved successfully');
+    showStatus('Settings saved');
+  } catch (err) {
+    log.error('Verification error:', err.message);
+    showStatus('Verification failed — check your connection', 'error');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save';
+  }
 });
 
 toggleVisibility.addEventListener('click', () => {
