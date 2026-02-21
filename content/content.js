@@ -31,6 +31,7 @@
     },
   };
 
+  // Keep in sync with lib/config.js (content scripts can't use ES module imports)
   const DEBOUNCE_MS = 1500;
   const MIN_TEXT_LENGTH = 10;
 
@@ -40,6 +41,8 @@
   let currentCorrection = null;
   let applyingCorrection = false;
   let dismissedElement = null;
+  let indicatorEl = null;
+  const lastCheckedText = new WeakMap();
 
   // Input types that contain prose and should be grammar-checked
   const PROSE_INPUT_TYPES = new Set(['text', 'search', 'email']);
@@ -115,11 +118,11 @@
     const inputmode = (el.getAttribute('inputmode') || '').toLowerCase();
     if (EXCLUDED_INPUTMODES.has(inputmode)) return { check: false, reason: `inputmode="${inputmode}" excluded` };
 
-    // ── 7. autocomplete (sensitive fields) ──
+    // ── 6. autocomplete (sensitive fields) ──
     const autocomplete = (el.getAttribute('autocomplete') || '').toLowerCase();
     if (EXCLUDED_AUTOCOMPLETE.has(autocomplete)) return { check: false, reason: `autocomplete="${autocomplete}" excluded` };
 
-    // ── 8. ARIA role ──
+    // ── 7. ARIA role ──
     const role = (el.getAttribute('role') || '').toLowerCase();
     if (EXCLUDED_ROLES.has(role)) return { check: false, reason: `role="${role}" excluded` };
 
@@ -234,6 +237,13 @@
     });
     tooltipEl.querySelector('.correctly-accept').addEventListener('click', acceptCorrections);
 
+    tooltipEl.querySelector('.correctly-body').addEventListener('click', (e) => {
+      const btn = e.target.closest('.correctly-accept-one');
+      if (!btn) return;
+      e.stopPropagation();
+      acceptSingleCorrection(parseInt(btn.dataset.index, 10));
+    });
+
     log.debug('Tooltip element created');
     return tooltipEl;
   }
@@ -263,13 +273,6 @@
         </div>
       `).join('');
       tooltip.querySelector('.correctly-accept').style.display = '';
-
-      body.querySelectorAll('.correctly-accept-one').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          acceptSingleCorrection(parseInt(btn.dataset.index, 10));
-        });
-      });
     }
 
     positionTooltip(tooltip, element);
@@ -375,9 +378,9 @@
     applyingCorrection = true;
     setTextOnElement(activeElement, updatedText);
     applyingCorrection = false;
+    lastCheckedText.set(activeElement, updatedText);
 
     currentCorrection.changes.splice(index, 1);
-    currentCorrection.corrected = updatedText;
 
     const changeEl = tooltipEl.querySelector(`.correctly-change[data-index="${index}"]`);
     if (changeEl) changeEl.remove();
@@ -402,15 +405,16 @@
       applyingCorrection = true;
       setTextOnElement(activeElement, text);
       applyingCorrection = false;
+      lastCheckedText.set(activeElement, text);
       log.info(`Applied remaining ${currentCorrection.changes.length} correction(s) on ${describeElement(activeElement)}`);
     }
     hideTooltip();
   }
 
+  const escapeHtmlDiv = document.createElement('div');
   function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    escapeHtmlDiv.textContent = text;
+    return escapeHtmlDiv.innerHTML;
   }
 
   function showIndicator(element) {
@@ -448,14 +452,15 @@
     indicator.style.left = `${left}px`;
 
     document.body.appendChild(indicator);
+    indicatorEl = indicator;
     log.debug(`Indicator shown for ${describeElement(element)} at (${Math.round(left)}, ${Math.round(top)})`);
   }
 
   function removeIndicator() {
-    const indicators = document.querySelectorAll('.correctly-indicator');
-    if (indicators.length > 0) {
-      indicators.forEach(el => el.remove());
-      log.debug(`Removed ${indicators.length} indicator(s)`);
+    if (indicatorEl) {
+      indicatorEl.remove();
+      indicatorEl = null;
+      log.debug('Indicator removed');
     }
   }
 
@@ -468,6 +473,11 @@
     const text = getTextFromElement(element);
     if (text.trim().length < MIN_TEXT_LENGTH) {
       log.info(`Text too short (${text.trim().length}/${MIN_TEXT_LENGTH} chars) — skipping check`);
+      return;
+    }
+
+    if (lastCheckedText.get(element) === text) {
+      log.debug(`Text unchanged since last check on ${describeElement(element)} — skipping`);
       return;
     }
 
@@ -486,6 +496,7 @@
       removeIndicator();
 
       if (response.success) {
+        lastCheckedText.set(element, text);
         const count = response.data.changes?.length || 0;
         log.info(`Response received — ${count} issue(s) found`);
         if (count > 0) {

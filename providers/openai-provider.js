@@ -1,16 +1,8 @@
 import { BaseProvider } from './base-provider.js';
 import { createLogger } from '../lib/logger.js';
+import { SYSTEM_PROMPT, AI_TEMPERATURE, AI_MAX_TOKENS } from '../lib/config.js';
 
 const log = createLogger('openai');
-
-const SYSTEM_PROMPT = `You are a precise grammar correction assistant. 
-Given text, return a JSON object with:
-- "corrected": the full corrected text
-- "changes": an array of objects, each with "original", "replacement", and "explanation"
-
-If the text has no errors, return {"corrected": "<original text>", "changes": []}.
-Only fix grammar, spelling, and punctuation. Do not change meaning, tone, or style.
-Return ONLY valid JSON, no markdown fencing.`;
 
 export class OpenAIProvider extends BaseProvider {
 
@@ -48,8 +40,8 @@ export class OpenAIProvider extends BaseProvider {
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: text }
       ],
-      temperature: 0.1,
-      max_tokens: 2048
+      temperature: AI_TEMPERATURE,
+      max_tokens: AI_MAX_TOKENS
     };
 
     log.info(`API request → ${this.endpoint}`, { model: this.model, inputLength: text.length });
