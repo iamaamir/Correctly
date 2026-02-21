@@ -1,5 +1,6 @@
 import { createProvider } from '../providers/provider-registry.js';
 import { createLogger } from '../lib/logger.js';
+import { BADGE_DURATION_ISSUES, BADGE_DURATION_OK, BADGE_DURATION_ERROR } from '../lib/config.js';
 
 const log = createLogger('bg');
 
@@ -28,8 +29,34 @@ chrome.storage.local.get(['apiKey', 'enabled']).then(({ apiKey, enabled }) => {
   else updateBadge(null, 'ready');
 });
 
+let cachedProvider = null;
+let cachedProviderKey = '';
+
+function providerCacheKey(providerId, apiKey, model) {
+  return `${providerId}|${apiKey}|${model}`;
+}
+
+function getOrCreateProvider(providerId, apiKey, model) {
+  const key = providerCacheKey(providerId, apiKey, model);
+  if (cachedProvider && cachedProviderKey === key) {
+    log.debug('Reusing cached provider instance');
+    return cachedProvider;
+  }
+  log.debug('Creating new provider instance (settings changed)');
+  cachedProvider = createProvider(providerId, apiKey, model);
+  cachedProviderKey = key;
+  return cachedProvider;
+}
+
 chrome.storage.onChanged.addListener((changes) => {
   log.debug('Storage changed:', Object.keys(changes));
+
+  if (changes.providerId || changes.apiKey || changes.model) {
+    cachedProvider = null;
+    cachedProviderKey = '';
+    log.debug('Provider cache invalidated');
+  }
+
   chrome.storage.local.get(['apiKey', 'enabled']).then(({ apiKey, enabled }) => {
     if (!apiKey) updateBadge(null, 'nokey');
     else if (enabled === false) updateBadge(null, 'off');
@@ -52,11 +79,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         endTimer();
         const hasIssues = result.changes?.length > 0;
         updateBadge(tabId, hasIssues ? 'found' : 'ok');
-        if (hasIssues) {
-          setTimeout(() => updateBadge(tabId, 'ready'), 5000);
-        } else {
-          setTimeout(() => updateBadge(tabId, 'ready'), 2000);
-        }
+        setTimeout(() => updateBadge(tabId, 'ready'), hasIssues ? BADGE_DURATION_ISSUES : BADGE_DURATION_OK);
         log.group('CHECK_GRAMMAR result', () => {
           log.info(`Changes found: ${result.changes?.length || 0}`);
           if (result.changes?.length > 0) {
@@ -68,7 +91,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(err => {
         endTimer();
         updateBadge(tabId, 'error');
-        setTimeout(() => updateBadge(tabId, 'ready'), 3000);
+        setTimeout(() => updateBadge(tabId, 'ready'), BADGE_DURATION_ERROR);
         log.error('CHECK_GRAMMAR failed:', err.message);
         sendResponse({ success: false, error: err.message });
       });
@@ -107,7 +130,7 @@ async function handleGrammarCheck(text) {
     throw new Error('No API key configured. Click the Correctly icon to set one up.');
   }
 
-  const provider = createProvider(providerId || 'openai', apiKey, model);
+  const provider = getOrCreateProvider(providerId || 'openai', apiKey, model);
   log.info(`Using provider: ${provider.providerName}, model: ${provider.model}`);
   return await provider.correctGrammar(text);
 }
