@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Correctly</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Correctly</h1>
+      <p class="subtitle">AI Grammar Checker</p>
+    </header>
+
+    <section class="provider-section">
+      <label for="provider-select">Provider</label>
+      <select id="provider-select"></select>
+    </section>
+
+    <section class="model-section">
+      <label for="model-select">Model</label>
+      <select id="model-select"></select>
+      <input type="text" id="custom-model" placeholder="e.g. gpt-5-turbo" autocomplete="off" hidden />
+      <p class="model-hint" id="model-hint"></p>
+    </section>
+
+    <section class="key-section">
+      <label for="api-key">API Key</label>
+      <div class="key-input-wrapper">
+        <input type="password" id="api-key" autocomplete="off" />
+        <button id="toggle-visibility" title="Show/hide key" aria-label="Toggle key visibility">
+          <span class="eye-icon">&#128065;</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="actions">
+      <button id="save-btn" class="btn-primary">Save</button>
+    </section>
+
+    <div id="status-msg" class="status" hidden></div>
+
+    <section class="toggle-section">
+      <label class="toggle-label">
+        <span>Enabled</span>
+        <input type="checkbox" id="enabled-toggle" checked />
+        <span class="toggle-slider"></span>
+      </label>
+    </section>
+
+    <section class="log-section">
+      <label for="log-level">Console Logs</label>
+      <select id="log-level">
+        <option value="silent">Silent</option>
+        <option value="error">Errors only</option>
+        <option value="warn">Warnings &amp; errors</option>
+        <option value="info" selected>Standard</option>
+        <option value="debug">Verbose (debug)</option>
+      </select>
+    </section>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
