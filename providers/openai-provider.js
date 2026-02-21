@@ -1,8 +1,37 @@
 import { BaseProvider } from './base-provider.js';
 import { createLogger } from '../lib/logger.js';
-import { SYSTEM_PROMPT, AI_TEMPERATURE, AI_MAX_TOKENS } from '../lib/config.js';
+import { SYSTEM_PROMPT, AI_TEMPERATURE, AI_MAX_TOKENS_MIN } from '../lib/config.js';
 
 const log = createLogger('openai');
+
+const RESPONSE_SCHEMA = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'grammar_correction',
+    strict: true,
+    schema: {
+      type: 'object',
+      properties: {
+        corrected: { type: 'string' },
+        changes: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              original: { type: 'string' },
+              replacement: { type: 'string' },
+              explanation: { type: 'string' },
+            },
+            required: ['original', 'replacement', 'explanation'],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ['corrected', 'changes'],
+      additionalProperties: false,
+    },
+  },
+};
 
 export class OpenAIProvider extends BaseProvider {
 
@@ -34,6 +63,8 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async _doCorrectGrammar(text) {
+    const maxTokens = Math.max(text.length * 3, AI_MAX_TOKENS_MIN);
+
     const payload = {
       model: this.model,
       messages: [
@@ -41,7 +72,8 @@ export class OpenAIProvider extends BaseProvider {
         { role: 'user', content: text }
       ],
       temperature: AI_TEMPERATURE,
-      max_tokens: AI_MAX_TOKENS
+      max_tokens: maxTokens,
+      response_format: RESPONSE_SCHEMA,
     };
 
     log.info(`API request → ${this.endpoint}`, { model: this.model, inputLength: text.length });
