@@ -98,6 +98,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === 'VERIFY_SETTINGS') {
+    log.info(`VERIFY_SETTINGS request from ${tabInfo}`, { providerId: message.providerId, model: message.model });
+    verifySettings(message.providerId, message.apiKey, message.model)
+      .then(result => {
+        log.info('Verification result:', result);
+        sendResponse(result);
+      })
+      .catch(err => {
+        log.error('VERIFY_SETTINGS failed:', err.message);
+        sendResponse({ success: false, error: err.message });
+      });
+    return true;
+  }
+
   if (message.type === 'GET_STATUS') {
     log.debug(`GET_STATUS request from ${tabInfo}`);
     getExtensionStatus()
@@ -133,6 +147,19 @@ async function handleGrammarCheck(text) {
   const provider = getOrCreateProvider(providerId || 'openai', apiKey, model);
   log.info(`Using provider: ${provider.providerName}, model: ${provider.model}`);
   return await provider.correctGrammar(text);
+}
+
+async function verifySettings(providerId, apiKey, model) {
+  try {
+    const provider = createProvider(providerId || 'openai', apiKey, model);
+    const result = await provider.correctGrammar('This is a test.');
+    if (result && typeof result.corrected === 'string') {
+      return { success: true };
+    }
+    return { success: false, error: 'Unexpected response from provider' };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 }
 
 async function getExtensionStatus() {
