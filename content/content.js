@@ -63,6 +63,7 @@
     'cc-number', 'cc-exp', 'cc-csc', 'cc-type',
     'tel', 'tel-national', 'tel-country-code',
     'one-time-code', 'postal-code', 'bday',
+    'new-password', 'current-password',
   ]);
 
   // ARIA roles where grammar checking would be inappropriate
@@ -72,7 +73,7 @@
 
   /**
    * Determines if an element should be grammar-checked.
-   * Respects HTML standards, ARIA, de facto industry attributes (Grammarly),
+   * Respects HTML standards, ARIA attributes,
    * and our own data-correctly attribute.
    *
    * Returns { check: boolean, reason: string } so decisions can be logged.
