@@ -203,6 +203,17 @@ input:focus {
   transform: translateX(18px);
 }
 
+.site-section {
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.site-host {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
+}
+
 .log-section {
   margin-top: 12px;
   padding-top: 12px;

@@ -12,7 +12,12 @@ const saveBtn = document.getElementById('save-btn');
 const statusMsg = document.getElementById('status-msg');
 const toggleVisibility = document.getElementById('toggle-visibility');
 const enabledToggle = document.getElementById('enabled-toggle');
+const siteSection = document.getElementById('site-section');
+const siteToggle = document.getElementById('site-toggle');
+const siteHost = document.getElementById('site-host');
 const logLevelSelect = document.getElementById('log-level');
+
+let currentHostname = null;
 
 const CUSTOM_VALUE = '__custom__';
 let providers = [];
@@ -202,6 +207,41 @@ chrome.storage.local.get('logLevel').then(({ logLevel }) => {
   logLevelSelect.value = logLevel || 'info';
 });
 
+async function loadCurrentSite() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.url) return;
+    const url = new URL(tab.url);
+    if (!['http:', 'https:'].includes(url.protocol)) return;
+    currentHostname = url.hostname;
+    siteHost.textContent = currentHostname;
+    siteSection.hidden = false;
+
+    const { disabledSites = [] } = await chrome.storage.local.get('disabledSites');
+    siteToggle.checked = !disabledSites.includes(currentHostname);
+    log.debug('Site toggle loaded', { currentHostname, disabled: !siteToggle.checked });
+  } catch (err) {
+    log.debug('Could not detect current site:', err.message);
+  }
+}
+
+siteToggle.addEventListener('change', async () => {
+  if (!currentHostname) return;
+  const { disabledSites = [] } = await chrome.storage.local.get('disabledSites');
+  const sites = new Set(disabledSites);
+
+  if (siteToggle.checked) {
+    sites.delete(currentHostname);
+    log.info(`Enabled on ${currentHostname}`);
+  } else {
+    sites.add(currentHostname);
+    log.info(`Disabled on ${currentHostname}`);
+  }
+
+  await chrome.storage.local.set({ disabledSites: [...sites] });
+});
+
 log.info('Popup opened');
 populateProviders();
 loadSettings();
+loadCurrentSite();

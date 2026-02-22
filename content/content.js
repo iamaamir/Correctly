@@ -42,7 +42,7 @@
   let applyingCorrection = false;
   let dismissedElement = null;
   let indicatorEl = null;
-  const lastCheckedText = new WeakMap();
+  let lastCheckedText = new WeakMap();
 
   // Input types that contain prose and should be grammar-checked
   const PROSE_INPUT_TYPES = new Set(['text', 'search', 'email']);
@@ -590,6 +590,29 @@
     checkGrammar(el);
   }
 
+  let siteActive = false;
+
+  function activate() {
+    if (siteActive) return;
+    siteActive = true;
+    document.addEventListener('input', handleInput, true);
+    document.addEventListener('focusout', handleFocusOut, true);
+    log.info('Event listeners attached — Correctly is active');
+  }
+
+  function deactivate() {
+    if (!siteActive) return;
+    siteActive = false;
+    document.removeEventListener('input', handleInput, true);
+    document.removeEventListener('focusout', handleFocusOut, true);
+    hideTooltip();
+    if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
+    lastCheckedText = new WeakMap();
+    dismissedElement = null;
+    activeElement = null;
+    log.info('Event listeners removed — Correctly is paused on this site');
+  }
+
   async function init() {
     log.info(`Initializing on ${window.location.href}`);
 
@@ -610,8 +633,44 @@
       return;
     }
 
-    document.addEventListener('input', handleInput, true);
-    document.addEventListener('focusout', handleFocusOut, true);
+    try {
+      const { disabledSites = [] } = await chrome.storage.local.get('disabledSites');
+      if (disabledSites.includes(window.location.hostname)) {
+        log.info(`Disabled on ${window.location.hostname} — skipping`);
+      } else {
+        activate();
+      }
+    } catch (err) {
+      log.error('Failed to check site list:', err.message);
+      activate();
+    }
+
+    chrome.storage.onChanged.addListener(async (changes) => {
+      if (changes.enabled) {
+        if (changes.enabled.newValue === false) {
+          log.info('Extension disabled globally');
+          deactivate();
+          return;
+        }
+        log.info('Extension re-enabled globally');
+        const { disabledSites = [] } = await chrome.storage.local.get('disabledSites');
+        if (!disabledSites.includes(window.location.hostname)) {
+          activate();
+        }
+        return;
+      }
+
+      if (changes.disabledSites) {
+        const { enabled } = await chrome.storage.local.get('enabled');
+        if (enabled === false) return;
+        const list = changes.disabledSites.newValue || [];
+        if (list.includes(window.location.hostname)) {
+          deactivate();
+        } else {
+          activate();
+        }
+      }
+    });
 
     document.addEventListener('click', (e) => {
       if (tooltipEl && tooltipEl.classList.contains('correctly-visible') &&
@@ -634,8 +693,6 @@
     }
     window.addEventListener('scroll', handleReposition, { passive: true, capture: true });
     window.addEventListener('resize', handleReposition, { passive: true });
-
-    log.info('Event listeners attached — Correctly is active');
   }
 
   init();
