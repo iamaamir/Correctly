@@ -2,6 +2,9 @@
 
 A minimalist Chrome extension that checks grammar, spelling, and punctuation using AI. Bring your own API key.
 
+<img width="334" height="523" alt="image" src="https://github.com/user-attachments/assets/fd299824-941c-4c09-a1cb-351914602b92" />
+
+
 ## Features
 
 - Works on any text input, textarea, or contentEditable element
