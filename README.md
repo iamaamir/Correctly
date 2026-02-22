@@ -15,7 +15,7 @@ A minimalist Chrome extension that checks grammar, spelling, and punctuation usi
 
 1. Clone the repo:
    ```
-   git clone https://github.com/your-username/correctly.git
+   git clone https://github.com/iamaamir/Correctly.git
    ```
 2. Open `chrome://extensions` in Chrome
 3. Enable **Developer mode** (top right)
