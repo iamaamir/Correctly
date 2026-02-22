@@ -78,7 +78,7 @@ export class OpenAIProvider extends BaseProvider {
 
     log.info(`API request → ${this.endpoint}`, { model: this.model, inputLength: text.length });
     log.debug('Request payload:', payload);
-    log.debug(`Using key: ${this.apiKey.substring(0, 7)}...`);
+    log.debug('API key: configured');
 
     const endTimer = log.time('openai-api-call');
     const response = await fetch(this.endpoint, {
