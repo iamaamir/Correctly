@@ -58,7 +58,7 @@ correctly/
 - **Text you type is sent to the AI provider** (e.g., OpenAI) for grammar checking. Avoid typing sensitive information in fields where the extension is active, or use `data-correctly="false"` to opt out specific elements.
 - Password fields, credit card inputs, and other sensitive field types are automatically excluded.
 
-## Adding a Provider
+## Want to add a new Provider?
 
 1. Create a new file in `providers/` extending `BaseProvider`
 2. Implement all required static metadata and `_doCorrectGrammar(text)`
