@@ -1,5 +1,6 @@
 import { createProvider, getAvailableProviders } from "../providers/provider-registry.js";
 import { createLogger } from "../lib/logger.js";
+import { getSettings, setSettings } from "../lib/settings.js";
 
 const log = createLogger("popup");
 
@@ -208,19 +209,18 @@ async function populateProviders() {
 
 async function loadSettings() {
   log.info("Loading saved settings");
-  const result = await chrome.storage.local.get(["providerId", "apiKey", "model", "enabled"]);
-  const providerId = result.providerId || "openai";
+  const { providerId, apiKey, model, enabled } = await getSettings();
   log.debug("Loaded settings", {
     providerId,
-    model: result.model || "default",
-    enabled: result.enabled !== false,
-    hasKey: Boolean(result.apiKey),
+    model: model || "default",
+    enabled,
+    hasKey: Boolean(apiKey),
   });
   providerSelect.value = providerId;
   apiKeyInput.placeholder = providers.find((p) => p.id === providerId)?.keyPlaceholder || "sk-...";
-  await populateModels(providerId, result.model);
-  if (result.apiKey && result.apiKey !== NO_API_KEY_SENTINEL) apiKeyInput.value = result.apiKey;
-  enabledToggle.checked = result.enabled !== false;
+  await populateModels(providerId, model);
+  if (apiKey && apiKey !== NO_API_KEY_SENTINEL) apiKeyInput.value = apiKey;
+  enabledToggle.checked = enabled;
   showAiStatus(providerId);
 }
 
@@ -263,7 +263,7 @@ saveBtn.addEventListener("click", async () => {
   log.info("Saving settings", { providerId, model });
 
   try {
-    await chrome.storage.local.set({ providerId, model, apiKey });
+    await setSettings({ providerId, model, apiKey });
     log.info("Settings saved successfully");
     showStatus("Settings saved");
   } catch (err) {
@@ -282,17 +282,17 @@ toggleVisibility.addEventListener("click", () => {
 
 enabledToggle.addEventListener("change", async () => {
   log.info(`Extension ${enabledToggle.checked ? "enabled" : "disabled"}`);
-  await chrome.storage.local.set({ enabled: enabledToggle.checked });
+  await setSettings({ enabled: enabledToggle.checked });
 });
 
 logLevelSelect.addEventListener("change", async () => {
   const level = logLevelSelect.value;
   log.info(`Log level changed to: ${level}`);
-  await chrome.storage.local.set({ logLevel: level });
+  await setSettings({ logLevel: level });
 });
 
-chrome.storage.local.get("logLevel").then(({ logLevel }) => {
-  logLevelSelect.value = logLevel || "info";
+getSettings().then(({ logLevel }) => {
+  logLevelSelect.value = logLevel;
 });
 
 async function loadCurrentSite() {
@@ -305,7 +305,7 @@ async function loadCurrentSite() {
     siteHost.textContent = currentHostname;
     siteSection.hidden = false;
 
-    const { disabledSites = [] } = await chrome.storage.local.get("disabledSites");
+    const { disabledSites } = await getSettings();
     siteToggle.checked = !disabledSites.includes(currentHostname);
     log.debug("Site toggle loaded", { currentHostname, disabled: !siteToggle.checked });
   } catch (err) {
@@ -315,7 +315,7 @@ async function loadCurrentSite() {
 
 siteToggle.addEventListener("change", async () => {
   if (!currentHostname) return;
-  const { disabledSites = [] } = await chrome.storage.local.get("disabledSites");
+  const { disabledSites } = await getSettings();
   const sites = new Set(disabledSites);
 
   if (siteToggle.checked) {
@@ -326,7 +326,7 @@ siteToggle.addEventListener("change", async () => {
     log.info(`Disabled on ${currentHostname}`);
   }
 
-  await chrome.storage.local.set({ disabledSites: [...sites] });
+  await setSettings({ disabledSites: [...sites] });
 });
 
 log.info("Popup opened");

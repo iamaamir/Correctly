@@ -1,4 +1,5 @@
 import { createLogger } from "../lib/logger.js";
+import { getSettings } from "../lib/settings.js";
 import { updateBadge } from "./handlers/badge.js";
 import { registerGrammarHandlers, invalidateProviderCache } from "./handlers/grammar.js";
 import { registerSettingsHandlers } from "./handlers/settings.js";
@@ -9,9 +10,9 @@ log.info("Service worker started");
 
 // ── Badge init ──
 
-chrome.storage.local.get(["apiKey", "enabled"]).then(({ apiKey, enabled }) => {
+getSettings().then(({ apiKey, enabled }) => {
   if (!apiKey) updateBadge(null, "nokey");
-  else if (enabled === false) updateBadge(null, "off");
+  else if (!enabled) updateBadge(null, "off");
   else updateBadge(null, "ready");
 });
 
@@ -24,9 +25,9 @@ chrome.storage.onChanged.addListener((changes) => {
     invalidateProviderCache(log);
   }
 
-  chrome.storage.local.get(["apiKey", "enabled"]).then(({ apiKey, enabled }) => {
+  getSettings().then(({ apiKey, enabled }) => {
     if (!apiKey) updateBadge(null, "nokey");
-    else if (enabled === false) updateBadge(null, "off");
+    else if (!enabled) updateBadge(null, "off");
     else updateBadge(null, "ready");
   });
 });
