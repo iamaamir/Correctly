@@ -3,10 +3,24 @@
   "name": "Correctly",
   "version": "0.1.0",
   "description": "A minimalist AI-powered grammar checker. Bring your own API key.",
+  "host_permissions": [
+    "http://localhost:11434/*"
+  ],
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "tabs",
+    "declarativeNetRequest"
   ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ollama_cors",
+        "enabled": true,
+        "path": "background/dnr-rules.json"
+      }
+    ]
+  },
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {

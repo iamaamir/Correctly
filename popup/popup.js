@@ -52,14 +52,31 @@ function setCustomInputVisibility(show) {
   }
 }
 
-function populateModels(providerId, selectedModel) {
+async function populateModels(providerId, selectedModel) {
   const provider = providers.find((p) => p.id === providerId);
+  if (!provider) return;
+
+  // Loading state
+  modelSelect.innerHTML = "";
+  const loadingOpt = document.createElement("option");
+  loadingOpt.disabled = true;
+  loadingOpt.textContent = "Loading models…";
+  modelSelect.appendChild(loadingOpt);
+
+  // Lazy-fetch models via _classRef (async, cached per provider).
+  // getAvailableProviders() returned sync (P.models) for instant render;
+  // this refreshes them from the provider API so the dropdown is up to date.
+  if (provider._classRef) {
+    provider.models = await provider._classRef.getModels();
+  }
+
+  // Render
   modelSelect.innerHTML = "";
   modelHint.textContent = "";
   customModelInput.value = "";
   setCustomInputVisibility(false);
 
-  if (!provider || !provider.models) return;
+  if (!provider.models) return;
 
   provider.models.forEach((m) => {
     const option = document.createElement("option");
@@ -100,66 +117,79 @@ function updateModelHint() {
   modelHint.textContent = model?.hint || "";
 }
 
-// Chrome's built in AI only
 function showAiStatus(providerId) {
-  aiStatusSection.hidden = providerId !== "chrome-free-ai";
-  if (providerId !== "chrome-free-ai") return;
+  const provider = providers.find((p) => p.id === providerId);
+  if (!provider) return;
 
-  aiStatusContent.innerHTML = `<p class="status-info">Checking model status…</p>`;
+  if (providerId === "chrome-free-ai") {
+    aiStatusSection.hidden = false;
+    aiStatusContent.innerHTML = `<p class="status-info">Checking model status…</p>`;
 
-  chrome.runtime
-    .sendMessage({ type: "GET_AI_STATUS", providerId })
-    .then((result) => {
-      if (!result || !result.status) {
-        aiStatusContent.innerHTML = `<p class="status-error">Could not check model status</p>`;
-        return;
-      }
+    chrome.runtime
+      .sendMessage({ type: "GET_AI_STATUS", providerId })
+      .then((result) => {
+        if (!result || !result.status) {
+          aiStatusContent.innerHTML = `<p class="status-error">Could not check model status</p>`;
+          return;
+        }
 
-      const s = result.status;
+        const s = result.status;
 
-      if (s === "available") {
-        aiStatusContent.innerHTML = `<p class="status-ready">✓ Local Gemini Nano ready to use</p>`;
-      } else if (s === "downloadable") {
-        aiStatusContent.innerHTML = `
-        <p class="status-info">Gemini Nano needs to be downloaded (~22GB free space required)</p>
-        <button id="download-ai-btn" class="btn-primary">Download Gemini Nano</button>
-      `;
-        document.getElementById("download-ai-btn").addEventListener("click", () => {
-          chrome.runtime.sendMessage({ type: "TRIGGER_MODEL_DOWNLOAD" });
-          aiStatusContent.innerHTML = `<p class="status-info">Download started. Check back later.</p>`;
-        });
-      } else if (s === "downloading") {
-        aiStatusContent.innerHTML = `<p class="status-info">Model download in progress. Check back later.</p>`;
-      } else {
-        aiStatusContent.innerHTML = `
-        <p class="status-error">✗ Chrome Free AI not supported on this device</p>
-        <p class="status-hint">Requires macOS 13+, 22GB free space, 16GB RAM.<br>
-        Ensure flags are enabled: chrome://flags/#optimization-guide-on-device-model and
-        chrome://flags/#prompt-api-for-gemini-nano</p>
-      `;
-      }
-    })
-    .catch((err) => {
-      log.error("GET_AI_STATUS failed:", err.message);
-      aiStatusContent.innerHTML = `<p class="status-error">Error checking model status</p>`;
-    });
+        if (s === "available") {
+          aiStatusContent.innerHTML = `<p class="status-ready">✓ Local Gemini Nano ready to use</p>`;
+        } else if (s === "downloadable") {
+          aiStatusContent.innerHTML = `
+          <p class="status-info">Gemini Nano needs to be downloaded (~22GB free space required)</p>
+          <button id="download-ai-btn" class="btn-primary">Download Gemini Nano</button>
+        `;
+          document.getElementById("download-ai-btn").addEventListener("click", () => {
+            chrome.runtime.sendMessage({ type: "TRIGGER_MODEL_DOWNLOAD" });
+            aiStatusContent.innerHTML = `<p class="status-info">Download started. Check back later.</p>`;
+          });
+        } else if (s === "downloading") {
+          aiStatusContent.innerHTML = `<p class="status-info">Model download in progress. Check back later.</p>`;
+        } else {
+          aiStatusContent.innerHTML = `
+          <p class="status-error">✗ Chrome Free AI not supported on this device</p>
+          <p class="status-hint">Requires macOS 13+, 22GB free space, 16GB RAM.<br>
+          Ensure flags are enabled: chrome://flags/#optimization-guide-on-device-model and
+          chrome://flags/#prompt-api-for-gemini-nano</p>
+        `;
+        }
+      })
+      .catch((err) => {
+        log.error("GET_AI_STATUS failed:", err.message);
+        aiStatusContent.innerHTML = `<p class="status-error">Error checking model status</p>`;
+      });
+    return;
+  }
+
+  // Other providers: show availability status
+  aiStatusSection.hidden = provider.available;
+  if (!provider.available) {
+    const hint = provider._classRef.availabilityHint;
+    aiStatusContent.innerHTML = `
+      <p class="status-error">✗ ${provider.name} is not available</p>
+      ${hint ? `<p class="status-hint">${hint}</p>` : ""}
+    `;
+  }
 }
 
-function populateProviders() {
-  providers = getAvailableProviders();
+async function populateProviders() {
+  providers = await getAvailableProviders();
   providers.forEach((p) => {
     const option = document.createElement("option");
     option.value = p.id;
-    option.textContent = p.name;
+    option.textContent = p.available ? p.name : `${p.name} (unavailable)`;
     providerSelect.appendChild(option);
   });
 
-  providerSelect.addEventListener("change", () => {
+  providerSelect.addEventListener("change", async () => {
     const provider = providers.find((p) => p.id === providerSelect.value);
     if (provider) {
       log.info(`Provider changed to: ${provider.name} (${provider.id})`);
       apiKeyInput.placeholder = provider.keyPlaceholder;
-      populateModels(provider.id, null);
+      await populateModels(provider.id, null);
       showAiStatus(provider.id);
     }
   });
@@ -186,7 +216,7 @@ async function loadSettings() {
     hasKey: Boolean(result.apiKey),
   });
   providerSelect.value = providerId;
-  populateModels(providerId, result.model);
+  await populateModels(providerId, result.model);
   if (result.apiKey && result.apiKey !== NO_API_KEY_SENTINEL) apiKeyInput.value = result.apiKey;
   enabledToggle.checked = result.enabled !== false;
   showAiStatus(providerId);
@@ -198,8 +228,9 @@ saveBtn.addEventListener("click", async () => {
   let apiKey = apiKeyInput.value.trim();
 
   const isChromeFreeAI = providerId === "chrome-free-ai";
+  const isOllama = providerId === "ollama";
 
-  if (!isChromeFreeAI && !apiKey) {
+  if (!isChromeFreeAI && !isOllama && !apiKey) {
     log.warn("Save aborted — no API key");
     showStatus("Please enter an API key", "error");
     return;
@@ -287,9 +318,11 @@ siteToggle.addEventListener("change", async () => {
 });
 
 log.info("Popup opened");
-populateProviders();
-loadSettings();
-loadCurrentSite();
+(async () => {
+  await populateProviders();
+  loadSettings();
+  loadCurrentSite();
+})().catch((err) => log.error("Popup init failed:", err.message));
 
 // ── Session Usage ──
 
