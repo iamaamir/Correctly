@@ -1,4 +1,5 @@
 import { createProvider } from "../../providers/provider-registry.js";
+import { getSettings } from "../../lib/settings.js";
 
 async function verifySettings(providerId, apiKey, model, log) {
   try {
@@ -12,8 +13,8 @@ async function verifySettings(providerId, apiKey, model, log) {
 }
 
 async function getExtensionStatus() {
-  const { apiKey, enabled } = await chrome.storage.local.get(["apiKey", "enabled"]);
-  return { enabled: enabled !== false, configured: Boolean(apiKey) };
+  const { apiKey, enabled } = await getSettings();
+  return { enabled, configured: Boolean(apiKey) };
 }
 
 export function registerSettingsHandlers(handlers, { log }) {
