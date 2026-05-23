@@ -73,48 +73,47 @@ async function persistTokenUsage(record, log) {
 }
 
 export function registerGrammarHandlers(handlers, { log }) {
-  handlers.set("CHECK_GRAMMAR", (message, sender, sendResponse, tabInfo) => {
+  handlers.set("CHECK_GRAMMAR", async (message, sender, sendResponse, tabInfo) => {
     const tabId = sender.tab?.id;
     log.info(`CHECK_GRAMMAR request from ${tabInfo}`, { textLength: message.text?.length });
     const endTimer = log.time("grammar-check");
 
     updateBadge(tabId, "checking");
 
-    handleGrammarCheck(message.text, log)
-      .then((result) => {
-        endTimer();
-        const hasIssues = result.changes?.length > 0;
-        updateBadge(tabId, hasIssues ? "found" : "ok");
-        setTimeout(
-          () => updateBadge(tabId, "ready"),
-          hasIssues ? BADGE_DURATION_ISSUES : BADGE_DURATION_OK,
-        );
-        log.group("CHECK_GRAMMAR result", () => {
-          log.info(`Changes found: ${result.changes?.length || 0}`);
-          if (result.changes?.length > 0) log.table(result.changes);
-        });
-        sendResponse({ success: true, data: result });
-      })
-      .catch((err) => {
-        endTimer();
-        updateBadge(tabId, "error");
-        setTimeout(() => updateBadge(tabId, "ready"), BADGE_DURATION_ERROR);
-        log.error("CHECK_GRAMMAR failed:", err.message);
-        sendResponse({ success: false, error: err.message });
+    try {
+      const result = await handleGrammarCheck(message.text, log);
+      endTimer();
+      const hasIssues = result.changes?.length > 0;
+      updateBadge(tabId, hasIssues ? "found" : "ok");
+      setTimeout(
+        () => updateBadge(tabId, "ready"),
+        hasIssues ? BADGE_DURATION_ISSUES : BADGE_DURATION_OK,
+      );
+      log.group("CHECK_GRAMMAR result", () => {
+        log.info(`Changes found: ${result.changes?.length || 0}`);
+        if (result.changes?.length > 0) log.table(result.changes);
       });
+      sendResponse({ success: true, data: result });
+    } catch (err) {
+      endTimer();
+      updateBadge(tabId, "error");
+      setTimeout(() => updateBadge(tabId, "ready"), BADGE_DURATION_ERROR);
+      log.error("CHECK_GRAMMAR failed:", err.message);
+      sendResponse({ success: false, error: err.message });
+    }
+    return true;
   });
 
-  handlers.set("GET_SESSION_USAGE", (message, sender, sendResponse, tabInfo) => {
+  handlers.set("GET_SESSION_USAGE", async (message, sender, sendResponse, tabInfo) => {
     log.debug(`GET_SESSION_USAGE request from ${tabInfo}`);
-    chrome.storage.session
-      .get([TOKEN_USAGE_KEY])
-      .then((data) => {
-        sendResponse(data[TOKEN_USAGE_KEY] || { checks: [], summary: { ...DEFAULT_USAGE.summary } });
-      })
-      .catch((err) => {
-        log.error("GET_SESSION_USAGE failed:", err.message);
-        sendResponse({ checks: [], summary: { ...DEFAULT_USAGE.summary } });
-      });
+    try {
+      const data = await chrome.storage.session.get([TOKEN_USAGE_KEY]);
+      sendResponse(data[TOKEN_USAGE_KEY] || { checks: [], summary: { ...DEFAULT_USAGE.summary } });
+    } catch (err) {
+      log.error("GET_SESSION_USAGE failed:", err.message);
+      sendResponse({ checks: [], summary: { ...DEFAULT_USAGE.summary } });
+    }
+    return true;
   });
 }
 
