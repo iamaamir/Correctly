@@ -54,6 +54,10 @@ export class ChromeFreeAIProvider extends BaseProvider {
     return [{ id: "gemini-nano", label: "Gemini Nano", hint: "Built-in, private, offline" }];
   }
 
+  static async getModels() { return this.models; }
+
+  static get requiresApiKey() { return false; }
+
   static isAvailable() {
     const found = typeof LanguageModel !== "undefined";
     log.info(`isAvailable: ${found}`);

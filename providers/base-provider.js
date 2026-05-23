@@ -135,6 +135,11 @@ export class BaseProvider {
     return null;
   }
 
+  /** Whether this provider requires an API key to function */
+  static get requiresApiKey() {
+    return true;
+  }
+
   // ──────────────────────────────────────────────
   //  INSTANCE METHODS
   // ──────────────────────────────────────────────
