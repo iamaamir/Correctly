@@ -616,6 +616,18 @@
   async function init() {
     log.info(`Initializing on ${window.location.href}`);
 
+    chrome.storage.onChanged.addListener(async (changes) => {
+      if (changes.enabled || changes.disabledSites || changes.apiKey || changes.providerId) {
+        try {
+          const status = await chrome.runtime.sendMessage({ type: 'GET_STATUS' });
+          if (!status.configured || !status.enabled) { deactivate(); return; }
+          const { disabledSites = [] } = await chrome.storage.local.get('disabledSites');
+          if (disabledSites.includes(window.location.hostname)) { deactivate(); }
+          else { activate(); }
+        } catch { deactivate(); }
+      }
+    });
+
     try {
       const status = await chrome.runtime.sendMessage({ type: 'GET_STATUS' });
       log.info('Extension status:', status);
@@ -644,33 +656,6 @@
       log.error('Failed to check site list:', err.message);
       activate();
     }
-
-    chrome.storage.onChanged.addListener(async (changes) => {
-      if (changes.enabled) {
-        if (changes.enabled.newValue === false) {
-          log.info('Extension disabled globally');
-          deactivate();
-          return;
-        }
-        log.info('Extension re-enabled globally');
-        const { disabledSites = [] } = await chrome.storage.local.get('disabledSites');
-        if (!disabledSites.includes(window.location.hostname)) {
-          activate();
-        }
-        return;
-      }
-
-      if (changes.disabledSites) {
-        const { enabled } = await chrome.storage.local.get('enabled');
-        if (enabled === false) return;
-        const list = changes.disabledSites.newValue || [];
-        if (list.includes(window.location.hostname)) {
-          deactivate();
-        } else {
-          activate();
-        }
-      }
-    });
 
     document.addEventListener('click', (e) => {
       if (tooltipEl && tooltipEl.classList.contains('correctly-visible') &&
