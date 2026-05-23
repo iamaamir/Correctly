@@ -46,7 +46,8 @@
       "matches": ["<all_urls>"],
       "js": ["content/content.js"],
       "css": ["content/content.css"],
-      "all_frames": true
+      "all_frames": true,
+      "type": "module"
     }
   ]
 }
