@@ -12,6 +12,7 @@
 
 import { OpenAIProvider } from './openai-provider.js';
 import { ChromeFreeAIProvider } from './chrome-free-ai-provider.js';
+import { OllamaProvider } from './ollama-provider.js';
 import { createLogger } from '../lib/logger.js';
 
 const log = createLogger('registry');
@@ -20,6 +21,7 @@ const log = createLogger('registry');
 const PROVIDER_CLASSES = [
   OpenAIProvider,
   ChromeFreeAIProvider,
+  OllamaProvider,
 ];
 
 const PROVIDERS_BY_ID = Object.fromEntries(
@@ -39,24 +41,30 @@ export function createProvider(providerId, apiKey, model) {
   return new ProviderClass(apiKey, model);
 }
 
-export function getAvailableProviders() {
-  const list = PROVIDER_CLASSES
-    .filter(P => {
-      if (P.isAvailable) {
-        const ok = P.isAvailable();
-        if (!ok) log.info(`Filtering out unavailable provider: ${P.id}`);
-        return ok;
-      }
-      return true;
-    })
-    .map(P => ({
-    id: P.id,
-    name: P.displayName,
-    keyPlaceholder: P.keyPlaceholder,
-    models: P.models,
-    defaultModel: P.defaultModel,
+export async function getAvailableProviders() {
+  const list = await Promise.all(PROVIDER_CLASSES.map(async P => {
+    let available = true;
+    if (P.isAvailable) {
+      available = await P.isAvailable();
+    }
+    if (!available) {
+      log.info(`Provider ${P.id} is not available`);
+    }
+    return {
+      id: P.id,
+      name: P.displayName,
+      keyPlaceholder: P.keyPlaceholder,
+      models: P.models,
+      defaultModel: P.defaultModel,
+      available,
+      // back-reference to the provider class, used by the popup for:
+      //   - lazy model fetching  (_classRef.getModels())
+      //   - reading static metadata  (_classRef.availabilityHint)
+      _classRef: P,
+    };
   }));
-  log.info(`Available providers: ${list.map(p => p.id).join(', ')}`);
+
+  log.info(`Available providers: ${list.filter(p => p.available).map(p => p.id).join(', ')}`);
   return list;
 }
 
