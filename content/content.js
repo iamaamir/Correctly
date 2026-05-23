@@ -1,9 +1,10 @@
-import { createLogger } from "../lib/logger.js";
-import { getSettings } from "../lib/settings.js";
+(async () => {
+  const { createLogger } = await import(chrome.runtime.getURL('lib/logger.js'));
+  const { getSettings } = await import(chrome.runtime.getURL('lib/settings.js'));
 
-const log = createLogger("content");
+  const log = createLogger("content");
 
-const DEBOUNCE_MS = 1500;
+  const DEBOUNCE_MS = 1500;
   const MIN_TEXT_LENGTH = 10;
 
   let debounceTimer = null;
@@ -652,3 +653,4 @@ const DEBOUNCE_MS = 1500;
   }
 
   init();
+})();
