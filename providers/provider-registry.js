@@ -2,7 +2,8 @@
  * Provider Registry
  *
  * To add a new provider:
- *   1. Create a new file (e.g. anthropic-provider.js) extending BaseProvider
+ *   1. Create a new file extending BaseProvider (or OpenAICompatibleProvider
+ *      for OpenAI-compatible APIs)
  *   2. Implement all required static metadata and _doCorrectGrammar()
  *   3. Import it below and add the class to the PROVIDER_CLASSES array
  *
@@ -13,6 +14,7 @@
 import { OpenAIProvider } from './openai-provider.js';
 import { ChromeFreeAIProvider } from './chrome-free-ai-provider.js';
 import { OllamaProvider } from './ollama-provider.js';
+import { LMStudioProvider } from './lmstudio-provider.js';
 import { createLogger } from '../lib/logger.js';
 
 const log = createLogger('registry');
@@ -22,6 +24,7 @@ const PROVIDER_CLASSES = [
   OpenAIProvider,
   ChromeFreeAIProvider,
   OllamaProvider,
+  LMStudioProvider,
 ];
 
 const PROVIDERS_BY_ID = Object.fromEntries(
