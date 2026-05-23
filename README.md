@@ -13,7 +13,7 @@ A minimalist Chrome extension that checks grammar, spelling, and punctuation usi
 
 - Works on any text input, textarea, or contentEditable element
 - Inline correction tooltip with accept/dismiss per suggestion
-- Supports OpenAI and Chrome's built-in Gemini Nano ("Chrome Free AI")
+- Supports OpenAI, Ollama, and Chrome's built-in Gemini Nano ("Chrome Free AI")
 - Currently supports English — more languages coming
 - Custom model selection - use any model your provider supports
 - Chrome Free AI runs entirely on-device — no API key needed, no data leaves your machine
@@ -33,6 +33,20 @@ A minimalist Chrome extension that checks grammar, spelling, and punctuation usi
    - **OpenAI**: enter your OpenAI API key
    - **Chrome Free AI**: no API key needed — enable `chrome://flags/#optimization-guide-on-device-model` and `chrome://flags/#prompt-api-for-gemini-nano`, then select "Chrome Free AI" and click Download
    - you can visit `chrome://on-device-internals/` to check the status or tune your model
+   - **Ollama**: see [Using Ollama](#using-ollama) below
+
+## Using Ollama
+
+Correctly supports [Ollama](https://ollama.com) for local grammar checking. No API key is needed for local instances — if you use Ollama with authentication, enter your key as usual.
+
+1. Pull a model: `ollama pull llama3`
+2. Install and load the extension. The `Origin: chrome-extension://...` header is handled automatically.
+3. If you get a 403 error, your Ollama version's CORS check is blocking the extension origin. Fix:
+   ```
+   # Kill the Ollama app, then:
+   OLLAMA_ORIGINS=* ollama serve
+   ```
+4. In the extension popup, select **Ollama**, choose a model, and save. An API key is only needed if your Ollama instance requires authentication.
 
 ## Project Structure
 
@@ -57,6 +71,7 @@ correctly/
 │   ├── base-provider.js       # Abstract provider contract
 │   ├── openai-provider.js     # OpenAI implementation
 │   ├── chrome-free-ai-provider.js  # Chrome's built-in Gemini Nano
+│   ├── ollama-provider.js          # Ollama (local LLMs)
 │   └── provider-registry.js   # Provider lookup and creation
 └── lib/
     ├── config.js              # Shared configuration
