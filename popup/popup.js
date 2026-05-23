@@ -150,10 +150,11 @@ function showAiStatus(providerId) {
           aiStatusContent.innerHTML = `<p class="status-info">Model download in progress. Check back later.</p>`;
         } else {
           aiStatusContent.innerHTML = `
-          <p class="status-error">✗ Chrome Free AI not supported on this device</p>
-          <p class="status-hint">Requires macOS 13+, 22GB free space, 16GB RAM.<br>
-          Ensure flags are enabled: chrome://flags/#optimization-guide-on-device-model and
-          chrome://flags/#prompt-api-for-gemini-nano</p>
+          <p class="status-error">✗ Chrome Free AI not supported on this browser</p>
+          <p class="status-hint">
+          This browser does not currently support the required AI capabilities.
+      Please try a supported browser such as Google chrome.
+          </p>
         `;
         }
       })
@@ -216,7 +217,7 @@ async function loadSettings() {
     hasKey: Boolean(result.apiKey),
   });
   providerSelect.value = providerId;
-  apiKeyInput.placeholder = providers.find(p => p.id === providerId)?.keyPlaceholder || "sk-...";
+  apiKeyInput.placeholder = providers.find((p) => p.id === providerId)?.keyPlaceholder || "sk-...";
   await populateModels(providerId, result.model);
   if (result.apiKey && result.apiKey !== NO_API_KEY_SENTINEL) apiKeyInput.value = result.apiKey;
   enabledToggle.checked = result.enabled !== false;
