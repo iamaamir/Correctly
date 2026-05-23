@@ -1,41 +1,9 @@
-import { BaseProvider } from "./base-provider.js";
+import { OpenAICompatibleProvider } from "./openai-compatible-provider.js";
 import { createLogger } from "../lib/logger.js";
-import { SYSTEM_PROMPT, AI_TEMPERATURE, AI_MAX_TOKENS_MIN } from "../lib/config.js";
 
 const log = createLogger("openai");
 
-const RESPONSE_SCHEMA = {
-  type: "json_schema",
-  json_schema: {
-    name: "grammar_correction",
-    strict: true,
-    schema: {
-      type: "object",
-      properties: {
-        corrected: { type: "string" },
-        changes: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              original: { type: "string" },
-              replacement: { type: "string" },
-              explanation: { type: "string" },
-            },
-            required: ["original", "replacement", "explanation"],
-            additionalProperties: false,
-          },
-        },
-      },
-      required: ["corrected", "changes"],
-      additionalProperties: false,
-    },
-  },
-};
-
-export class OpenAIProvider extends BaseProvider {
-  // ── Static metadata (required by BaseProvider contract) ──
-
+export class OpenAIProvider extends OpenAICompatibleProvider {
   static get id() {
     return "openai";
   }
@@ -62,12 +30,6 @@ export class OpenAIProvider extends BaseProvider {
     ];
   }
 
-  static async getModels() {
-    return this.models;
-  }
-
-  // ── Instance ──
-
   validateApiKey() {
     super.validateApiKey();
     if (!this.apiKey.startsWith("sk-")) {
@@ -81,77 +43,5 @@ export class OpenAIProvider extends BaseProvider {
   constructor(apiKey, model) {
     super(apiKey, model);
     this.endpoint = "https://api.openai.com/v1/chat/completions";
-  }
-
-  async _doCorrectGrammar(text) {
-    const maxTokens = Math.max(text.length * 3, AI_MAX_TOKENS_MIN);
-
-    const payload = {
-      model: this.model,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: text },
-      ],
-      temperature: AI_TEMPERATURE,
-      max_tokens: maxTokens,
-      response_format: RESPONSE_SCHEMA,
-    };
-
-    log.info(`API request → ${this.endpoint}`, { model: this.model, inputLength: text.length });
-    log.debug("Request payload:", payload);
-    log.debug("API key: configured");
-
-    const endTimer = log.time("openai-api-call");
-    const response = await fetch(this.endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      endTimer();
-      const err = await response.json().catch(() => ({}));
-      log.error(`API error ${response.status}:`, err);
-      throw new Error(err.error?.message || `OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.info({ reply: data });
-    endTimer();
-
-    log.group("API response", () => {
-      log.info(`Status: ${response.status}`);
-      log.info(`Model used: ${data.model}`);
-      if (data.usage) {
-        log.info(
-          `Tokens — prompt: ${data.usage.prompt_tokens}, completion: ${data.usage.completion_tokens}, total: ${data.usage.total_tokens}`,
-        );
-      }
-    });
-
-    const content = data.choices?.[0]?.message?.content;
-
-    if (!content) {
-      log.error("Empty content in API response:", data);
-      throw new Error("Empty response from OpenAI");
-    }
-
-    log.debug("Raw response content:", content);
-
-    try {
-      const parsed = JSON.parse(content);
-      log.info(`Parsed result — ${parsed.changes?.length || 0} corrections`);
-
-      return {
-        ...parsed,
-        usage: data.usage || null,
-      };
-    } catch (e) {
-      log.error("JSON parse failed. Raw content:", content);
-      throw new Error("Failed to parse grammar correction response");
-    }
   }
 }

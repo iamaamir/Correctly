@@ -54,8 +54,6 @@ export class ChromeFreeAIProvider extends BaseProvider {
     return [{ id: "gemini-nano", label: "Gemini Nano", hint: "Built-in, private, offline" }];
   }
 
-  static async getModels() { return this.models; }
-
   static get requiresApiKey() { return false; }
 
   static isAvailable() {
@@ -96,11 +94,6 @@ export class ChromeFreeAIProvider extends BaseProvider {
 
   static get CHROME_FLAGS_HELP() {
     return "Enable chrome://flags/#optimization-guide-on-device-model and chrome://flags/#prompt-api-for-gemini-nano";
-  }
-
-  validateApiKey() {
-    log.debug("validateApiKey: no-op (API key not required)");
-    return true;
   }
 
   async _doCorrectGrammar(text) {
