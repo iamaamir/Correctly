@@ -1,8 +1,30 @@
 (async () => {
-  const { createLogger } = await import(chrome.runtime.getURL('lib/logger.js'));
-  const { getSettings } = await import(chrome.runtime.getURL('lib/settings.js'));
 
-  const log = createLogger("content");
+  const LOG_PREFIX = '[Correctly][content]';
+  const LOG_STYLES = { debug: 'color: #888', info: 'color: #2d7d46; font-weight: bold', warn: 'color: #e65100; font-weight: bold', error: 'color: #c62828; font-weight: bold' };
+  const LOG_RANKS = { debug: 0, info: 1, warn: 2, error: 3, silent: 4 };
+  let logRank = LOG_RANKS.info;
+
+  chrome.storage.local.get('logLevel').then(({ logLevel }) => {
+    if (logLevel && LOG_RANKS[logLevel] !== undefined) logRank = LOG_RANKS[logLevel];
+  }).catch(() => {});
+  chrome.storage.onChanged.addListener((changes) => {
+    if (changes.logLevel) {
+      const level = changes.logLevel.newValue || 'info';
+      if (LOG_RANKS[level] !== undefined) logRank = LOG_RANKS[level];
+    }
+  });
+
+  const log = {
+    debug: (...args) => { if (LOG_RANKS.debug >= logRank) console.debug(`%c${LOG_PREFIX}`, LOG_STYLES.debug, ...args); },
+    info:  (...args) => { if (LOG_RANKS.info  >= logRank) console.info(`%c${LOG_PREFIX}`, LOG_STYLES.info, ...args); },
+    warn:  (...args) => { if (LOG_RANKS.warn  >= logRank) console.warn(`%c${LOG_PREFIX}`, LOG_STYLES.warn, ...args); },
+    error: (...args) => { if (LOG_RANKS.error >= logRank) console.error(`%c${LOG_PREFIX}`, LOG_STYLES.error, ...args); },
+    time:  (label) => {
+      if (LOG_RANKS.debug < logRank) return () => {};
+      const k = `${LOG_PREFIX} ${label}#${Date.now()}`; console.time(k); return () => console.timeEnd(k);
+    },
+  };
 
   const DEBOUNCE_MS = 1500;
   const MIN_TEXT_LENGTH = 10;
@@ -593,7 +615,7 @@
         try {
           const status = await chrome.runtime.sendMessage({ type: 'GET_STATUS' });
           if (!status.configured || !status.enabled) { deactivate(); return; }
-          const { disabledSites } = await getSettings();
+          const { disabledSites = [] } = await chrome.storage.local.get('disabledSites');
           if (disabledSites.includes(window.location.hostname)) { deactivate(); }
           else { activate(); }
         } catch { deactivate(); }
@@ -618,7 +640,7 @@
     }
 
     try {
-      const { disabledSites } = await getSettings();
+      const { disabledSites = [] } = await chrome.storage.local.get('disabledSites');
       if (disabledSites.includes(window.location.hostname)) {
         log.info(`Disabled on ${window.location.hostname} — skipping`);
       } else {
