@@ -4,6 +4,17 @@ import { BADGE_DURATION_ISSUES, BADGE_DURATION_OK, BADGE_DURATION_ERROR } from '
 
 const log = createLogger('bg');
 
+const TOKEN_USAGE_KEY = 'sessionTokenUsage';
+const DEFAULT_USAGE = {
+  checks: [],
+  summary: {
+    totalChecks: 0,
+    totalPromptTokens: 0,
+    totalCompletionTokens: 0,
+    totalTokens: 0,
+  },
+};
+
 log.info('Service worker started');
 
 function updateBadge(tabId, state) {
@@ -54,7 +65,8 @@ chrome.storage.onChanged.addListener((changes) => {
   if (changes.providerId || changes.apiKey || changes.model) {
     cachedProvider = null;
     cachedProviderKey = '';
-    log.debug('Provider cache invalidated');
+    chrome.storage.session.remove(TOKEN_USAGE_KEY);
+    log.debug('Provider cache invalidated — token usage cleared');
   }
 
   chrome.storage.local.get(['apiKey', 'enabled']).then(({ apiKey, enabled }) => {
@@ -126,6 +138,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === 'GET_SESSION_USAGE') {
+    log.debug(`GET_SESSION_USAGE request from ${tabInfo}`);
+    chrome.storage.session.get([TOKEN_USAGE_KEY])
+      .then(data => {
+        sendResponse(data[TOKEN_USAGE_KEY] || { checks: [], summary: { ...DEFAULT_USAGE.summary } });
+      })
+      .catch((err) => {
+        log.error('GET_SESSION_USAGE failed:', err.message);
+        sendResponse({ checks: [], summary: { ...DEFAULT_USAGE.summary } });
+      });
+    return true;
+  }
+
   log.warn('Unknown message type:', message.type);
 });
 
@@ -146,7 +171,39 @@ async function handleGrammarCheck(text) {
 
   const provider = getOrCreateProvider(providerId || 'openai', apiKey, model);
   log.info(`Using provider: ${provider.providerName}, model: ${provider.model}`);
-  return await provider.correctGrammar(text);
+
+  const result = await provider.correctGrammar(text);
+
+  if (result.usage) {
+    await persistTokenUsage({
+      provider: provider.providerId,
+      model: provider.model,
+      prompt_tokens: result.usage.prompt_tokens || 0,
+      completion_tokens: result.usage.completion_tokens || 0,
+      total_tokens: result.usage.total_tokens || 0,
+      timestamp: Date.now(),
+    });
+  }
+
+  return { corrected: result.corrected, changes: result.changes };
+}
+
+async function persistTokenUsage(record) {
+  try {
+    const data = await chrome.storage.session.get([TOKEN_USAGE_KEY]);
+    const current = data[TOKEN_USAGE_KEY] || { checks: [], summary: { ...DEFAULT_USAGE.summary } };
+
+    current.checks.push(record);
+    current.summary.totalChecks++;
+    current.summary.totalPromptTokens += record.prompt_tokens;
+    current.summary.totalCompletionTokens += record.completion_tokens;
+    current.summary.totalTokens += record.total_tokens;
+
+    await chrome.storage.session.set({ [TOKEN_USAGE_KEY]: current });
+    log.debug(`Token usage persisted — ${record.total_tokens} total tokens (${current.summary.totalChecks} checks)`);
+  } catch (err) {
+    log.error('Failed to persist token usage:', err.message);
+  }
 }
 
 async function verifySettings(providerId, apiKey, model) {

@@ -1,57 +1,64 @@
-import { BaseProvider } from './base-provider.js';
-import { createLogger } from '../lib/logger.js';
-import { SYSTEM_PROMPT, AI_TEMPERATURE, AI_MAX_TOKENS_MIN } from '../lib/config.js';
+import { BaseProvider } from "./base-provider.js";
+import { createLogger } from "../lib/logger.js";
+import { SYSTEM_PROMPT, AI_TEMPERATURE, AI_MAX_TOKENS_MIN } from "../lib/config.js";
 
-const log = createLogger('openai');
+const log = createLogger("openai");
 
 const RESPONSE_SCHEMA = {
-  type: 'json_schema',
+  type: "json_schema",
   json_schema: {
-    name: 'grammar_correction',
+    name: "grammar_correction",
     strict: true,
     schema: {
-      type: 'object',
+      type: "object",
       properties: {
-        corrected: { type: 'string' },
+        corrected: { type: "string" },
         changes: {
-          type: 'array',
+          type: "array",
           items: {
-            type: 'object',
+            type: "object",
             properties: {
-              original: { type: 'string' },
-              replacement: { type: 'string' },
-              explanation: { type: 'string' },
+              original: { type: "string" },
+              replacement: { type: "string" },
+              explanation: { type: "string" },
             },
-            required: ['original', 'replacement', 'explanation'],
+            required: ["original", "replacement", "explanation"],
             additionalProperties: false,
           },
         },
       },
-      required: ['corrected', 'changes'],
+      required: ["corrected", "changes"],
       additionalProperties: false,
     },
   },
 };
 
 export class OpenAIProvider extends BaseProvider {
-
   // ── Static metadata (required by BaseProvider contract) ──
 
-  static get id() { return 'openai'; }
+  static get id() {
+    return "openai";
+  }
 
-  static get displayName() { return 'OpenAI'; }
+  static get displayName() {
+    return "OpenAI";
+  }
 
-  static get keyPlaceholder() { return 'sk-...'; }
+  static get keyPlaceholder() {
+    return "sk-...";
+  }
 
-  static get defaultModel() { return 'gpt-4o-mini'; }
+  static get defaultModel() {
+    return "gpt-4o-mini";
+  }
 
   static get models() {
     return [
-      { id: 'gpt-4o-mini', label: 'GPT-4o Mini', hint: 'Fast & cheap' },
-      { id: 'gpt-4o', label: 'GPT-4o', hint: 'Best quality' },
-      { id: 'gpt-4.1-nano', label: 'GPT-4.1 Nano', hint: 'Fastest, lowest cost' },
-      { id: 'gpt-4.1-mini', label: 'GPT-4.1 Mini', hint: 'Balanced' },
-      { id: 'gpt-4.1', label: 'GPT-4.1', hint: 'Most capable' },
+      { id: "gpt-4o-mini", label: "GPT-4o Mini", hint: "Fast & cheap" },
+      { id: "gpt-4o", label: "GPT-4o", hint: "Best quality" },
+      { id: "gpt-4.1-nano", label: "GPT-4.1 Nano", hint: "Fastest, lowest cost" },
+      { id: "gpt-4.1-mini", label: "GPT-4.1 Mini", hint: "Balanced" },
+      { id: "gpt-4.1", label: "GPT-4.1", hint: "Most capable" },
     ];
   }
 
@@ -59,7 +66,7 @@ export class OpenAIProvider extends BaseProvider {
 
   constructor(apiKey, model) {
     super(apiKey, model);
-    this.endpoint = 'https://api.openai.com/v1/chat/completions';
+    this.endpoint = "http://127.0.0.1:1234/v1/chat/completions";
   }
 
   async _doCorrectGrammar(text) {
@@ -68,8 +75,8 @@ export class OpenAIProvider extends BaseProvider {
     const payload = {
       model: this.model,
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: text }
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: text },
       ],
       temperature: AI_TEMPERATURE,
       max_tokens: maxTokens,
@@ -77,17 +84,17 @@ export class OpenAIProvider extends BaseProvider {
     };
 
     log.info(`API request → ${this.endpoint}`, { model: this.model, inputLength: text.length });
-    log.debug('Request payload:', payload);
-    log.debug('API key: configured');
+    log.debug("Request payload:", payload);
+    log.debug("API key: configured");
 
-    const endTimer = log.time('openai-api-call');
+    const endTimer = log.time("openai-api-call");
     const response = await fetch(this.endpoint, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -98,32 +105,39 @@ export class OpenAIProvider extends BaseProvider {
     }
 
     const data = await response.json();
+    console.info({ reply: data });
     endTimer();
 
-    log.group('API response', () => {
+    log.group("API response", () => {
       log.info(`Status: ${response.status}`);
       log.info(`Model used: ${data.model}`);
       if (data.usage) {
-        log.info(`Tokens — prompt: ${data.usage.prompt_tokens}, completion: ${data.usage.completion_tokens}, total: ${data.usage.total_tokens}`);
+        log.info(
+          `Tokens — prompt: ${data.usage.prompt_tokens}, completion: ${data.usage.completion_tokens}, total: ${data.usage.total_tokens}`,
+        );
       }
     });
 
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
-      log.error('Empty content in API response:', data);
-      throw new Error('Empty response from OpenAI');
+      log.error("Empty content in API response:", data);
+      throw new Error("Empty response from OpenAI");
     }
 
-    log.debug('Raw response content:', content);
+    log.debug("Raw response content:", content);
 
     try {
       const parsed = JSON.parse(content);
       log.info(`Parsed result — ${parsed.changes?.length || 0} corrections`);
-      return parsed;
+
+      return {
+        ...parsed,
+        usage: data.usage || null,
+      };
     } catch (e) {
-      log.error('JSON parse failed. Raw content:', content);
-      throw new Error('Failed to parse grammar correction response');
+      log.error("JSON parse failed. Raw content:", content);
+      throw new Error("Failed to parse grammar correction response");
     }
   }
 }
