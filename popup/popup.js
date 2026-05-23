@@ -216,6 +216,7 @@ async function loadSettings() {
     hasKey: Boolean(result.apiKey),
   });
   providerSelect.value = providerId;
+  apiKeyInput.placeholder = providers.find(p => p.id === providerId)?.keyPlaceholder || "sk-...";
   await populateModels(providerId, result.model);
   if (result.apiKey && result.apiKey !== NO_API_KEY_SENTINEL) apiKeyInput.value = result.apiKey;
   enabledToggle.checked = result.enabled !== false;
@@ -252,7 +253,7 @@ saveBtn.addEventListener("click", async () => {
     }
   }
 
-  if (providerId === "chrome-free-ai" && !apiKey) {
+  if (!apiKey && providerInfo && !providerInfo.requiresApiKey) {
     apiKey = NO_API_KEY_SENTINEL;
   }
 
