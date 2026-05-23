@@ -33,7 +33,7 @@ async function handleGrammarCheck(text, log) {
     hasKey: Boolean(apiKey),
   });
 
-  if (enabled === false) throw new Error("Correctly is disabled");
+  if (!enabled) throw new Error("Correctly is disabled");
   if (!apiKey) throw new Error("No API key configured. Click the Correctly icon to set one up.");
 
   const provider = getOrCreateProvider(providerId, apiKey, model, log);
