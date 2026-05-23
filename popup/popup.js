@@ -245,3 +245,48 @@ log.info('Popup opened');
 populateProviders();
 loadSettings();
 loadCurrentSite();
+
+// ── Session Usage ──
+
+const usageSection = document.getElementById('usage-section');
+const usageStats = document.getElementById('usage-stats');
+
+async function loadSessionUsage() {
+  try {
+    const data = await chrome.runtime.sendMessage({ type: 'GET_SESSION_USAGE' });
+    if (!data || data.summary.totalChecks === 0) {
+      usageSection.hidden = true;
+      return;
+    }
+
+    usageSection.hidden = false;
+    const s = data.summary;
+    const last = data.checks[data.checks.length - 1];
+    const fmt = (n) => n.toLocaleString();
+
+    usageStats.innerHTML = `
+      <div class="usage-row">
+        <span class="usage-stat">
+          <span class="usage-value">${fmt(s.totalChecks)}</span>
+          <span class="usage-label">checks</span>
+        </span>
+        <span class="usage-stat">
+          <span class="usage-value">${fmt(s.totalTokens)}</span>
+          <span class="usage-label">total tokens</span>
+        </span>
+      </div>
+      <div class="usage-detail">
+        ${fmt(s.totalPromptTokens)} prompt + ${fmt(s.totalCompletionTokens)} completion
+      </div>
+      <div class="usage-last">
+        Last: ${last.model} (${fmt(last.total_tokens)} tokens)
+      </div>
+    `;
+    log.debug('Session usage loaded', s);
+  } catch (err) {
+    log.debug('Could not load session usage:', err.message);
+    usageSection.hidden = true;
+  }
+}
+
+loadSessionUsage();

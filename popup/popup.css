@@ -214,6 +214,57 @@ input:focus {
   margin-top: 4px;
 }
 
+.usage-section {
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.usage-stats {
+  background: #f5f9f6;
+  border: 1px solid #d4edda;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.usage-row {
+  display: flex;
+  gap: 16px;
+}
+
+.usage-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.usage-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2d7d46;
+  line-height: 1;
+}
+
+.usage-label {
+  font-size: 11px;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.usage-detail {
+  font-size: 12px;
+  color: #777;
+  margin-top: 4px;
+}
+
+.usage-last {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid #e0ece3;
+}
+
 .log-section {
   margin-top: 12px;
   padding-top: 12px;
