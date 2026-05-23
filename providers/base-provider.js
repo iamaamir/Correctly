@@ -5,8 +5,8 @@
  *   1. Extend this class
  *   2. Implement all static metadata (id, name, defaultModel, keyPlaceholder)
  *   3. Implement _doCorrectGrammar(text) — the actual API call
- *   4. Implement static async getModels() — canonical async model fetch
- *   5. Implement static get models() — synchronous cache/fallback accessor
+ *   4. Implement static get models() — synchronous cache/fallback accessor
+ *   5. Optionally override getModels() for dynamic fetching (defaults to models)
  *   6. Optionally override validateApiKey() for provider-specific key validation
  *   7. Optionally override isAvailable() to check if provider is reachable
  *
@@ -69,13 +69,14 @@ export class BaseProvider {
 
   /**
    * Async model list — the canonical API for fetching models.
-   * Subclasses MUST implement.
+   * Default implementation delegates to the static `models` getter.
+   * Override for dynamic fetching (e.g. Ollama queries its API).
    * - Cache internally to avoid repeated fetches.
    * - Handle errors gracefully, return fallbacks on failure.
    * @returns {Promise<Array<{id: string, label: string, hint: string}>>}
    */
   static async getModels() {
-    throw new Error(`${this.name} must implement static async getModels()`);
+    return this.models;
   }
 
   /*
@@ -181,9 +182,11 @@ export class BaseProvider {
 
   /**
    * Validates that the API key is set and non-empty.
+   * Skips validation if requiresApiKey is false.
    * Subclasses can override for provider-specific format validation.
    */
   validateApiKey() {
+    if (!this.constructor.requiresApiKey) return true;
     if (!this.apiKey || typeof this.apiKey !== "string" || this.apiKey.trim() === "") {
       log.error("API key validation failed — key is missing or empty");
       throw new Error("API key is required");
