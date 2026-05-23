@@ -66,7 +66,7 @@ export class OpenAIProvider extends BaseProvider {
 
   constructor(apiKey, model) {
     super(apiKey, model);
-    this.endpoint = "http://127.0.0.1:1234/v1/chat/completions";
+    this.endpoint = "https://api.openai.com/v1/chat/completions";
   }
 
   async _doCorrectGrammar(text) {
