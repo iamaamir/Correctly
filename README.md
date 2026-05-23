@@ -32,7 +32,7 @@ A minimalist Chrome extension that checks grammar, spelling, and punctuation usi
 5. Click the extension icon, select your provider, enter an API key if required, and save
    - **OpenAI**: enter your OpenAI API key
    - **Chrome Free AI**: no API key needed — enable `chrome://flags/#optimization-guide-on-device-model` and `chrome://flags/#prompt-api-for-gemini-nano`, then select "Chrome Free AI" and click Download
-   - you can visit chrome://on-device-internals/ to check the status or tune your model
+   - you can visit `chrome://on-device-internals/` to check the status or tune your model
 
 ## Project Structure
 
