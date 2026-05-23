@@ -1,4 +1,4 @@
-import { getAvailableProviders } from "../providers/provider-registry.js";
+import { createProvider, getAvailableProviders } from "../providers/provider-registry.js";
 import { createLogger } from "../lib/logger.js";
 
 const log = createLogger("popup");
@@ -227,10 +227,9 @@ saveBtn.addEventListener("click", async () => {
   const model = getSelectedModel();
   let apiKey = apiKeyInput.value.trim();
 
-  const isChromeFreeAI = providerId === "chrome-free-ai";
-  const isOllama = providerId === "ollama";
+  const providerInfo = providers.find((p) => p.id === providerId);
 
-  if (!isChromeFreeAI && !isOllama && !apiKey) {
+  if (providerInfo?.requiresApiKey && !apiKey) {
     log.warn("Save aborted — no API key");
     showStatus("Please enter an API key", "error");
     return;
@@ -242,13 +241,24 @@ saveBtn.addEventListener("click", async () => {
     return;
   }
 
-  if (isChromeFreeAI && !apiKey) {
+  if (providerInfo?.requiresApiKey) {
+    try {
+      const provider = createProvider(providerId, apiKey, model);
+      provider.validateApiKey();
+    } catch (e) {
+      log.warn("Save aborted — invalid API key:", e.message);
+      showStatus(e.message, "error");
+      return;
+    }
+  }
+
+  if (providerId === "chrome-free-ai" && !apiKey) {
     apiKey = NO_API_KEY_SENTINEL;
   }
 
   saveBtn.disabled = true;
   saveBtn.textContent = "Saving…";
-  log.info("Saving settings", { providerId, model, isChromeFreeAI });
+  log.info("Saving settings", { providerId, model });
 
   try {
     await chrome.storage.local.set({ providerId, model, apiKey });

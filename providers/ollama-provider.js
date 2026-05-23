@@ -72,6 +72,8 @@ export class OllamaProvider extends BaseProvider {
     return "Make sure Ollama is up and running";
   }
 
+  static get requiresApiKey() { return false; }
+
   /**
    * Fetch models from Ollama API. Caches on success, returns fallbacks on failure
    * without updating cache (lazy — next call retries fetch).

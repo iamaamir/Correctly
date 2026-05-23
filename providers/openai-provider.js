@@ -62,7 +62,21 @@ export class OpenAIProvider extends BaseProvider {
     ];
   }
 
+  static async getModels() {
+    return this.models;
+  }
+
   // ── Instance ──
+
+  validateApiKey() {
+    super.validateApiKey();
+    if (!this.apiKey.startsWith("sk-")) {
+      log.error("API key validation failed — OpenAI keys start with 'sk-'");
+      throw new Error("Invalid OpenAI API key format — expected key starting with 'sk-'");
+    }
+    log.debug("OpenAI API key format validated");
+    return true;
+  }
 
   constructor(apiKey, model) {
     super(apiKey, model);

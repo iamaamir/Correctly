@@ -50,13 +50,14 @@ export async function getAvailableProviders() {
     if (!available) {
       log.info(`Provider ${P.id} is not available`);
     }
-    return {
-      id: P.id,
-      name: P.displayName,
-      keyPlaceholder: P.keyPlaceholder,
-      models: P.models,
-      defaultModel: P.defaultModel,
-      available,
+      return {
+        id: P.id,
+        name: P.displayName,
+        keyPlaceholder: P.keyPlaceholder,
+        requiresApiKey: P.requiresApiKey,
+        models: P.models,
+        defaultModel: P.defaultModel,
+        available,
       // back-reference to the provider class, used by the popup for:
       //   - lazy model fetching  (_classRef.getModels())
       //   - reading static metadata  (_classRef.availabilityHint)
@@ -78,6 +79,7 @@ export function getProviderInfo(providerId) {
     id: ProviderClass.id,
     name: ProviderClass.displayName,
     keyPlaceholder: ProviderClass.keyPlaceholder,
+    requiresApiKey: ProviderClass.requiresApiKey,
     models: ProviderClass.models,
     defaultModel: ProviderClass.defaultModel,
   };
