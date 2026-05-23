@@ -13,7 +13,7 @@ A minimalist Chrome extension that checks grammar, spelling, and punctuation usi
 
 - Works on any text input, textarea, or contentEditable element
 - Inline correction tooltip with accept/dismiss per suggestion
-- Supports OpenAI, Ollama, and Chrome's built-in Gemini Nano ("Chrome Free AI")
+- Supports OpenAI, Ollama, LM Studio, and Chrome's built-in Gemini Nano ("Chrome Free AI")
 - Currently supports English — more languages coming
 - Custom model selection - use any model your provider supports
 - Chrome Free AI runs entirely on-device — no API key needed, no data leaves your machine
@@ -34,6 +34,7 @@ A minimalist Chrome extension that checks grammar, spelling, and punctuation usi
    - **Chrome Free AI**: no API key needed — enable `chrome://flags/#optimization-guide-on-device-model` and `chrome://flags/#prompt-api-for-gemini-nano`, then select "Chrome Free AI" and click Download
    - you can visit `chrome://on-device-internals/` to check the status or tune your model
    - **Ollama**: see [Using Ollama](#using-ollama) below
+   - **LM Studio**: see [Using LM Studio](#using-lm-studio) below
 
 ## Using Ollama
 
@@ -69,14 +70,24 @@ correctly/
 │   └── popup.css              # Popup styles
 ├── providers/
 │   ├── base-provider.js       # Abstract provider contract
+│   ├── openai-compatible-provider.js  # Shared logic for OpenAI-compatible APIs
 │   ├── openai-provider.js     # OpenAI implementation
 │   ├── chrome-free-ai-provider.js  # Chrome's built-in Gemini Nano
 │   ├── ollama-provider.js          # Ollama (local LLMs)
+│   ├── lmstudio-provider.js        # LM Studio (local LLMs)
 │   └── provider-registry.js   # Provider lookup and creation
 └── lib/
     ├── config.js              # Shared configuration
     └── logger.js              # Tagged, leveled console logger
 ```
+
+## Using LM Studio
+
+Correctly supports [LM Studio](https://lmstudio.ai) for local grammar checking. No API key is needed.
+
+1. Open LM Studio, load a model, and start the local inference server (default port 1234)
+2. Make sure **Local CORS** is turned off in LM Studio's settings
+3. In the extension popup, select **LM Studio**, choose a model, and save
 
 ## Privacy and Security
 
@@ -87,9 +98,13 @@ correctly/
 
 ## Want to add a new Provider?
 
-1. Create a new file in `providers/` extending `BaseProvider`
-2. Implement all required static metadata and `_doCorrectGrammar(text)`
-3. Add the class to `PROVIDER_CLASSES` in `provider-registry.js`
+- **OpenAI-compatible API** (e.g., Ollama, LM Studio): extend `OpenAICompatibleProvider`
+  — `_doCorrectGrammar()` and response parsing are already implemented. Just provide
+  static metadata and set `this.endpoint` in the constructor.
+- **Other providers**: extend `BaseProvider` directly and implement
+  `_doCorrectGrammar(text)` and all required static metadata.
+
+Then add the class to `PROVIDER_CLASSES` in `provider-registry.js`.
 
 ## License
 
