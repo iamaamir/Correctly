@@ -265,6 +265,39 @@ input:focus {
   border-top: 1px solid #e0ece3;
 }
 
+.ai-status-section {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  background: #f0f4f8;
+  border: 1px solid #d0dbe8;
+  border-radius: 8px;
+}
+
+.status-ready {
+  color: #2d7d46;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.status-info {
+  color: #555;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.status-error {
+  color: #c62828;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.status-hint {
+  color: #888;
+  font-size: 11px;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
 .log-section {
   margin-top: 12px;
   padding-top: 12px;

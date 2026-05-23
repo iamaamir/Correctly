@@ -11,6 +11,7 @@
  */
 
 import { OpenAIProvider } from './openai-provider.js';
+import { ChromeFreeAIProvider } from './chrome-free-ai-provider.js';
 import { createLogger } from '../lib/logger.js';
 
 const log = createLogger('registry');
@@ -18,6 +19,7 @@ const log = createLogger('registry');
 // ── Add new provider classes here ──
 const PROVIDER_CLASSES = [
   OpenAIProvider,
+  ChromeFreeAIProvider,
 ];
 
 const PROVIDERS_BY_ID = Object.fromEntries(
@@ -38,14 +40,23 @@ export function createProvider(providerId, apiKey, model) {
 }
 
 export function getAvailableProviders() {
-  const list = PROVIDER_CLASSES.map(P => ({
+  const list = PROVIDER_CLASSES
+    .filter(P => {
+      if (P.isAvailable) {
+        const ok = P.isAvailable();
+        if (!ok) log.info(`Filtering out unavailable provider: ${P.id}`);
+        return ok;
+      }
+      return true;
+    })
+    .map(P => ({
     id: P.id,
     name: P.displayName,
     keyPlaceholder: P.keyPlaceholder,
     models: P.models,
     defaultModel: P.defaultModel,
   }));
-  log.debug(`Returning ${list.length} available provider(s)`);
+  log.info(`Available providers: ${list.map(p => p.id).join(', ')}`);
   return list;
 }
 
