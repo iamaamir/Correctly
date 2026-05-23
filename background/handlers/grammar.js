@@ -1,4 +1,5 @@
 import { createProvider } from "../../providers/provider-registry.js";
+import { getSettings } from "../../lib/settings.js";
 import { updateBadge, BADGE_DURATION_ISSUES, BADGE_DURATION_OK, BADGE_DURATION_ERROR } from "./badge.js";
 
 const TOKEN_USAGE_KEY = "sessionTokenUsage";
@@ -23,12 +24,10 @@ function getOrCreateProvider(providerId, apiKey, model, log) {
 }
 
 async function handleGrammarCheck(text, log) {
-  const { providerId, apiKey, model, enabled } = await chrome.storage.local.get([
-    "providerId", "apiKey", "model", "enabled",
-  ]);
+  const { providerId, apiKey, model, enabled } = await getSettings();
 
   log.debug("Settings loaded", {
-    providerId: providerId || "openai",
+    providerId,
     model: model || "default",
     enabled,
     hasKey: Boolean(apiKey),
@@ -37,7 +36,7 @@ async function handleGrammarCheck(text, log) {
   if (enabled === false) throw new Error("Correctly is disabled");
   if (!apiKey) throw new Error("No API key configured. Click the Correctly icon to set one up.");
 
-  const provider = getOrCreateProvider(providerId || "openai", apiKey, model, log);
+  const provider = getOrCreateProvider(providerId, apiKey, model, log);
   log.info(`Using provider: ${provider.providerName}, model: ${provider.model}`);
 
   const result = await provider.correctGrammar(text);
