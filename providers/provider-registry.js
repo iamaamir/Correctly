@@ -15,6 +15,7 @@ import { OpenAIProvider } from './openai-provider.js';
 import { ChromeFreeAIProvider } from './chrome-free-ai-provider.js';
 import { OllamaProvider } from './ollama-provider.js';
 import { LMStudioProvider } from './lmstudio-provider.js';
+import { GenericOpenAIProvider } from './generic-openai-provider.js';
 import { createLogger } from '../lib/logger.js';
 
 const log = createLogger('registry');
@@ -25,6 +26,7 @@ const PROVIDER_CLASSES = [
   ChromeFreeAIProvider,
   OllamaProvider,
   LMStudioProvider,
+  GenericOpenAIProvider,
 ];
 
 const PROVIDERS_BY_ID = Object.fromEntries(
@@ -33,7 +35,7 @@ const PROVIDERS_BY_ID = Object.fromEntries(
 
 log.info(`Registered ${PROVIDER_CLASSES.length} provider(s): ${PROVIDER_CLASSES.map(P => P.id).join(', ')}`);
 
-export function createProvider(providerId, apiKey, model) {
+export function createProvider(providerId, apiKey, model, baseUrl) {
   const ProviderClass = PROVIDERS_BY_ID[providerId];
   if (!ProviderClass) {
     const available = PROVIDER_CLASSES.map(P => P.id).join(', ');
@@ -41,7 +43,7 @@ export function createProvider(providerId, apiKey, model) {
     throw new Error(`Unknown provider: "${providerId}". Available: ${available}`);
   }
   log.debug(`Creating provider: ${ProviderClass.displayName} (model: ${model || ProviderClass.defaultModel})`);
-  return new ProviderClass(apiKey, model);
+  return new ProviderClass(apiKey, model, baseUrl);
 }
 
 export async function getAvailableProviders() {

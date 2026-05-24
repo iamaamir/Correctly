@@ -11,20 +11,20 @@ const DEFAULT_USAGE = {
 let cachedProvider = null;
 let cachedProviderKey = "";
 
-function getOrCreateProvider(providerId, apiKey, model, log) {
-  const key = `${providerId}|${apiKey}|${model}`;
+function getOrCreateProvider(providerId, apiKey, model, baseUrl, log) {
+  const key = `${providerId}|${apiKey}|${model}|${baseUrl || ""}`;
   if (cachedProvider && cachedProviderKey === key) {
     log.debug("Reusing cached provider instance");
     return cachedProvider;
   }
   log.debug("Creating new provider instance (settings changed)");
-  cachedProvider = createProvider(providerId, apiKey, model);
+  cachedProvider = createProvider(providerId, apiKey, model, baseUrl);
   cachedProviderKey = key;
   return cachedProvider;
 }
 
 async function handleGrammarCheck(text, log) {
-  const { providerId, apiKey, model, enabled } = await getSettings();
+  const { providerId, apiKey, model, baseUrl, enabled } = await getSettings();
 
   log.debug("Settings loaded", {
     providerId,
@@ -36,7 +36,7 @@ async function handleGrammarCheck(text, log) {
   if (!enabled) throw new Error("Correctly is disabled");
   if (!apiKey) throw new Error("No API key configured. Click the Correctly icon to set one up.");
 
-  const provider = getOrCreateProvider(providerId, apiKey, model, log);
+  const provider = getOrCreateProvider(providerId, apiKey, model, baseUrl, log);
   log.info(`Using provider: ${provider.providerName}, model: ${provider.model}`);
 
   const result = await provider.correctGrammar(text);
