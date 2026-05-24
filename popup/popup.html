@@ -25,6 +25,15 @@
       <p class="model-hint" id="model-hint"></p>
     </section>
 
+    <section class="base-url-section" id="base-url-section" hidden>
+      <label for="base-url">Base URL</label>
+      <div class="base-url-wrapper">
+        <input type="text" id="base-url" placeholder="https://api.groq.com/openai" autocomplete="off" />
+        <button id="fetch-models-btn" class="btn-secondary" title="Fetch available models">Fetch</button>
+      </div>
+      <p class="base-url-hint" id="base-url-hint">Base URL for the OpenAI-compatible API (no trailing /v1)</p>
+    </section>
+
     <section class="ai-status-section" id="ai-status-section" hidden>
       <div id="ai-status-content"></div>
     </section>

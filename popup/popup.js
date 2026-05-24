@@ -19,12 +19,18 @@ const siteHost = document.getElementById("site-host");
 const logLevelSelect = document.getElementById("log-level");
 const aiStatusSection = document.getElementById("ai-status-section");
 const aiStatusContent = document.getElementById("ai-status-content");
+const baseUrlSection = document.getElementById("base-url-section");
+const baseUrlInput = document.getElementById("base-url");
+const fetchModelsBtn = document.getElementById("fetch-models-btn");
+const baseUrlHint = document.getElementById("base-url-hint");
 
 let currentHostname = null;
 
 const CUSTOM_VALUE = "__custom__";
 const NO_API_KEY_SENTINEL = "noapikeyrequired";
+const OPENAI_COMPATIBLE_ID = "openai-compatible";
 let providers = [];
+let savedState = {};
 
 function showStatus(message, type = "success") {
   statusMsg.textContent = message;
@@ -33,6 +39,32 @@ function showStatus(message, type = "success") {
   setTimeout(() => {
     statusMsg.hidden = true;
   }, 2500);
+}
+
+function captureSavedState() {
+  savedState = {
+    providerId: providerSelect.value,
+    model: getSelectedModel(),
+    apiKey: apiKeyInput.value,
+    baseUrl: baseUrlInput.value,
+    enabled: enabledToggle.checked,
+    logLevel: logLevelSelect.value,
+  };
+}
+
+function hasUnsavedChanges() {
+  return (
+    savedState.providerId !== providerSelect.value ||
+    savedState.model !== getSelectedModel() ||
+    savedState.apiKey !== apiKeyInput.value ||
+    savedState.baseUrl !== baseUrlInput.value ||
+    savedState.enabled !== enabledToggle.checked ||
+    savedState.logLevel !== logLevelSelect.value
+  );
+}
+
+function updateMarkUnsaved() {
+  saveBtn.className = hasUnsavedChanges() ? "btn-primary btn-unsaved" : "btn-primary";
 }
 
 function isCustomSelected() {
@@ -53,6 +85,45 @@ function setCustomInputVisibility(show) {
   }
 }
 
+function renderModelDropdown(models, selectedModel, defaultModel) {
+  modelSelect.innerHTML = "";
+  modelHint.textContent = "";
+  customModelInput.value = "";
+  setCustomInputVisibility(false);
+
+  if (models && models.length > 0) {
+    models.forEach((m) => {
+      const option = document.createElement("option");
+      option.value = m.id;
+      option.textContent = m.label;
+      modelSelect.appendChild(option);
+    });
+  }
+
+  const customOption = document.createElement("option");
+  customOption.value = CUSTOM_VALUE;
+  customOption.textContent = "Custom model...";
+  modelSelect.appendChild(customOption);
+
+  if (selectedModel) {
+    const isKnown = models && models.some((m) => m.id === selectedModel);
+    if (isKnown) {
+      modelSelect.value = selectedModel;
+    } else {
+      modelSelect.value = CUSTOM_VALUE;
+      customModelInput.value = selectedModel;
+      setCustomInputVisibility(true);
+    }
+  } else if (models && models.length > 0) {
+    modelSelect.value = defaultModel || models[0].id;
+  } else {
+    modelSelect.value = CUSTOM_VALUE;
+    setCustomInputVisibility(true);
+  }
+
+  updateModelHint();
+}
+
 async function populateModels(providerId, selectedModel) {
   const provider = providers.find((p) => p.id === providerId);
   if (!provider) return;
@@ -65,46 +136,11 @@ async function populateModels(providerId, selectedModel) {
   modelSelect.appendChild(loadingOpt);
 
   // Lazy-fetch models via _classRef (async, cached per provider).
-  // getAvailableProviders() returned sync (P.models) for instant render;
-  // this refreshes them from the provider API so the dropdown is up to date.
   if (provider._classRef) {
     provider.models = await provider._classRef.getModels();
   }
 
-  // Render
-  modelSelect.innerHTML = "";
-  modelHint.textContent = "";
-  customModelInput.value = "";
-  setCustomInputVisibility(false);
-
-  if (!provider.models) return;
-
-  provider.models.forEach((m) => {
-    const option = document.createElement("option");
-    option.value = m.id;
-    option.textContent = m.label;
-    modelSelect.appendChild(option);
-  });
-
-  const customOption = document.createElement("option");
-  customOption.value = CUSTOM_VALUE;
-  customOption.textContent = "Custom model...";
-  modelSelect.appendChild(customOption);
-
-  if (selectedModel) {
-    const isKnown = provider.models.some((m) => m.id === selectedModel);
-    if (isKnown) {
-      modelSelect.value = selectedModel;
-    } else {
-      modelSelect.value = CUSTOM_VALUE;
-      customModelInput.value = selectedModel;
-      setCustomInputVisibility(true);
-    }
-  } else {
-    modelSelect.value = provider.defaultModel;
-  }
-
-  updateModelHint();
+  renderModelDropdown(provider.models, selectedModel, provider.defaultModel);
 }
 
 function updateModelHint() {
@@ -191,8 +227,16 @@ async function populateProviders() {
     if (provider) {
       log.info(`Provider changed to: ${provider.name} (${provider.id})`);
       apiKeyInput.placeholder = provider.keyPlaceholder;
+      const isGeneric = provider.id === OPENAI_COMPATIBLE_ID;
+      baseUrlSection.hidden = !isGeneric;
+      if (isGeneric) {
+        const { baseUrl } = await getSettings();
+        baseUrlInput.value = baseUrl || "";
+        baseUrlHint.textContent = "Base URL for the OpenAI-compatible API (no trailing /v1)";
+      }
       await populateModels(provider.id, null);
       showAiStatus(provider.id);
+      updateMarkUnsaved();
     }
   });
 
@@ -200,7 +244,61 @@ async function populateProviders() {
     log.debug(`Model changed to: ${isCustomSelected() ? "custom" : modelSelect.value}`);
     setCustomInputVisibility(isCustomSelected());
     updateModelHint();
+    updateMarkUnsaved();
   });
+
+  fetchModelsBtn.addEventListener("click", async () => {
+    const baseUrl = baseUrlInput.value.trim();
+    if (!baseUrl) {
+      baseUrlHint.textContent = "Please enter a base URL first";
+      return;
+    }
+
+    const apiKey = apiKeyInput.value.trim();
+    if (!apiKey) {
+      baseUrlHint.textContent = "Please enter an API key first";
+      return;
+    }
+
+    fetchModelsBtn.disabled = true;
+    fetchModelsBtn.textContent = "Fetching...";
+
+    const result = await chrome.runtime.sendMessage({
+      type: "FETCH_MODELS",
+      baseUrl,
+      apiKey,
+    });
+
+    if (result.error) {
+      baseUrlHint.textContent = `Fetch failed: ${result.error}`;
+      fetchModelsBtn.disabled = false;
+      fetchModelsBtn.textContent = "Fetch";
+      return;
+    }
+
+    const provider = providers.find((p) => p.id === providerSelect.value);
+    const fetched = result.models || [];
+    const limited = fetched.slice(0, 10);
+
+    if (provider) {
+      provider.models = limited;
+    }
+
+    if (fetched.length > 10) {
+      baseUrlHint.textContent = `Showing 10 of ${fetched.length} models — use Custom model for others`;
+    } else {
+      baseUrlHint.textContent = `${fetched.length} model(s) available`;
+    }
+
+    renderModelDropdown(limited, limited[0]?.id, provider?.defaultModel);
+    modelHint.textContent = "Select a model from the list, or use Custom model to type one";
+    fetchModelsBtn.disabled = false;
+    fetchModelsBtn.textContent = "Fetch";
+  });
+
+  apiKeyInput.addEventListener("input", updateMarkUnsaved);
+  baseUrlInput.addEventListener("input", updateMarkUnsaved);
+  customModelInput.addEventListener("input", updateMarkUnsaved);
 
   if (providers.length > 0) {
     apiKeyInput.placeholder = providers[0].keyPlaceholder;
@@ -209,7 +307,7 @@ async function populateProviders() {
 
 async function loadSettings() {
   log.info("Loading saved settings");
-  const { providerId, apiKey, model, enabled } = await getSettings();
+  const { providerId, apiKey, model, baseUrl, enabled } = await getSettings();
   log.debug("Loaded settings", {
     providerId,
     model: model || "default",
@@ -218,18 +316,34 @@ async function loadSettings() {
   });
   providerSelect.value = providerId;
   apiKeyInput.placeholder = providers.find((p) => p.id === providerId)?.keyPlaceholder || "sk-...";
+
+  const isGeneric = providerId === OPENAI_COMPATIBLE_ID;
+  baseUrlSection.hidden = !isGeneric;
+  if (isGeneric) {
+    baseUrlInput.value = baseUrl || "";
+  }
+
   await populateModels(providerId, model);
   if (apiKey && apiKey !== NO_API_KEY_SENTINEL) apiKeyInput.value = apiKey;
   enabledToggle.checked = enabled;
   showAiStatus(providerId);
+  captureSavedState();
+  updateMarkUnsaved();
 }
 
 saveBtn.addEventListener("click", async () => {
   const providerId = providerSelect.value;
   const model = getSelectedModel();
   let apiKey = apiKeyInput.value.trim();
+  const baseUrl = providerId === OPENAI_COMPATIBLE_ID ? baseUrlInput.value.trim() : "";
 
   const providerInfo = providers.find((p) => p.id === providerId);
+
+  if (providerId === OPENAI_COMPATIBLE_ID && !baseUrl) {
+    log.warn("Save aborted — no base URL");
+    showStatus("Please enter a base URL", "error");
+    return;
+  }
 
   if (providerInfo?.requiresApiKey && !apiKey) {
     log.warn("Save aborted — no API key");
@@ -245,7 +359,7 @@ saveBtn.addEventListener("click", async () => {
 
   if (providerInfo?.requiresApiKey) {
     try {
-      const provider = createProvider(providerId, apiKey, model);
+      const provider = createProvider(providerId, apiKey, model, baseUrl);
       provider.validateApiKey();
     } catch (e) {
       log.warn("Save aborted — invalid API key:", e.message);
@@ -259,13 +373,34 @@ saveBtn.addEventListener("click", async () => {
   }
 
   saveBtn.disabled = true;
-  saveBtn.textContent = "Saving…";
-  log.info("Saving settings", { providerId, model });
+  saveBtn.textContent = "Verifying…";
+  log.info("Verifying provider", { providerId, model });
 
   try {
-    await setSettings({ providerId, model, apiKey });
+    const verifyResult = await chrome.runtime.sendMessage({
+      type: "VERIFY_SETTINGS",
+      providerId,
+      apiKey,
+      model,
+      baseUrl,
+    });
+
+    if (!verifyResult.success) {
+      log.warn("Save aborted — provider verification failed:", verifyResult.error);
+      showStatus(verifyResult.error || "Provider verification failed", "error");
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save";
+      return;
+    }
+
+    log.info("Provider verified, saving settings", { providerId, model });
+    saveBtn.textContent = "Saving…";
+
+    await setSettings({ providerId, model, apiKey, baseUrl });
     log.info("Settings saved successfully");
     showStatus("Settings saved");
+    captureSavedState();
+    updateMarkUnsaved();
   } catch (err) {
     log.error("Save error:", err.message);
     showStatus("Failed to save settings", "error");
@@ -283,12 +418,16 @@ toggleVisibility.addEventListener("click", () => {
 enabledToggle.addEventListener("change", async () => {
   log.info(`Extension ${enabledToggle.checked ? "enabled" : "disabled"}`);
   await setSettings({ enabled: enabledToggle.checked });
+  captureSavedState();
+  updateMarkUnsaved();
 });
 
 logLevelSelect.addEventListener("change", async () => {
   const level = logLevelSelect.value;
   log.info(`Log level changed to: ${level}`);
   await setSettings({ logLevel: level });
+  captureSavedState();
+  updateMarkUnsaved();
 });
 
 getSettings().then(({ logLevel }) => {

@@ -2,7 +2,7 @@ import { BaseProvider } from "./base-provider.js";
 import { createLogger } from "../lib/logger.js";
 import { SYSTEM_PROMPT, AI_TEMPERATURE, AI_MAX_TOKENS_MIN } from "../lib/config.js";
 
-const RESPONSE_SCHEMA = {
+export const RESPONSE_SCHEMA = {
   type: "json_schema",
   json_schema: {
     name: "grammar_correction",

@@ -136,6 +136,24 @@ input:focus {
   background: #1a5a2d;
 }
 
+.btn-unsaved {
+  background: #e67e22;
+  animation: pulse-unsaved 2s ease-in-out infinite;
+}
+
+.btn-unsaved:hover {
+  background: #d35400;
+}
+
+.btn-unsaved:active {
+  background: #c0392b;
+}
+
+@keyframes pulse-unsaved {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(230, 126, 34, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(230, 126, 34, 0); }
+}
+
 .status {
   text-align: center;
   font-size: 13px;
@@ -263,6 +281,52 @@ input:focus {
   margin-top: 4px;
   padding-top: 4px;
   border-top: 1px solid #e0ece3;
+}
+
+.base-url-section {
+  margin-bottom: 16px;
+}
+
+.base-url-wrapper {
+  display: flex;
+  gap: 8px;
+}
+
+.base-url-wrapper input {
+  flex: 1;
+}
+
+.base-url-hint {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
+  min-height: 14px;
+}
+
+.btn-secondary {
+  padding: 10px 14px;
+  background: #e8e8e8;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.btn-secondary:hover {
+  background: #d4d4d4;
+}
+
+.btn-secondary:active {
+  background: #c0c0c0;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .ai-status-section {

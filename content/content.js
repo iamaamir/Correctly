@@ -611,7 +611,7 @@
     log.info(`Initializing on ${window.location.href}`);
 
     chrome.storage.onChanged.addListener(async (changes) => {
-      if (changes.enabled || changes.disabledSites || changes.apiKey || changes.providerId) {
+      if (changes.enabled || changes.disabledSites || changes.apiKey || changes.providerId || changes.baseUrl) {
         try {
           const status = await chrome.runtime.sendMessage({ type: 'GET_STATUS' });
           if (!status.configured || !status.enabled) { deactivate(); return; }
