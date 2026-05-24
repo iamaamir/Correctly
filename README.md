@@ -13,7 +13,7 @@ A minimalist Chrome extension that checks grammar, spelling, and punctuation usi
 
 - Works on any text input, textarea, or contentEditable element
 - Inline correction tooltip with accept/dismiss per suggestion
-- Supports OpenAI, Ollama, LM Studio, and Chrome's built-in Gemini Nano ("Chrome Free AI")
+- Supports OpenAI, OpenAI Compatible (Groq, OpenRouter, etc.), Ollama, LM Studio, and Chrome's built-in Gemini Nano ("Chrome Free AI")
 - Currently supports English — more languages coming
 - Custom model selection - use any model your provider supports
 - Chrome Free AI runs entirely on-device — no API key needed, no data leaves your machine
@@ -35,6 +35,7 @@ A minimalist Chrome extension that checks grammar, spelling, and punctuation usi
    - you can visit `chrome://on-device-internals/` to check the status or tune your model
    - **Ollama**: see [Using Ollama](#using-ollama) below
    - **LM Studio**: see [Using LM Studio](#using-lm-studio) below
+   - **OpenAI Compatible**: enter the base URL and API key for any OpenAI-compatible service, then click **Fetch** to load available models
 
 ## Using Ollama
 
@@ -75,6 +76,7 @@ correctly/
 │   ├── chrome-free-ai-provider.js  # Chrome's built-in Gemini Nano
 │   ├── ollama-provider.js          # Ollama (local LLMs)
 │   ├── lmstudio-provider.js        # LM Studio (local LLMs)
+│   ├── generic-openai-provider.js  # Generic OpenAI-compatible (Groq, OpenRouter, etc.)
 │   └── provider-registry.js   # Provider lookup and creation
 └── lib/
     ├── config.js              # Shared configuration
@@ -89,6 +91,16 @@ Correctly supports [LM Studio](https://lmstudio.ai) for local grammar checking. 
 2. Make sure **Local CORS** is turned off in LM Studio's settings
 3. In the extension popup, select **LM Studio**, choose a model, and save
 
+## Using OpenAI Compatible
+
+Correctly supports any service that offers an OpenAI-compatible API (e.g., [Groq](https://groq.com), [OpenRouter](https://openrouter.ai), [DeepSeek](https://deepseek.com)). You provide the base URL and API key.
+
+1. In the extension popup, select **OpenAI Compatible**
+2. Enter the full base URL (e.g., `https://api.groq.com/openai/v1`)
+3. Enter your API key
+4. Click **Fetch** to load available models, or type a model name manually
+5. Select a model, click **Save** — the extension verifies the connection before saving
+
 ## Privacy and Security
 
 - **Your API key is stored locally** in `chrome.storage.local` on your device. It is never sent to any server other than your chosen AI provider.
@@ -101,6 +113,9 @@ Correctly supports [LM Studio](https://lmstudio.ai) for local grammar checking. 
 - **OpenAI-compatible API** (e.g., Ollama, LM Studio): extend `OpenAICompatibleProvider`
   — `_doCorrectGrammar()` and response parsing are already implemented. Just provide
   static metadata and set `this.endpoint` in the constructor.
+- **Generic OpenAI-compatible** (any service with a base URL + API key): no new class needed
+  — use `GenericOpenAIProvider` which is already registered. Users configure the base URL
+  and API key in the popup.
 - **Other providers**: extend `BaseProvider` directly and implement
   `_doCorrectGrammar(text)` and all required static metadata.
 
