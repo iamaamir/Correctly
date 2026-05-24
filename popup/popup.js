@@ -29,6 +29,7 @@ let currentHostname = null;
 const CUSTOM_VALUE = "__custom__";
 const NO_API_KEY_SENTINEL = "noapikeyrequired";
 const OPENAI_COMPATIBLE_ID = "openai-compatible";
+const SAVED_URLS_KEY = "savedBaseUrls";
 let providers = [];
 let savedState = {};
 
@@ -52,10 +53,26 @@ async function setCachedModels(baseUrl, models) {
 
 function applyFetchedModels(provider, models, selectedModel) {
   const fetched = models || [];
-  const limited = fetched.slice(0, 10);
+  const limited = fetched.slice(0, 20);
   if (provider) provider.models = limited;
   renderModelDropdown(limited, selectedModel || limited[0]?.id, provider?.defaultModel);
   baseUrlHint.textContent = "";
+}
+
+async function populateBaseUrlSuggestions() {
+  const datalist = document.getElementById("base-url-suggestions");
+  if (!datalist) return;
+  const { [SAVED_URLS_KEY]: saved = [] } = await chrome.storage.local.get(SAVED_URLS_KEY);
+  datalist.innerHTML = saved.map((url) => `<option value="${url}">`).join("");
+}
+
+async function saveBaseUrlSuggestion(url) {
+  if (!url) return;
+  const { [SAVED_URLS_KEY]: saved = [] } = await chrome.storage.local.get(SAVED_URLS_KEY);
+  if (!saved.includes(url)) {
+    saved.unshift(url);
+    await chrome.storage.local.set({ [SAVED_URLS_KEY]: saved.slice(0, 20) });
+  }
 }
 
 function showStatus(message, type = "success") {
@@ -446,6 +463,12 @@ saveBtn.addEventListener("click", async () => {
 
     await setSettings({ providerId, model, apiKey, baseUrl });
     log.info("Settings saved successfully");
+
+    if (baseUrl) {
+      saveBaseUrlSuggestion(baseUrl).catch((e) => log.warn("Failed to save URL suggestion:", e.message));
+      populateBaseUrlSuggestions().catch((e) => log.warn("Failed to refresh suggestions:", e.message));
+    }
+
     showStatus("Settings saved");
     captureSavedState();
     updateMarkUnsaved();
@@ -521,6 +544,7 @@ log.info("Popup opened");
   await populateProviders();
   loadSettings();
   loadCurrentSite();
+  populateBaseUrlSuggestions();
 })().catch((err) => log.error("Popup init failed:", err.message));
 
 // ── Session Usage ──
