@@ -25,19 +25,10 @@ jobs:
           cd dist && zip -r ../correctly.zip correctly && cd ..
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Commit and tag
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add manifest.json
-          git commit -m "Bump version to v${{ steps.bump.outputs.version }}"
-          git tag v${{ steps.bump.outputs.version }}
-          git push
-          git push --tags
-
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.bump.outputs.version }}
           name: v${{ steps.bump.outputs.version }}
           files: correctly.zip
           generate_release_notes: true
+
