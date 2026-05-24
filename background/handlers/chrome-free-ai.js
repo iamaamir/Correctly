@@ -1,7 +1,7 @@
 import { ChromeFreeAIProvider } from "../../providers/chrome-free-ai-provider.js";
 
 export function registerChromeFreeAIHandlers(handlers, { log }) {
-  handlers.set("GET_AI_STATUS", async (message, sender, sendResponse) => {
+  handlers.set("GET_AI_STATUS", async (_message, _sender, sendResponse) => {
     try {
       const status = await ChromeFreeAIProvider.getStatus();
       log.info(`AI status request: ${status}`);
@@ -13,7 +13,7 @@ export function registerChromeFreeAIHandlers(handlers, { log }) {
     return true;
   });
 
-  handlers.set("TRIGGER_MODEL_DOWNLOAD", async (message, sender, sendResponse) => {
+  handlers.set("TRIGGER_MODEL_DOWNLOAD", async (_message, _sender, sendResponse) => {
     log.info("Model download triggered by popup");
     try {
       await ChromeFreeAIProvider.ensureModel();

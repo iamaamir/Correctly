@@ -1,6 +1,6 @@
-import { createProvider, getAvailableProviders } from "../providers/provider-registry.js";
 import { createLogger } from "../lib/logger.js";
 import { getSettings, setSettings } from "../lib/settings.js";
+import { createProvider, getAvailableProviders } from "../providers/provider-registry.js";
 
 const log = createLogger("popup");
 
@@ -155,7 +155,7 @@ function renderModelDropdown(models, selectedModel, defaultModel) {
   modelSelect.appendChild(customOption);
 
   if (selectedModel) {
-    const isKnown = models && models.some((m) => m.id === selectedModel);
+    const isKnown = models?.some((m) => m.id === selectedModel);
     if (isKnown) {
       modelSelect.value = selectedModel;
     } else {
@@ -214,7 +214,7 @@ function showAiStatus(providerId) {
     chrome.runtime
       .sendMessage({ type: "GET_AI_STATUS", providerId })
       .then((result) => {
-        if (!result || !result.status) {
+        if (!result?.status) {
           aiStatusContent.innerHTML = `<p class="status-error">Could not check model status</p>`;
           return;
         }

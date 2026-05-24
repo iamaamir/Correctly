@@ -1,5 +1,5 @@
-import { AbstractOpenAICompatibleProvider } from "./abstract-openai-compatible-provider.js";
 import { createLogger } from "../lib/logger.js";
+import { AbstractOpenAICompatibleProvider } from "./abstract-openai-compatible-provider.js";
 
 const log = createLogger("openai");
 

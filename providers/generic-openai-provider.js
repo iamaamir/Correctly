@@ -1,8 +1,8 @@
-import { AbstractOpenAICompatibleProvider, RESPONSE_SCHEMA } from "./abstract-openai-compatible-provider.js";
-import { SYSTEM_PROMPT, AI_TEMPERATURE, AI_MAX_TOKENS_MIN } from "../lib/config.js";
+import { AI_MAX_TOKENS_MIN, AI_TEMPERATURE, SYSTEM_PROMPT } from "../lib/config.js";
 import { createLogger } from "../lib/logger.js";
+import { AbstractOpenAICompatibleProvider, RESPONSE_SCHEMA } from "./abstract-openai-compatible-provider.js";
 
-const log = createLogger("openai-compatible");
+const _log = createLogger("openai-compatible");
 
 export class GenericOpenAIProvider extends AbstractOpenAICompatibleProvider {
   static get id() {
@@ -22,9 +22,7 @@ export class GenericOpenAIProvider extends AbstractOpenAICompatibleProvider {
   }
 
   static get models() {
-    return [
-      { id: "gpt-4o-mini", label: "GPT-4o Mini", hint: "Most services support this" },
-    ];
+    return [{ id: "gpt-4o-mini", label: "GPT-4o Mini", hint: "Most services support this" }];
   }
 
   static get availabilityHint() {
@@ -35,7 +33,7 @@ export class GenericOpenAIProvider extends AbstractOpenAICompatibleProvider {
     super(apiKey, model);
     this.baseUrl = baseUrl || "";
     const url = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
-    this.endpoint = url ? url + "/chat/completions" : "";
+    this.endpoint = url ? `${url}/chat/completions` : "";
   }
 
   async _doCorrectGrammar(text) {
@@ -103,7 +101,7 @@ export class GenericOpenAIProvider extends AbstractOpenAICompatibleProvider {
         const parsed = JSON.parse(content);
         myLog.info(`Parsed result — ${parsed.changes?.length || 0} corrections`);
         return { ...parsed, usage: data.usage || null };
-      } catch (e) {
+      } catch (_e) {
         myLog.error("JSON parse failed. Raw content:", content);
         throw new Error("Failed to parse grammar correction response");
       }

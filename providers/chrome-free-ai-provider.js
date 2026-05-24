@@ -1,6 +1,6 @@
-import { AbstractProvider } from "./abstract-provider.js";
-import { createLogger } from "../lib/logger.js";
 import { SYSTEM_PROMPT } from "../lib/config.js";
+import { createLogger } from "../lib/logger.js";
+import { AbstractProvider } from "./abstract-provider.js";
 
 const log = createLogger("chrome-free-ai");
 
@@ -54,7 +54,9 @@ export class ChromeFreeAIProvider extends AbstractProvider {
     return [{ id: "gemini-nano", label: "Gemini Nano", hint: "Built-in, private, offline" }];
   }
 
-  static get requiresApiKey() { return false; }
+  static get requiresApiKey() {
+    return false;
+  }
 
   static isAvailable() {
     const found = typeof LanguageModel !== "undefined";
@@ -63,19 +65,19 @@ export class ChromeFreeAIProvider extends AbstractProvider {
   }
 
   static async getStatus() {
-    if (typeof LanguageModel === "undefined") return this.STATUS.UNAVAILABLE;
+    if (typeof LanguageModel === "undefined") return ChromeFreeAIProvider.STATUS.UNAVAILABLE;
     const raw = await LanguageModel.availability();
     log.info(`getStatus: raw="${raw}"`);
     const map = {
-      no: this.STATUS.UNAVAILABLE,
-      unavailable: this.STATUS.UNAVAILABLE,
-      "after-download": this.STATUS.DOWNLOADABLE,
-      downloadable: this.STATUS.DOWNLOADABLE,
-      downloading: this.STATUS.DOWNLOADING,
-      readily: this.STATUS.AVAILABLE,
-      available: this.STATUS.AVAILABLE,
+      no: ChromeFreeAIProvider.STATUS.UNAVAILABLE,
+      unavailable: ChromeFreeAIProvider.STATUS.UNAVAILABLE,
+      "after-download": ChromeFreeAIProvider.STATUS.DOWNLOADABLE,
+      downloadable: ChromeFreeAIProvider.STATUS.DOWNLOADABLE,
+      downloading: ChromeFreeAIProvider.STATUS.DOWNLOADING,
+      readily: ChromeFreeAIProvider.STATUS.AVAILABLE,
+      available: ChromeFreeAIProvider.STATUS.AVAILABLE,
     };
-    return map[raw] || this.STATUS.UNAVAILABLE;
+    return map[raw] || ChromeFreeAIProvider.STATUS.UNAVAILABLE;
   }
 
   static async ensureModel(onProgress) {
@@ -116,9 +118,7 @@ export class ChromeFreeAIProvider extends AbstractProvider {
     const session = await LanguageModel.create({
       initialPrompts: [{ role: "system", content: SYSTEM_PROMPT }],
     });
-    log.debug(
-      `Session created — context window: ${session.contextWindow}, usage: ${session.contextUsage}`,
-    );
+    log.debug(`Session created — context window: ${session.contextWindow}, usage: ${session.contextUsage}`);
 
     try {
       log.debug("Calling session.prompt with responseConstraint");

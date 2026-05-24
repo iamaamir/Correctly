@@ -1,6 +1,6 @@
-import { AbstractProvider } from "./abstract-provider.js";
+import { AI_MAX_TOKENS_MIN, AI_TEMPERATURE, SYSTEM_PROMPT } from "../lib/config.js";
 import { createLogger } from "../lib/logger.js";
-import { SYSTEM_PROMPT, AI_TEMPERATURE, AI_MAX_TOKENS_MIN } from "../lib/config.js";
+import { AbstractProvider } from "./abstract-provider.js";
 
 export const RESPONSE_SCHEMA = {
   type: "json_schema",
@@ -108,13 +108,13 @@ export class AbstractOpenAICompatibleProvider extends AbstractProvider {
         ...parsed,
         usage: data.usage || null,
       };
-    } catch (e) {
+    } catch (_e) {
       log.error("JSON parse failed. Raw content:", content);
       throw new Error("Failed to parse grammar correction response");
     }
   }
 
-  _onApiError(status, err, response) {
+  _onApiError(_status, _err, _response) {
     return null;
   }
 }

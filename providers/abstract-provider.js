@@ -59,12 +59,12 @@ export class AbstractProvider {
 
   /** Unique identifier used in storage and registry (e.g. 'openai') */
   static get id() {
-    throw new Error(`${this.name} must implement static get id()`);
+    throw new Error(`${AbstractProvider.name} must implement static get id()`);
   }
 
   /** Display name shown in the UI (e.g. 'OpenAI') */
   static get displayName() {
-    throw new Error(`${this.name} must implement static get displayName()`);
+    throw new Error(`${AbstractProvider.name} must implement static get displayName()`);
   }
 
   /**
@@ -76,7 +76,7 @@ export class AbstractProvider {
    * @returns {Promise<Array<{id: string, label: string, hint: string}>>}
    */
   static async getModels() {
-    return this.models;
+    return AbstractProvider.models;
   }
 
   /*
@@ -104,17 +104,17 @@ export class AbstractProvider {
    * @returns {Array<{id: string, label: string, hint: string}>}
    */
   static get models() {
-    throw new Error(`${this.name} must implement static get models()`);
+    throw new Error(`${AbstractProvider.name} must implement static get models()`);
   }
 
   /** Default model id — must match one of the models[].id values */
   static get defaultModel() {
-    throw new Error(`${this.name} must implement static get defaultModel()`);
+    throw new Error(`${AbstractProvider.name} must implement static get defaultModel()`);
   }
 
   /** Placeholder text for the API key input (e.g. 'sk-...') */
   static get keyPlaceholder() {
-    throw new Error(`${this.name} must implement static get keyPlaceholder()`);
+    throw new Error(`${AbstractProvider.name} must implement static get keyPlaceholder()`);
   }
 
   /**
@@ -176,7 +176,7 @@ export class AbstractProvider {
    * @param {string} text — non-empty, already validated
    * @returns {Promise<{corrected: string, changes: Array}>}
    */
-  async _doCorrectGrammar(text) {
+  async _doCorrectGrammar(_text) {
     throw new Error(`${this.constructor.name} must implement _doCorrectGrammar(text)`);
   }
 
@@ -217,10 +217,7 @@ export class AbstractProvider {
       throw new Error(`${ProviderClass.name}: static getModels must be a function`);
     }
 
-    if (
-      typeof ProviderClass.isAvailable !== "function" &&
-      ProviderClass.isAvailable !== undefined
-    ) {
+    if (typeof ProviderClass.isAvailable !== "function" && ProviderClass.isAvailable !== undefined) {
       throw new Error(`${ProviderClass.name}: static isAvailable must be a function or undefined`);
     }
 
@@ -230,21 +227,17 @@ export class AbstractProvider {
     }
     for (const m of models) {
       if (!m.id || !m.label || !m.hint) {
-        throw new Error(
-          `${ProviderClass.name}: every model must have { id, label, hint } — got ${JSON.stringify(m)}`,
-        );
+        throw new Error(`${ProviderClass.name}: every model must have { id, label, hint } — got ${JSON.stringify(m)}`);
       }
     }
 
     const defaultModel = ProviderClass.defaultModel;
     if (!models.some((m) => m.id === defaultModel)) {
-      throw new Error(
-        `${ProviderClass.name}: defaultModel "${defaultModel}" is not in the models list`,
-      );
+      throw new Error(`${ProviderClass.name}: defaultModel "${defaultModel}" is not in the models list`);
     }
   }
 
-  _validateResponse(result, originalText) {
+  _validateResponse(result, _originalText) {
     if (!result || typeof result !== "object") {
       log.error("Response validation failed — not an object", result);
       throw new Error("Provider returned invalid response — expected an object");
@@ -269,9 +262,7 @@ export class AbstractProvider {
         typeof c.explanation !== "string"
       ) {
         log.error(`Response validation failed — changes[${i}] malformed`, c);
-        throw new Error(
-          `Provider response changes[${i}] must have { original, replacement, explanation } strings`,
-        );
+        throw new Error(`Provider response changes[${i}] must have { original, replacement, explanation } strings`);
       }
     }
 

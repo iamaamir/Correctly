@@ -29,7 +29,7 @@
       <label for="base-url">Base URL</label>
       <div class="base-url-wrapper">
         <input type="text" id="base-url" placeholder="https://api.groq.com/openai/v1" autocomplete="off" list="base-url-suggestions" />
-        <button id="fetch-models-btn" class="btn-secondary" title="Fetch available models">Fetch</button>
+        <button type="button" id="fetch-models-btn" class="btn-secondary" title="Fetch available models">Fetch</button>
       </div>
       <p class="base-url-hint" id="base-url-hint">Full API base URL including version path</p>
       <datalist id="base-url-suggestions"></datalist>
@@ -43,14 +43,14 @@
       <label for="api-key">API Key</label>
       <div class="key-input-wrapper">
         <input type="password" id="api-key" autocomplete="off" />
-        <button id="toggle-visibility" title="Show/hide key" aria-label="Toggle key visibility">
+        <button type="button" id="toggle-visibility" title="Show/hide key" aria-label="Toggle key visibility">
           <span class="eye-icon">&#128065;</span>
         </button>
       </div>
     </section>
 
     <section class="actions">
-      <button id="save-btn" class="btn-primary">Save</button>
+      <button type="button" id="save-btn" class="btn-primary">Save</button>
     </section>
 
     <div id="status-msg" class="status" hidden></div>

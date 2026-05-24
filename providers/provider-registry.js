@@ -11,14 +11,14 @@
  * The AbstractProvider contract enforces correctness at instantiation time.
  */
 
-import { OpenAIProvider } from './openai-provider.js';
-import { ChromeFreeAIProvider } from './chrome-free-ai-provider.js';
-import { OllamaProvider } from './ollama-provider.js';
-import { LMStudioProvider } from './lmstudio-provider.js';
-import { GenericOpenAIProvider } from './generic-openai-provider.js';
-import { createLogger } from '../lib/logger.js';
+import { createLogger } from "../lib/logger.js";
+import { ChromeFreeAIProvider } from "./chrome-free-ai-provider.js";
+import { GenericOpenAIProvider } from "./generic-openai-provider.js";
+import { LMStudioProvider } from "./lmstudio-provider.js";
+import { OllamaProvider } from "./ollama-provider.js";
+import { OpenAIProvider } from "./openai-provider.js";
 
-const log = createLogger('registry');
+const log = createLogger("registry");
 
 // ── Add new provider classes here ──
 const PROVIDER_CLASSES = [
@@ -29,16 +29,14 @@ const PROVIDER_CLASSES = [
   GenericOpenAIProvider,
 ];
 
-const PROVIDERS_BY_ID = Object.fromEntries(
-  PROVIDER_CLASSES.map(P => [P.id, P])
-);
+const PROVIDERS_BY_ID = Object.fromEntries(PROVIDER_CLASSES.map((P) => [P.id, P]));
 
-log.info(`Registered ${PROVIDER_CLASSES.length} provider(s): ${PROVIDER_CLASSES.map(P => P.id).join(', ')}`);
+log.info(`Registered ${PROVIDER_CLASSES.length} provider(s): ${PROVIDER_CLASSES.map((P) => P.id).join(", ")}`);
 
 export function createProvider(providerId, apiKey, model, baseUrl) {
   const ProviderClass = PROVIDERS_BY_ID[providerId];
   if (!ProviderClass) {
-    const available = PROVIDER_CLASSES.map(P => P.id).join(', ');
+    const available = PROVIDER_CLASSES.map((P) => P.id).join(", ");
     log.error(`Unknown provider "${providerId}". Available: ${available}`);
     throw new Error(`Unknown provider: "${providerId}". Available: ${available}`);
   }
@@ -47,14 +45,15 @@ export function createProvider(providerId, apiKey, model, baseUrl) {
 }
 
 export async function getAvailableProviders() {
-  const list = await Promise.all(PROVIDER_CLASSES.map(async P => {
-    let available = true;
-    if (P.isAvailable) {
-      available = await P.isAvailable();
-    }
-    if (!available) {
-      log.info(`Provider ${P.id} is not available`);
-    }
+  const list = await Promise.all(
+    PROVIDER_CLASSES.map(async (P) => {
+      let available = true;
+      if (P.isAvailable) {
+        available = await P.isAvailable();
+      }
+      if (!available) {
+        log.info(`Provider ${P.id} is not available`);
+      }
       return {
         id: P.id,
         name: P.displayName,
@@ -63,14 +62,20 @@ export async function getAvailableProviders() {
         models: P.models,
         defaultModel: P.defaultModel,
         available,
-      // back-reference to the provider class, used by the popup for:
-      //   - lazy model fetching  (_classRef.getModels())
-      //   - reading static metadata  (_classRef.availabilityHint)
-      _classRef: P,
-    };
-  }));
+        // back-reference to the provider class, used by the popup for:
+        //   - lazy model fetching  (_classRef.getModels())
+        //   - reading static metadata  (_classRef.availabilityHint)
+        _classRef: P,
+      };
+    }),
+  );
 
-  log.info(`Available providers: ${list.filter(p => p.available).map(p => p.id).join(', ')}`);
+  log.info(
+    `Available providers: ${list
+      .filter((p) => p.available)
+      .map((p) => p.id)
+      .join(", ")}`,
+  );
   return list;
 }
 

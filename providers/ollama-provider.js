@@ -1,5 +1,5 @@
-import { AbstractOpenAICompatibleProvider } from "./abstract-openai-compatible-provider.js";
 import { createLogger } from "../lib/logger.js";
+import { AbstractOpenAICompatibleProvider } from "./abstract-openai-compatible-provider.js";
 
 const log = createLogger("ollama");
 
@@ -38,7 +38,9 @@ export class OllamaProvider extends AbstractOpenAICompatibleProvider {
     return "Make sure Ollama is up and running";
   }
 
-  static get requiresApiKey() { return false; }
+  static get requiresApiKey() {
+    return false;
+  }
 
   static async getModels() {
     const now = Date.now();
@@ -110,7 +112,7 @@ export class OllamaProvider extends AbstractOpenAICompatibleProvider {
     this.endpoint = "http://localhost:11434/v1/chat/completions";
   }
 
-  _onApiError(status, err, response) {
+  _onApiError(status, err, _response) {
     if (status === 403) {
       return "Ollama blocked the request (403). Fix: kill Ollama app, then run: OLLAMA_ORIGINS=* ollama serve";
     }

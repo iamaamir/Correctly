@@ -1,6 +1,6 @@
-import { createProvider } from "../../providers/provider-registry.js";
 import { getSettings } from "../../lib/settings.js";
-import { updateBadge, BADGE_DURATION_ISSUES, BADGE_DURATION_OK, BADGE_DURATION_ERROR } from "./badge.js";
+import { createProvider } from "../../providers/provider-registry.js";
+import { BADGE_DURATION_ERROR, BADGE_DURATION_ISSUES, BADGE_DURATION_OK, updateBadge } from "./badge.js";
 
 const TOKEN_USAGE_KEY = "sessionTokenUsage";
 const DEFAULT_USAGE = {
@@ -42,14 +42,17 @@ async function handleGrammarCheck(text, log) {
   const result = await provider.correctGrammar(text);
 
   if (result.usage) {
-    await persistTokenUsage({
-      provider: provider.providerId,
-      model: provider.model,
-      prompt_tokens: result.usage.prompt_tokens || 0,
-      completion_tokens: result.usage.completion_tokens || 0,
-      total_tokens: result.usage.total_tokens || 0,
-      timestamp: Date.now(),
-    }, log);
+    await persistTokenUsage(
+      {
+        provider: provider.providerId,
+        model: provider.model,
+        prompt_tokens: result.usage.prompt_tokens || 0,
+        completion_tokens: result.usage.completion_tokens || 0,
+        total_tokens: result.usage.total_tokens || 0,
+        timestamp: Date.now(),
+      },
+      log,
+    );
   }
 
   return { corrected: result.corrected, changes: result.changes };
@@ -84,10 +87,7 @@ export function registerGrammarHandlers(handlers, { log }) {
       endTimer();
       const hasIssues = result.changes?.length > 0;
       updateBadge(tabId, hasIssues ? "found" : "ok");
-      setTimeout(
-        () => updateBadge(tabId, "ready"),
-        hasIssues ? BADGE_DURATION_ISSUES : BADGE_DURATION_OK,
-      );
+      setTimeout(() => updateBadge(tabId, "ready"), hasIssues ? BADGE_DURATION_ISSUES : BADGE_DURATION_OK);
       log.group("CHECK_GRAMMAR result", () => {
         log.info(`Changes found: ${result.changes?.length || 0}`);
         if (result.changes?.length > 0) log.table(result.changes);
@@ -103,7 +103,7 @@ export function registerGrammarHandlers(handlers, { log }) {
     return true;
   });
 
-  handlers.set("GET_SESSION_USAGE", async (message, sender, sendResponse, tabInfo) => {
+  handlers.set("GET_SESSION_USAGE", async (_message, _sender, sendResponse, tabInfo) => {
     log.debug(`GET_SESSION_USAGE request from ${tabInfo}`);
     try {
       const data = await chrome.storage.session.get([TOKEN_USAGE_KEY]);

@@ -1,9 +1,9 @@
 import { createLogger } from "../lib/logger.js";
 import { getSettings } from "../lib/settings.js";
 import { updateBadge } from "./handlers/badge.js";
-import { registerGrammarHandlers, invalidateProviderCache } from "./handlers/grammar.js";
-import { registerSettingsHandlers } from "./handlers/settings.js";
 import { registerChromeFreeAIHandlers } from "./handlers/chrome-free-ai.js";
+import { invalidateProviderCache, registerGrammarHandlers } from "./handlers/grammar.js";
+import { registerSettingsHandlers } from "./handlers/settings.js";
 
 const log = createLogger("bg");
 log.info("Service worker started");

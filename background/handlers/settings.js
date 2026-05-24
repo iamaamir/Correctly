@@ -1,5 +1,5 @@
-import { createProvider } from "../../providers/provider-registry.js";
 import { getSettings } from "../../lib/settings.js";
+import { createProvider } from "../../providers/provider-registry.js";
 
 const VERIFY_TEXT = "Aamir go to school yesterday";
 
@@ -26,7 +26,7 @@ async function getExtensionStatus() {
 }
 
 export function registerSettingsHandlers(handlers, { log }) {
-  handlers.set("VERIFY_SETTINGS", async (message, sender, sendResponse, tabInfo) => {
+  handlers.set("VERIFY_SETTINGS", async (message, _sender, sendResponse, tabInfo) => {
     log.info(`VERIFY_SETTINGS request from ${tabInfo}`, {
       providerId: message.providerId,
       model: message.model,
@@ -41,7 +41,7 @@ export function registerSettingsHandlers(handlers, { log }) {
     return true;
   });
 
-  handlers.set("GET_STATUS", async (message, sender, sendResponse, tabInfo) => {
+  handlers.set("GET_STATUS", async (_message, _sender, sendResponse, tabInfo) => {
     log.debug(`GET_STATUS request from ${tabInfo}`);
     try {
       const status = await getExtensionStatus();
@@ -54,7 +54,7 @@ export function registerSettingsHandlers(handlers, { log }) {
     return true;
   });
 
-  handlers.set("FETCH_MODELS", async (message, sender, sendResponse, tabInfo) => {
+  handlers.set("FETCH_MODELS", async (message, _sender, sendResponse, _tabInfo) => {
     const baseUrl = message.baseUrl;
     const apiKey = message.apiKey || "";
     if (!baseUrl) {
@@ -64,9 +64,9 @@ export function registerSettingsHandlers(handlers, { log }) {
 
     log.info(`FETCH_MODELS from ${baseUrl}`);
     try {
-      const url = baseUrl.replace(/\/+$/, "") + "/models";
+      const url = `${baseUrl.replace(/\/+$/, "")}/models`;
       const headers = { "Content-Type": "application/json" };
-      if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+      if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
       const response = await fetch(url, { headers, signal: AbortSignal.timeout(10000) });
       if (!response.ok) {
         sendResponse({ models: [], error: `Server returned ${response.status}` });
