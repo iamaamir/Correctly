@@ -34,8 +34,8 @@ export class GenericOpenAIProvider extends OpenAICompatibleProvider {
   constructor(apiKey, model, baseUrl) {
     super(apiKey, model);
     this.baseUrl = baseUrl || "";
-    const url = baseUrl ? baseUrl.replace(/\/+$/, "").replace(/\/v1$/, "") : "";
-    this.endpoint = url ? url + "/v1/chat/completions" : "";
+    const url = baseUrl ? baseUrl.replace(/\/+$/, "") : "";
+    this.endpoint = url ? url + "/chat/completions" : "";
   }
 
   async _doCorrectGrammar(text) {

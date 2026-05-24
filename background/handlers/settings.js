@@ -64,7 +64,7 @@ export function registerSettingsHandlers(handlers, { log }) {
 
     log.info(`FETCH_MODELS from ${baseUrl}`);
     try {
-      const url = baseUrl.replace(/\/+$/, "") + "/v1/models";
+      const url = baseUrl.replace(/\/+$/, "") + "/models";
       const headers = { "Content-Type": "application/json" };
       if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
       const response = await fetch(url, { headers, signal: AbortSignal.timeout(10000) });
@@ -76,7 +76,7 @@ export function registerSettingsHandlers(handlers, { log }) {
       const models = (data.data || []).map((m) => ({
         id: m.id,
         label: m.id,
-        hint: "Available model",
+        hint: m.owned_by ? `by ${m.owned_by}` : "",
       }));
       log.info(`Fetched ${models.length} models from ${baseUrl}`);
       sendResponse({ models, error: null });
