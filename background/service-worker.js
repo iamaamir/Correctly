@@ -21,7 +21,7 @@ getSettings().then(({ apiKey, enabled }) => {
 chrome.storage.onChanged.addListener((changes) => {
   log.debug("Storage changed:", Object.keys(changes));
 
-  if (changes.providerId || changes.apiKey || changes.model) {
+  if (changes.providerId || changes.apiKey || changes.model || changes.baseUrl) {
     invalidateProviderCache(log);
   }
 
