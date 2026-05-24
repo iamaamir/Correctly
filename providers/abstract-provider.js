@@ -40,10 +40,10 @@ import { createLogger } from "../lib/logger.js";
 
 const log = createLogger("provider");
 
-export class BaseProvider {
+export class AbstractProvider {
   constructor(apiKey, model) {
-    if (new.target === BaseProvider) {
-      throw new Error("BaseProvider is abstract — extend it, do not instantiate directly");
+    if (new.target === AbstractProvider) {
+      throw new Error("AbstractProvider is abstract — extend it, do not instantiate directly");
     }
 
     this._enforceStaticContract(new.target);

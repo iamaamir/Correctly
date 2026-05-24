@@ -1,4 +1,4 @@
-import { OpenAICompatibleProvider } from "./openai-compatible-provider.js";
+import { AbstractOpenAICompatibleProvider } from "./abstract-openai-compatible-provider.js";
 import { createLogger } from "../lib/logger.js";
 
 const log = createLogger("ollama");
@@ -17,7 +17,7 @@ const FALLBACK_MODELS = [
   { id: "gemma", label: "gemma", hint: "Local LLM via Ollama" },
 ];
 
-export class OllamaProvider extends OpenAICompatibleProvider {
+export class OllamaProvider extends AbstractOpenAICompatibleProvider {
   static get id() {
     return "ollama";
   }

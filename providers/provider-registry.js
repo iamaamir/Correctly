@@ -2,13 +2,13 @@
  * Provider Registry
  *
  * To add a new provider:
- *   1. Create a new file extending BaseProvider (or OpenAICompatibleProvider
+ *   1. Create a new file extending AbstractProvider (or AbstractOpenAICompatibleProvider
  *      for OpenAI-compatible APIs)
  *   2. Implement all required static metadata and _doCorrectGrammar()
  *   3. Import it below and add the class to the PROVIDER_CLASSES array
  *
  * That's it. The registry reads all metadata from the class itself.
- * The BaseProvider contract enforces correctness at instantiation time.
+ * The AbstractProvider contract enforces correctness at instantiation time.
  */
 
 import { OpenAIProvider } from './openai-provider.js';

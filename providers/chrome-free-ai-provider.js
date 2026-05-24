@@ -1,4 +1,4 @@
-import { BaseProvider } from "./base-provider.js";
+import { AbstractProvider } from "./abstract-provider.js";
 import { createLogger } from "../lib/logger.js";
 import { SYSTEM_PROMPT } from "../lib/config.js";
 
@@ -26,7 +26,7 @@ const GRAMMAR_SCHEMA = {
   additionalProperties: false,
 };
 
-export class ChromeFreeAIProvider extends BaseProvider {
+export class ChromeFreeAIProvider extends AbstractProvider {
   static STATUS = {
     UNAVAILABLE: "unavailable",
     DOWNLOADABLE: "downloadable",
