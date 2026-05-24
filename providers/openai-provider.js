@@ -1,9 +1,9 @@
-import { OpenAICompatibleProvider } from "./openai-compatible-provider.js";
+import { AbstractOpenAICompatibleProvider } from "./abstract-openai-compatible-provider.js";
 import { createLogger } from "../lib/logger.js";
 
 const log = createLogger("openai");
 
-export class OpenAIProvider extends OpenAICompatibleProvider {
+export class OpenAIProvider extends AbstractOpenAICompatibleProvider {
   static get id() {
     return "openai";
   }

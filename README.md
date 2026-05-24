@@ -70,8 +70,8 @@ correctly/
 │   ├── popup.js               # Settings logic
 │   └── popup.css              # Popup styles
 ├── providers/
-│   ├── base-provider.js       # Abstract provider contract
-│   ├── openai-compatible-provider.js  # Shared logic for OpenAI-compatible APIs
+│   ├── abstract-provider.js  # Abstract provider contract
+│   ├── abstract-openai-compatible-provider.js  # Shared logic for OpenAI-compatible APIs
 │   ├── openai-provider.js     # OpenAI implementation
 │   ├── chrome-free-ai-provider.js  # Chrome's built-in Gemini Nano
 │   ├── ollama-provider.js          # Ollama (local LLMs)
@@ -110,13 +110,13 @@ Correctly supports any service that offers an OpenAI-compatible API (e.g., [Groq
 
 ## Want to add a new Provider?
 
-- **OpenAI-compatible API** (e.g., Ollama, LM Studio): extend `OpenAICompatibleProvider`
+- **OpenAI-compatible API** (e.g., Ollama, LM Studio): extend `AbstractOpenAICompatibleProvider`
   — `_doCorrectGrammar()` and response parsing are already implemented. Just provide
   static metadata and set `this.endpoint` in the constructor.
 - **Generic OpenAI-compatible** (any service with a base URL + API key): no new class needed
   — use `GenericOpenAIProvider` which is already registered. Users configure the base URL
   and API key in the popup.
-- **Other providers**: extend `BaseProvider` directly and implement
+- **Other providers**: extend `AbstractProvider` directly and implement
   `_doCorrectGrammar(text)` and all required static metadata.
 
 Then add the class to `PROVIDER_CLASSES` in `provider-registry.js`.
