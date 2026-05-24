@@ -108,4 +108,4 @@ Then add the class to `PROVIDER_CLASSES` in `provider-registry.js`.
 
 ## License
 
-MIT
+BSD-3
