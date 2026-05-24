@@ -28,10 +28,11 @@
     <section class="base-url-section" id="base-url-section" hidden>
       <label for="base-url">Base URL</label>
       <div class="base-url-wrapper">
-        <input type="text" id="base-url" placeholder="https://api.groq.com/openai/v1" autocomplete="off" />
+        <input type="text" id="base-url" placeholder="https://api.groq.com/openai/v1" autocomplete="off" list="base-url-suggestions" />
         <button id="fetch-models-btn" class="btn-secondary" title="Fetch available models">Fetch</button>
       </div>
       <p class="base-url-hint" id="base-url-hint">Full API base URL including version path</p>
+      <datalist id="base-url-suggestions"></datalist>
     </section>
 
     <section class="ai-status-section" id="ai-status-section" hidden>
