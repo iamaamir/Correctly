@@ -1,4 +1,4 @@
-import { BaseProvider } from "./base-provider.js";
+import { AbstractProvider } from "./abstract-provider.js";
 import { createLogger } from "../lib/logger.js";
 import { SYSTEM_PROMPT, AI_TEMPERATURE, AI_MAX_TOKENS_MIN } from "../lib/config.js";
 
@@ -31,11 +31,11 @@ export const RESPONSE_SCHEMA = {
   },
 };
 
-export class OpenAICompatibleProvider extends BaseProvider {
+export class AbstractOpenAICompatibleProvider extends AbstractProvider {
   constructor(apiKey, model) {
     super(apiKey, model);
-    if (new.target === OpenAICompatibleProvider) {
-      throw new Error("OpenAICompatibleProvider is abstract — extend it, do not instantiate directly");
+    if (new.target === AbstractOpenAICompatibleProvider) {
+      throw new Error("AbstractOpenAICompatibleProvider is abstract — extend it, do not instantiate directly");
     }
     this.endpoint = "";
   }

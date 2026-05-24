@@ -1,10 +1,10 @@
-import { OpenAICompatibleProvider, RESPONSE_SCHEMA } from "./openai-compatible-provider.js";
+import { AbstractOpenAICompatibleProvider, RESPONSE_SCHEMA } from "./abstract-openai-compatible-provider.js";
 import { SYSTEM_PROMPT, AI_TEMPERATURE, AI_MAX_TOKENS_MIN } from "../lib/config.js";
 import { createLogger } from "../lib/logger.js";
 
 const log = createLogger("openai-compatible");
 
-export class GenericOpenAIProvider extends OpenAICompatibleProvider {
+export class GenericOpenAIProvider extends AbstractOpenAICompatibleProvider {
   static get id() {
     return "openai-compatible";
   }

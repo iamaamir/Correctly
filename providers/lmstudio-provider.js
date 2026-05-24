@@ -1,4 +1,4 @@
-import { OpenAICompatibleProvider } from "./openai-compatible-provider.js";
+import { AbstractOpenAICompatibleProvider } from "./abstract-openai-compatible-provider.js";
 import { createLogger } from "../lib/logger.js";
 
 const log = createLogger("lmstudio");
@@ -11,7 +11,7 @@ const FALLBACK_MODELS = [
   { id: "local-model", label: "local-model", hint: "Loaded in LM Studio" },
 ];
 
-export class LMStudioProvider extends OpenAICompatibleProvider {
+export class LMStudioProvider extends AbstractOpenAICompatibleProvider {
   static get id() {
     return "lmstudio";
   }
