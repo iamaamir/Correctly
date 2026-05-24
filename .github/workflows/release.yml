@@ -1,0 +1,34 @@
+name: Release
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bump version and package
+        id: bump
+        run: |
+          VERSION=$(jq -r '.version' manifest.json)
+          IFS='.' read -r major minor patch <<< "$VERSION"
+          NEW_VERSION="$major.$minor.$((patch + 1))"
+          jq --arg v "$NEW_VERSION" '.version = $v' manifest.json > manifest.tmp
+          mv manifest.tmp manifest.json
+          mkdir -p dist/correctly
+          cp manifest.json LICENSE dist/correctly/
+          cp -r background content popup lib providers icons dist/correctly/
+          cd dist && zip -r ../correctly.zip correctly && cd ..
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.bump.outputs.version }}
+          name: v${{ steps.bump.outputs.version }}
+          files: correctly.zip
+          generate_release_notes: true
+
