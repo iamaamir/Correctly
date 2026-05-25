@@ -105,13 +105,34 @@ async function saveBaseUrlSuggestion(url) {
   }, 500);
 }
 
+let statusTimer;
 function showStatus(message, type = "success") {
+  const DURATIONS = {
+    success: 2500,
+    info: 4000,
+    warning: 5000,
+    error: 6500,
+  };
+
+  const MIN_DURATION_MS = 3000;
+  const MAX_DURATION_MS = 8000;
+  const MS_PER_CHARACTER = 45;
+
+  clearTimeout(statusTimer); // to avoid double msg
+
   statusMsg.textContent = message;
   statusMsg.className = `status ${type}`;
   statusMsg.hidden = false;
-  setTimeout(() => {
+
+  const baseDuration = DURATIONS[type] ?? DURATIONS.info;
+
+  const readingTime = message.length * MS_PER_CHARACTER;
+
+  const duration = Math.min(MAX_DURATION_MS, Math.max(MIN_DURATION_MS, baseDuration + readingTime));
+
+  statusTimer = setTimeout(() => {
     statusMsg.hidden = true;
-  }, 2500);
+  }, duration);
 }
 
 function captureSavedState() {
