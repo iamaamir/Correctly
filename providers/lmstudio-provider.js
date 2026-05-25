@@ -1,11 +1,8 @@
+import { getCachedAvailability, getCachedModels, setCachedAvailability, setCachedModels } from "../lib/cache.js";
 import { createLogger } from "../lib/logger.js";
 import { AbstractOpenAICompatibleProvider } from "./abstract-openai-compatible-provider.js";
 
 const log = createLogger("lmstudio");
-
-let modelsCache = null;
-let modelsCacheTimestamp = 0;
-const MODELS_CACHE_TTL = 5 * 60 * 1000;
 
 const FALLBACK_MODELS = [{ id: "local-model", label: "local-model", hint: "Loaded in LM Studio" }];
 
@@ -35,10 +32,8 @@ export class LMStudioProvider extends AbstractOpenAICompatibleProvider {
   }
 
   static async getModels() {
-    const now = Date.now();
-    if (modelsCache && now - modelsCacheTimestamp < MODELS_CACHE_TTL) {
-      return modelsCache;
-    }
+    const cached = getCachedModels(LMStudioProvider.id);
+    if (cached) return cached;
 
     try {
       const response = await fetch("http://localhost:1234/v1/models", {
@@ -52,14 +47,14 @@ export class LMStudioProvider extends AbstractOpenAICompatibleProvider {
 
       const data = await response.json();
 
-      modelsCache = (data.data || []).map((model) => ({
+      const models = (data.data || []).map((model) => ({
         id: model.id,
         label: model.id,
         hint: "Local LLM via LM Studio",
       }));
-      modelsCacheTimestamp = now;
+      setCachedModels(LMStudioProvider.id, models);
 
-      return modelsCache;
+      return models;
     } catch (error) {
       log.warn("Error fetching LM Studio models:", error.message);
       return FALLBACK_MODELS;
@@ -67,16 +62,22 @@ export class LMStudioProvider extends AbstractOpenAICompatibleProvider {
   }
 
   static get models() {
-    return modelsCache && modelsCache.length > 0 ? modelsCache : FALLBACK_MODELS;
+    return getCachedModels(LMStudioProvider.id) || FALLBACK_MODELS;
   }
 
   static async isAvailable() {
+    const cached = getCachedAvailability(LMStudioProvider.id);
+    if (cached !== null) return cached;
+
     try {
       const response = await fetch("http://localhost:1234/v1/models", {
         signal: AbortSignal.timeout(5000),
       });
-      return response.ok;
+      const available = response.ok;
+      setCachedAvailability(LMStudioProvider.id, available);
+      return available;
     } catch {
+      setCachedAvailability(LMStudioProvider.id, false);
       return false;
     }
   }

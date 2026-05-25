@@ -1,15 +1,8 @@
+import { getCachedAvailability, getCachedModels, setCachedAvailability, setCachedModels } from "../lib/cache.js";
 import { createLogger } from "../lib/logger.js";
 import { AbstractOpenAICompatibleProvider } from "./abstract-openai-compatible-provider.js";
 
 const log = createLogger("ollama");
-
-let availabilityCache = null;
-let availabilityCacheTimestamp = 0;
-const AVAILABILITY_CACHE_TTL = 30 * 1000;
-
-let modelsCache = null;
-let modelsCacheTimestamp = 0;
-const MODELS_CACHE_TTL = 5 * 60 * 1000;
 
 const FALLBACK_MODELS = [
   { id: "llama3", label: "llama3", hint: "Local LLM via Ollama" },
@@ -43,10 +36,8 @@ export class OllamaProvider extends AbstractOpenAICompatibleProvider {
   }
 
   static async getModels() {
-    const now = Date.now();
-    if (modelsCache && now - modelsCacheTimestamp < MODELS_CACHE_TTL) {
-      return modelsCache;
-    }
+    const cached = getCachedModels(OllamaProvider.id);
+    if (cached) return cached;
 
     try {
       const response = await fetch("http://localhost:11434/api/tags", {
@@ -60,7 +51,7 @@ export class OllamaProvider extends AbstractOpenAICompatibleProvider {
 
       const data = await response.json();
 
-      modelsCache = data.models.map((model) => {
+      const models = data.models.map((model) => {
         let hint = "Local LLM via Ollama";
         if (model.details?.parameter_size) {
           hint = `${model.details.parameter_size} model`;
@@ -69,9 +60,9 @@ export class OllamaProvider extends AbstractOpenAICompatibleProvider {
         }
         return { id: model.name, label: model.name, hint };
       });
-      modelsCacheTimestamp = now;
+      setCachedModels(OllamaProvider.id, models);
 
-      return modelsCache;
+      return models;
     } catch (error) {
       log.warn("Error fetching Ollama models:", error.message);
       return FALLBACK_MODELS;
@@ -79,30 +70,26 @@ export class OllamaProvider extends AbstractOpenAICompatibleProvider {
   }
 
   static get models() {
-    return modelsCache && modelsCache.length > 0 ? modelsCache : FALLBACK_MODELS;
+    return getCachedModels(OllamaProvider.id) || FALLBACK_MODELS;
   }
 
   static async isAvailable() {
-    const now = Date.now();
-    if (availabilityCache !== null && now - availabilityCacheTimestamp < AVAILABILITY_CACHE_TTL) {
-      return availabilityCache;
-    }
+    const cached = getCachedAvailability(OllamaProvider.id);
+    if (cached !== null) return cached;
 
     try {
       const response = await fetch("http://localhost:11434/api/tags", {
         signal: AbortSignal.timeout(5000),
       });
 
-      const isAvailable = response.ok;
-      availabilityCache = isAvailable;
-      availabilityCacheTimestamp = now;
+      const available = response.ok;
+      setCachedAvailability(OllamaProvider.id, available);
 
-      log.info(`Ollama availability check: ${isAvailable}`);
-      return isAvailable;
+      log.info(`Ollama availability check: ${available}`);
+      return available;
     } catch (error) {
       log.info(`Ollama availability check failed: ${error.message}`);
-      availabilityCache = false;
-      availabilityCacheTimestamp = now;
+      setCachedAvailability(OllamaProvider.id, false);
       return false;
     }
   }
