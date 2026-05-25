@@ -1,5 +1,5 @@
-import { AbstractOpenAICompatibleProvider } from "./abstract-openai-compatible-provider.js";
 import { createLogger } from "../lib/logger.js";
+import { AbstractOpenAICompatibleProvider } from "./abstract-openai-compatible-provider.js";
 
 const log = createLogger("lmstudio");
 
@@ -7,9 +7,7 @@ let modelsCache = null;
 let modelsCacheTimestamp = 0;
 const MODELS_CACHE_TTL = 5 * 60 * 1000;
 
-const FALLBACK_MODELS = [
-  { id: "local-model", label: "local-model", hint: "Loaded in LM Studio" },
-];
+const FALLBACK_MODELS = [{ id: "local-model", label: "local-model", hint: "Loaded in LM Studio" }];
 
 export class LMStudioProvider extends AbstractOpenAICompatibleProvider {
   static get id() {
@@ -32,7 +30,9 @@ export class LMStudioProvider extends AbstractOpenAICompatibleProvider {
     return "Make sure LM Studio is running with local CORS off";
   }
 
-  static get requiresApiKey() { return false; }
+  static get requiresApiKey() {
+    return false;
+  }
 
   static async getModels() {
     const now = Date.now();
@@ -86,7 +86,7 @@ export class LMStudioProvider extends AbstractOpenAICompatibleProvider {
     this.endpoint = "http://localhost:1234/v1/chat/completions";
   }
 
-  _onApiError(status, err, response) {
+  _onApiError(status, _err, _response) {
     if (status === 403) {
       return "LM Studio blocked the request (403). Make sure 'CORS' is disabled in Local CORS settings.";
     }

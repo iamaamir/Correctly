@@ -41,281 +41,234 @@ import { createLogger } from "../lib/logger.js";
 const log = createLogger("provider");
 
 export class AbstractProvider {
-	constructor(apiKey, model) {
-		if (new.target === AbstractProvider) {
-			throw new Error(
-				"AbstractProvider is abstract — extend it, do not instantiate directly",
-			);
-		}
+  constructor(apiKey, model) {
+    if (new.target === AbstractProvider) {
+      throw new Error("AbstractProvider is abstract — extend it, do not instantiate directly");
+    }
 
-		this._enforceStaticContract(new.target);
+    this._enforceStaticContract(new.target);
 
-		this.apiKey = apiKey;
-		this.model = model || new.target.defaultModel;
-		log.debug(
-			`Instantiated ${new.target.displayName} with model: ${this.model}`,
-		);
-	}
+    this.apiKey = apiKey;
+    this.model = model || new.target.defaultModel;
+    log.debug(`Instantiated ${new.target.displayName} with model: ${this.model}`);
+  }
 
-	// ──────────────────────────────────────────────
-	//  STATIC METADATA — every provider must define
-	// ──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  //  STATIC METADATA — every provider must define
+  // ──────────────────────────────────────────────
 
-	/** Unique identifier used in storage and registry (e.g. 'openai') */
-	static get id() {
-		throw new Error(`${AbstractProvider.name} must implement static get id()`);
-	}
+  /** Unique identifier used in storage and registry (e.g. 'openai') */
+  static get id() {
+    throw new Error(`${AbstractProvider.name} must implement static get id()`);
+  }
 
-	/** Display name shown in the UI (e.g. 'OpenAI') */
-	static get displayName() {
-		throw new Error(
-			`${AbstractProvider.name} must implement static get displayName()`,
-		);
-	}
+  /** Display name shown in the UI (e.g. 'OpenAI') */
+  static get displayName() {
+    throw new Error(`${AbstractProvider.name} must implement static get displayName()`);
+  }
 
-	/**
-	 * Async model list — the canonical API for fetching models.
-	 * Default implementation delegates to the static `models` getter.
-	 * Override for dynamic fetching (e.g. Ollama queries its API).
-	 * - Cache internally to avoid repeated fetches.
-	 * - Handle errors gracefully, return fallbacks on failure.
-	 * @returns {Promise<Array<{id: string, label: string, hint: string}>>}
-	 */
-	static async getModels() {
-		return AbstractProvider.models;
-	}
+  /**
+   * Async model list — the canonical API for fetching models.
+   * Default implementation delegates to the static `models` getter.
+   * Override for dynamic fetching (e.g. Ollama queries its API).
+   * - Cache internally to avoid repeated fetches.
+   * - Handle errors gracefully, return fallbacks on failure.
+   * @returns {Promise<Array<{id: string, label: string, hint: string}>>}
+   */
+  static async getModels() {
+    return AbstractProvider.models;
+  }
 
-	/*
-	 * Why both getModels() (async) AND models (sync getter)?
-	 *
-	 * getModels() is the canonical async API. Registry calls it to fetch model lists
-	 * before populating the UI. Providers that talk to remote APIs (like Ollama) fetch
-	 * dynamically and cache the result.
-	 *
-	 * models (sync) exists because the constructor is synchronous and must validate
-	 * defaultModel against the model list at construction time. It cannot await
-	 * getModels(). The sync getter gives providers a trivial way to return cached
-	 * data or a static fallback for this validation.
-	 *
-	 * Contract: both must return the same structure [{ id, label, hint }].
-	 *   getModels() is the source of truth for UI.
-	 *   models is the synchronous snapshot for contract enforcement.
-	 */
+  /*
+   * Why both getModels() (async) AND models (sync getter)?
+   *
+   * getModels() is the canonical async API. Registry calls it to fetch model lists
+   * before populating the UI. Providers that talk to remote APIs (like Ollama) fetch
+   * dynamically and cache the result.
+   *
+   * models (sync) exists because the constructor is synchronous and must validate
+   * defaultModel against the model list at construction time. It cannot await
+   * getModels(). The sync getter gives providers a trivial way to return cached
+   * data or a static fallback for this validation.
+   *
+   * Contract: both must return the same structure [{ id, label, hint }].
+   *   getModels() is the source of truth for UI.
+   *   models is the synchronous snapshot for contract enforcement.
+   */
 
-	/**
-	 * Synchronous model accessor (cache/fallback).
-	 * Subclasses MUST implement.
-	 * Used for contract enforcement (defaultModel validation) and sync reads.
-	 * Must return same structure as getModels().
-	 * @returns {Array<{id: string, label: string, hint: string}>}
-	 */
-	static get models() {
-		throw new Error(
-			`${AbstractProvider.name} must implement static get models()`,
-		);
-	}
+  /**
+   * Synchronous model accessor (cache/fallback).
+   * Subclasses MUST implement.
+   * Used for contract enforcement (defaultModel validation) and sync reads.
+   * Must return same structure as getModels().
+   * @returns {Array<{id: string, label: string, hint: string}>}
+   */
+  static get models() {
+    throw new Error(`${AbstractProvider.name} must implement static get models()`);
+  }
 
-	/** Default model id — must match one of the models[].id values */
-	static get defaultModel() {
-		throw new Error(
-			`${AbstractProvider.name} must implement static get defaultModel()`,
-		);
-	}
+  /** Default model id — must match one of the models[].id values */
+  static get defaultModel() {
+    throw new Error(`${AbstractProvider.name} must implement static get defaultModel()`);
+  }
 
-	/** Placeholder text for the API key input (e.g. 'sk-...') */
-	static get keyPlaceholder() {
-		throw new Error(
-			`${AbstractProvider.name} must implement static get keyPlaceholder()`,
-		);
-	}
+  /** Placeholder text for the API key input (e.g. 'sk-...') */
+  static get keyPlaceholder() {
+    throw new Error(`${AbstractProvider.name} must implement static get keyPlaceholder()`);
+  }
 
-	/**
-	 * Check if the provider is available/reachable.
-	 * Override in subclasses to perform health checks (e.g. check if Ollama daemon is running).
-	 * @returns {Promise<boolean>} - true if provider is available
-	 */
-	static async isAvailable() {
-		// assuming all are avilable
-		return true;
-	}
+  /**
+   * Check if the provider is available/reachable.
+   * Override in subclasses to perform health checks (e.g. check if Ollama daemon is running).
+   * @returns {Promise<boolean>} - true if provider is available
+   */
+  static async isAvailable() {
+    // assuming all are avilable
+    return true;
+  }
 
-	/**
-	 * Hint shown when provider is unavailable.
-	 * Override to provide specific setup instructions.
-	 * @returns {string|null}
-	 */
-	static get availabilityHint() {
-		return null;
-	}
+  /**
+   * Hint shown when provider is unavailable.
+   * Override to provide specific setup instructions.
+   * @returns {string|null}
+   */
+  static get availabilityHint() {
+    return null;
+  }
 
-	/** Whether this provider requires an API key to function */
-	static get requiresApiKey() {
-		return true;
-	}
+  /** Whether this provider requires an API key to function */
+  static get requiresApiKey() {
+    return true;
+  }
 
-	// ──────────────────────────────────────────────
-	//  INSTANCE METHODS
-	// ──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  //  INSTANCE METHODS
+  // ──────────────────────────────────────────────
 
-	/** Convenience accessors — read-through to static metadata */
-	get providerName() {
-		return this.constructor.displayName;
-	}
-	get providerId() {
-		return this.constructor.id;
-	}
+  /** Convenience accessors — read-through to static metadata */
+  get providerName() {
+    return this.constructor.displayName;
+  }
+  get providerId() {
+    return this.constructor.id;
+  }
 
-	/**
-	 * Public entry point. Validates input, delegates to _doCorrectGrammar,
-	 * then validates the response shape.
-	 */
-	async correctGrammar(text) {
-		log.debug(`correctGrammar called — ${text?.length || 0} chars`);
-		this.validateApiKey();
+  /**
+   * Public entry point. Validates input, delegates to _doCorrectGrammar,
+   * then validates the response shape.
+   */
+  async correctGrammar(text) {
+    log.debug(`correctGrammar called — ${text?.length || 0} chars`);
+    this.validateApiKey();
 
-		if (!text || text.trim().length === 0) {
-			log.debug("Empty text — short-circuiting with no changes");
-			return { corrected: text, changes: [] };
-		}
+    if (!text || text.trim().length === 0) {
+      log.debug("Empty text — short-circuiting with no changes");
+      return { corrected: text, changes: [] };
+    }
 
-		log.debug(`Delegating to ${this.constructor.name}._doCorrectGrammar`);
-		const result = await this._doCorrectGrammar(text);
-		return this._validateResponse(result, text);
-	}
+    log.debug(`Delegating to ${this.constructor.name}._doCorrectGrammar`);
+    const result = await this._doCorrectGrammar(text);
+    return this._validateResponse(result, text);
+  }
 
-	/**
-	 * Provider-specific API call. Subclasses MUST implement this.
-	 * @param {string} text — non-empty, already validated
-	 * @returns {Promise<{corrected: string, changes: Array}>}
-	 */
-	async _doCorrectGrammar(_text) {
-		throw new Error(
-			`${this.constructor.name} must implement _doCorrectGrammar(text)`,
-		);
-	}
+  /**
+   * Provider-specific API call. Subclasses MUST implement this.
+   * @param {string} text — non-empty, already validated
+   * @returns {Promise<{corrected: string, changes: Array}>}
+   */
+  async _doCorrectGrammar(_text) {
+    throw new Error(`${this.constructor.name} must implement _doCorrectGrammar(text)`);
+  }
 
-	/**
-	 * Validates that the API key is set and non-empty.
-	 * Skips validation if requiresApiKey is false.
-	 * Subclasses can override for provider-specific format validation.
-	 */
-	validateApiKey() {
-		if (!this.constructor.requiresApiKey) return true;
-		if (
-			!this.apiKey ||
-			typeof this.apiKey !== "string" ||
-			this.apiKey.trim() === ""
-		) {
-			log.error("API key validation failed — key is missing or empty");
-			throw new Error("API key is required");
-		}
-		log.debug("API key validated");
-		return true;
-	}
+  /**
+   * Validates that the API key is set and non-empty.
+   * Skips validation if requiresApiKey is false.
+   * Subclasses can override for provider-specific format validation.
+   */
+  validateApiKey() {
+    if (!this.constructor.requiresApiKey) return true;
+    if (!this.apiKey || typeof this.apiKey !== "string" || this.apiKey.trim() === "") {
+      log.error("API key validation failed — key is missing or empty");
+      throw new Error("API key is required");
+    }
+    log.debug("API key validated");
+    return true;
+  }
 
-	// ──────────────────────────────────────────────
-	//  PRIVATE
-	// ──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  //  PRIVATE
+  // ──────────────────────────────────────────────
 
-	_enforceStaticContract(ProviderClass) {
-		const required = [
-			"id",
-			"displayName",
-			"models",
-			"defaultModel",
-			"keyPlaceholder",
-			"getModels",
-		];
-		for (const prop of required) {
-			try {
-				const val = ProviderClass[prop];
-				if (val === undefined || val === null) {
-					throw new Error(`static ${prop} returned ${val}`);
-				}
-			} catch (e) {
-				if (e.message.includes("must implement")) throw e;
-				throw new Error(
-					`${ProviderClass.name}: static ${prop} is invalid — ${e.message}`,
-				);
-			}
-		}
+  _enforceStaticContract(ProviderClass) {
+    const required = ["id", "displayName", "models", "defaultModel", "keyPlaceholder", "getModels"];
+    for (const prop of required) {
+      try {
+        const val = ProviderClass[prop];
+        if (val === undefined || val === null) {
+          throw new Error(`static ${prop} returned ${val}`);
+        }
+      } catch (e) {
+        if (e.message.includes("must implement")) throw e;
+        throw new Error(`${ProviderClass.name}: static ${prop} is invalid — ${e.message}`);
+      }
+    }
 
-		if (typeof ProviderClass.getModels !== "function") {
-			throw new Error(
-				`${ProviderClass.name}: static getModels must be a function`,
-			);
-		}
+    if (typeof ProviderClass.getModels !== "function") {
+      throw new Error(`${ProviderClass.name}: static getModels must be a function`);
+    }
 
-		if (
-			typeof ProviderClass.isAvailable !== "function" &&
-			ProviderClass.isAvailable !== undefined
-		) {
-			throw new Error(
-				`${ProviderClass.name}: static isAvailable must be a function or undefined`,
-			);
-		}
+    if (typeof ProviderClass.isAvailable !== "function" && ProviderClass.isAvailable !== undefined) {
+      throw new Error(`${ProviderClass.name}: static isAvailable must be a function or undefined`);
+    }
 
-		const models = ProviderClass.models;
-		if (!Array.isArray(models) || models.length === 0) {
-			throw new Error(
-				`${ProviderClass.name}: static models must be a non-empty array`,
-			);
-		}
-		for (const m of models) {
-			if (!m.id || !m.label || !m.hint) {
-				throw new Error(
-					`${ProviderClass.name}: every model must have { id, label, hint } — got ${JSON.stringify(m)}`,
-				);
-			}
-		}
+    const models = ProviderClass.models;
+    if (!Array.isArray(models) || models.length === 0) {
+      throw new Error(`${ProviderClass.name}: static models must be a non-empty array`);
+    }
+    for (const m of models) {
+      if (!m.id || !m.label || !m.hint) {
+        throw new Error(`${ProviderClass.name}: every model must have { id, label, hint } — got ${JSON.stringify(m)}`);
+      }
+    }
 
-		const defaultModel = ProviderClass.defaultModel;
-		if (!models.some((m) => m.id === defaultModel)) {
-			throw new Error(
-				`${ProviderClass.name}: defaultModel "${defaultModel}" is not in the models list`,
-			);
-		}
-	}
+    const defaultModel = ProviderClass.defaultModel;
+    if (!models.some((m) => m.id === defaultModel)) {
+      throw new Error(`${ProviderClass.name}: defaultModel "${defaultModel}" is not in the models list`);
+    }
+  }
 
-	_validateResponse(result, _originalText) {
-		if (!result || typeof result !== "object") {
-			log.error("Response validation failed — not an object", result);
-			throw new Error(
-				"Provider returned invalid response — expected an object",
-			);
-		}
+  _validateResponse(result, _originalText) {
+    if (!result || typeof result !== "object") {
+      log.error("Response validation failed — not an object", result);
+      throw new Error("Provider returned invalid response — expected an object");
+    }
 
-		if (typeof result.corrected !== "string") {
-			log.error(
-				'Response validation failed — missing "corrected" string',
-				result,
-			);
-			throw new Error('Provider response missing "corrected" string');
-		}
+    if (typeof result.corrected !== "string") {
+      log.error('Response validation failed — missing "corrected" string', result);
+      throw new Error('Provider response missing "corrected" string');
+    }
 
-		if (!Array.isArray(result.changes)) {
-			log.error('Response validation failed — missing "changes" array', result);
-			throw new Error('Provider response missing "changes" array');
-		}
+    if (!Array.isArray(result.changes)) {
+      log.error('Response validation failed — missing "changes" array', result);
+      throw new Error('Provider response missing "changes" array');
+    }
 
-		for (let i = 0; i < result.changes.length; i++) {
-			const c = result.changes[i];
-			if (
-				!c ||
-				typeof c.original !== "string" ||
-				typeof c.replacement !== "string" ||
-				typeof c.explanation !== "string"
-			) {
-				log.error(`Response validation failed — changes[${i}] malformed`, c);
-				throw new Error(
-					`Provider response changes[${i}] must have { original, replacement, explanation } strings`,
-				);
-			}
-		}
+    for (let i = 0; i < result.changes.length; i++) {
+      const c = result.changes[i];
+      if (
+        !c ||
+        typeof c.original !== "string" ||
+        typeof c.replacement !== "string" ||
+        typeof c.explanation !== "string"
+      ) {
+        log.error(`Response validation failed — changes[${i}] malformed`, c);
+        throw new Error(`Provider response changes[${i}] must have { original, replacement, explanation } strings`);
+      }
+    }
 
-		log.debug(
-			`Response validated — ${result.changes.length} change(s), corrected text: ${result.corrected.length} chars`,
-		);
-		return result;
-	}
+    log.debug(
+      `Response validated — ${result.changes.length} change(s), corrected text: ${result.corrected.length} chars`,
+    );
+    return result;
+  }
 }
