@@ -3,15 +3,18 @@ import { createProvider } from "../../providers/provider-registry.js";
 import { BADGE_DURATION_ERROR, BADGE_DURATION_ISSUES, BADGE_DURATION_OK, updateBadge } from "./badge.js";
 
 const TOKEN_USAGE_KEY = "sessionTokenUsage";
-const DEFAULT_USAGE = {
-  checks: [],
-  summary: {
-    totalChecks: 0,
-    totalPromptTokens: 0,
-    totalCompletionTokens: 0,
-    totalTokens: 0,
-  },
-};
+
+function createEmptyUsage() {
+  return {
+    checks: [],
+    summary: {
+      totalChecks: 0,
+      totalPromptTokens: 0,
+      totalCompletionTokens: 0,
+      totalTokens: 0,
+    },
+  };
+}
 
 let cachedProvider = null;
 let cachedProviderKey = "";
@@ -19,15 +22,7 @@ let cachedProviderKey = "";
 const TOKEN_FLUSH_INTERVAL = 30_000;
 const TOKEN_MAX_BUFFER = 10;
 
-let tokenUsageBuffer = {
-  checks: [],
-  summary: {
-    totalChecks: 0,
-    totalPromptTokens: 0,
-    totalCompletionTokens: 0,
-    totalTokens: 0,
-  },
-};
+let tokenUsageBuffer = createEmptyUsage();
 let flushTimer = null;
 
 function scheduleTokenFlush() {
@@ -46,25 +41,14 @@ async function flushTokenUsage() {
   if (tokenUsageBuffer.checks.length === 0) return;
   try {
     const data = await chrome.storage.session.get([TOKEN_USAGE_KEY]);
-    const stored = data[TOKEN_USAGE_KEY] || {
-      checks: [],
-      summary: { ...DEFAULT_USAGE.summary },
-    };
+    const stored = data[TOKEN_USAGE_KEY] || createEmptyUsage();
     stored.checks.push(...tokenUsageBuffer.checks);
     stored.summary.totalChecks += tokenUsageBuffer.summary.totalChecks;
     stored.summary.totalPromptTokens += tokenUsageBuffer.summary.totalPromptTokens;
     stored.summary.totalCompletionTokens += tokenUsageBuffer.summary.totalCompletionTokens;
     stored.summary.totalTokens += tokenUsageBuffer.summary.totalTokens;
     await chrome.storage.session.set({ [TOKEN_USAGE_KEY]: stored });
-    tokenUsageBuffer = {
-      checks: [],
-      summary: {
-        totalChecks: 0,
-        totalPromptTokens: 0,
-        totalCompletionTokens: 0,
-        totalTokens: 0,
-      },
-    };
+    tokenUsageBuffer = createEmptyUsage();
   } catch (_err) {
     // silent — non-critical background op
   }
@@ -162,15 +146,10 @@ export function registerGrammarHandlers(handlers, { log }) {
     try {
       await flushTokenUsage();
       const data = await chrome.storage.session.get([TOKEN_USAGE_KEY]);
-      sendResponse(
-        data[TOKEN_USAGE_KEY] || {
-          checks: [],
-          summary: { ...DEFAULT_USAGE.summary },
-        },
-      );
+      sendResponse(data[TOKEN_USAGE_KEY] || createEmptyUsage());
     } catch (err) {
       log.error("GET_SESSION_USAGE failed:", err.message);
-      sendResponse({ checks: [], summary: { ...DEFAULT_USAGE.summary } });
+      sendResponse(createEmptyUsage());
     }
     return true;
   });
