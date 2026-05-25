@@ -1,6 +1,9 @@
-import { createProvider, getAvailableProviders } from "../providers/provider-registry.js";
 import { createLogger } from "../lib/logger.js";
 import { getSettings, setSettings } from "../lib/settings.js";
+import {
+	createProvider,
+	getAvailableProviders,
+} from "../providers/provider-registry.js";
 
 const log = createLogger("popup");
 
@@ -35,516 +38,575 @@ let savedState = {};
 
 const MODELS_CACHE_KEY = "fetchedModelsCache";
 const MODELS_CACHE_TTL = 5 * 60 * 1000;
+const MODEL_CACHE_MEM = new Map();
 
-async function getCachedModels(baseUrl) {
-  const data = await chrome.storage.session.get(MODELS_CACHE_KEY);
-  const cache = data[MODELS_CACHE_KEY];
-  if (cache && cache.baseUrl === baseUrl && Date.now() - cache.timestamp < MODELS_CACHE_TTL) {
-    return cache.models;
-  }
-  return null;
+async function getCachedModels(baseUrl, apiKey) {
+	const cacheKey = `${baseUrl}|${apiKey || ""}`;
+	const mem = MODEL_CACHE_MEM.get(cacheKey);
+	if (mem && Date.now() - mem.timestamp < MODELS_CACHE_TTL) return mem.models;
+	const data = await chrome.storage.session.get(MODELS_CACHE_KEY);
+	const storage = data[MODELS_CACHE_KEY];
+	if (
+		storage &&
+		storage.cacheKey === cacheKey &&
+		Date.now() - storage.timestamp < MODELS_CACHE_TTL
+	) {
+		MODEL_CACHE_MEM.set(cacheKey, {
+			models: storage.models,
+			timestamp: storage.timestamp,
+		});
+		return storage.models;
+	}
+	return null;
 }
 
-async function setCachedModels(baseUrl, models) {
-  await chrome.storage.session.set({
-    [MODELS_CACHE_KEY]: { baseUrl, models, timestamp: Date.now() },
-  });
+async function setCachedModels(baseUrl, apiKey, models) {
+	const cacheKey = `${baseUrl}|${apiKey || ""}`;
+	MODEL_CACHE_MEM.set(cacheKey, { models, timestamp: Date.now() });
+	await chrome.storage.session.set({
+		[MODELS_CACHE_KEY]: { cacheKey, models, timestamp: Date.now() },
+	});
 }
 
 function applyFetchedModels(provider, models, selectedModel) {
-  const fetched = models || [];
-  const limited = fetched.slice(0, 20);
-  if (provider) provider.models = limited;
-  renderModelDropdown(limited, selectedModel || limited[0]?.id, provider?.defaultModel);
-  baseUrlHint.textContent = "";
+	const fetched = models || [];
+	const limited = fetched.slice(0, 20);
+	if (provider) provider.models = limited;
+	renderModelDropdown(
+		limited,
+		selectedModel || limited[0]?.id,
+		provider?.defaultModel,
+	);
+	baseUrlHint.textContent = "";
+}
+
+const SAVED_URLS_SET = new Set();
+let savedUrlsLoaded = false;
+let pendingUrlSave = null;
+
+async function loadSavedUrls() {
+	if (savedUrlsLoaded) return;
+	const { [SAVED_URLS_KEY]: saved = [] } =
+		await chrome.storage.local.get(SAVED_URLS_KEY);
+	for (const url of saved) SAVED_URLS_SET.add(url);
+	savedUrlsLoaded = true;
 }
 
 async function populateBaseUrlSuggestions() {
-  const datalist = document.getElementById("base-url-suggestions");
-  if (!datalist) return;
-  const { [SAVED_URLS_KEY]: saved = [] } = await chrome.storage.local.get(SAVED_URLS_KEY);
-  datalist.innerHTML = saved.map((url) => `<option value="${url}">`).join("");
+	const datalist = document.getElementById("base-url-suggestions");
+	if (!datalist) return;
+	await loadSavedUrls();
+	datalist.innerHTML = Array.from(SAVED_URLS_SET)
+		.map((url) => `<option value="${url}">`)
+		.join("");
 }
 
 async function saveBaseUrlSuggestion(url) {
-  if (!url) return;
-  const { [SAVED_URLS_KEY]: saved = [] } = await chrome.storage.local.get(SAVED_URLS_KEY);
-  if (!saved.includes(url)) {
-    saved.unshift(url);
-    await chrome.storage.local.set({ [SAVED_URLS_KEY]: saved.slice(0, 20) });
-  }
+	if (!url) return;
+	await loadSavedUrls();
+	if (SAVED_URLS_SET.has(url)) return;
+	SAVED_URLS_SET.add(url);
+	if (pendingUrlSave) clearTimeout(pendingUrlSave);
+	pendingUrlSave = setTimeout(async () => {
+		await chrome.storage.local.set({
+			[SAVED_URLS_KEY]: Array.from(SAVED_URLS_SET).slice(0, 20),
+		});
+		pendingUrlSave = null;
+	}, 500);
 }
 
 function showStatus(message, type = "success") {
-  statusMsg.textContent = message;
-  statusMsg.className = `status ${type}`;
-  statusMsg.hidden = false;
-  setTimeout(() => {
-    statusMsg.hidden = true;
-  }, 2500);
+	statusMsg.textContent = message;
+	statusMsg.className = `status ${type}`;
+	statusMsg.hidden = false;
+	setTimeout(() => {
+		statusMsg.hidden = true;
+	}, 2500);
 }
 
 function captureSavedState() {
-  savedState = {
-    providerId: providerSelect.value,
-    model: getSelectedModel(),
-    apiKey: apiKeyInput.value,
-    baseUrl: baseUrlInput.value,
-    enabled: enabledToggle.checked,
-    logLevel: logLevelSelect.value,
-  };
+	savedState = {
+		providerId: providerSelect.value,
+		model: getSelectedModel(),
+		apiKey: apiKeyInput.value,
+		baseUrl: baseUrlInput.value,
+		enabled: enabledToggle.checked,
+		logLevel: logLevelSelect.value,
+	};
 }
 
 function hasUnsavedChanges() {
-  return (
-    savedState.providerId !== providerSelect.value ||
-    savedState.model !== getSelectedModel() ||
-    savedState.apiKey !== apiKeyInput.value ||
-    savedState.baseUrl !== baseUrlInput.value ||
-    savedState.enabled !== enabledToggle.checked ||
-    savedState.logLevel !== logLevelSelect.value
-  );
+	return (
+		savedState.providerId !== providerSelect.value ||
+		savedState.model !== getSelectedModel() ||
+		savedState.apiKey !== apiKeyInput.value ||
+		savedState.baseUrl !== baseUrlInput.value ||
+		savedState.enabled !== enabledToggle.checked ||
+		savedState.logLevel !== logLevelSelect.value
+	);
 }
 
 function updateMarkUnsaved() {
-  const unsaved = hasUnsavedChanges();
-  saveBtn.className = unsaved ? "btn-primary btn-unsaved" : "btn-primary";
-  if (unsaved) {
-    saveBtn.textContent = "Unsaved changes";
-  } else {
-    saveBtn.textContent = "Save";
-  }
+	const unsaved = hasUnsavedChanges();
+	saveBtn.className = unsaved ? "btn-primary btn-unsaved" : "btn-primary";
+	if (unsaved) {
+		saveBtn.textContent = "Unsaved changes";
+	} else {
+		saveBtn.textContent = "Save";
+	}
 }
 
 function isCustomSelected() {
-  return modelSelect.value === CUSTOM_VALUE;
+	return modelSelect.value === CUSTOM_VALUE;
 }
 
 function getSelectedModel() {
-  if (isCustomSelected()) {
-    return customModelInput.value.trim();
-  }
-  return modelSelect.value;
+	if (isCustomSelected()) {
+		return customModelInput.value.trim();
+	}
+	return modelSelect.value;
 }
 
 function setCustomInputVisibility(show) {
-  customModelInput.hidden = !show;
-  if (show) {
-    customModelInput.focus();
-  }
+	customModelInput.hidden = !show;
+	if (show) {
+		customModelInput.focus();
+	}
 }
 
 function renderModelDropdown(models, selectedModel, defaultModel) {
-  modelSelect.innerHTML = "";
-  modelHint.textContent = "";
-  customModelInput.value = "";
-  setCustomInputVisibility(false);
+	modelSelect.innerHTML = "";
+	modelHint.textContent = "";
+	customModelInput.value = "";
+	setCustomInputVisibility(false);
 
-  if (models && models.length > 0) {
-    models.forEach((m) => {
-      const option = document.createElement("option");
-      option.value = m.id;
-      option.textContent = m.label;
-      modelSelect.appendChild(option);
-    });
-  }
+	if (models && models.length > 0) {
+		models.forEach((m) => {
+			const option = document.createElement("option");
+			option.value = m.id;
+			option.textContent = m.label;
+			modelSelect.appendChild(option);
+		});
+	}
 
-  const customOption = document.createElement("option");
-  customOption.value = CUSTOM_VALUE;
-  customOption.textContent = "Custom model...";
-  modelSelect.appendChild(customOption);
+	const customOption = document.createElement("option");
+	customOption.value = CUSTOM_VALUE;
+	customOption.textContent = "Custom model...";
+	modelSelect.appendChild(customOption);
 
-  if (selectedModel) {
-    const isKnown = models && models.some((m) => m.id === selectedModel);
-    if (isKnown) {
-      modelSelect.value = selectedModel;
-    } else {
-      modelSelect.value = CUSTOM_VALUE;
-      customModelInput.value = selectedModel;
-      setCustomInputVisibility(true);
-    }
-  } else if (models && models.length > 0) {
-    modelSelect.value = defaultModel || models[0].id;
-  } else {
-    modelSelect.value = CUSTOM_VALUE;
-    setCustomInputVisibility(true);
-  }
+	if (selectedModel) {
+		const isKnown = models?.some((m) => m.id === selectedModel);
+		if (isKnown) {
+			modelSelect.value = selectedModel;
+		} else {
+			modelSelect.value = CUSTOM_VALUE;
+			customModelInput.value = selectedModel;
+			setCustomInputVisibility(true);
+		}
+	} else if (models && models.length > 0) {
+		modelSelect.value = defaultModel || models[0].id;
+	} else {
+		modelSelect.value = CUSTOM_VALUE;
+		setCustomInputVisibility(true);
+	}
 
-  updateModelHint();
+	updateModelHint();
 }
 
 async function populateModels(providerId, selectedModel) {
-  const provider = providers.find((p) => p.id === providerId);
-  if (!provider) return;
+	const provider = providers.find((p) => p.id === providerId);
+	if (!provider) return;
 
-  // Loading state
-  modelSelect.innerHTML = "";
-  const loadingOpt = document.createElement("option");
-  loadingOpt.disabled = true;
-  loadingOpt.textContent = "Loading models…";
-  modelSelect.appendChild(loadingOpt);
+	// Loading state
+	modelSelect.innerHTML = "";
+	const loadingOpt = document.createElement("option");
+	loadingOpt.disabled = true;
+	loadingOpt.textContent = "Loading models…";
+	modelSelect.appendChild(loadingOpt);
 
-  // Lazy-fetch models via _classRef (async, cached per provider).
-  if (provider._classRef) {
-    provider.models = await provider._classRef.getModels();
-  }
+	// Lazy-fetch models via _classRef (async, cached per provider).
+	if (provider._classRef) {
+		provider.models = await provider._classRef.getModels();
+	}
 
-  renderModelDropdown(provider.models, selectedModel, provider.defaultModel);
+	renderModelDropdown(provider.models, selectedModel, provider.defaultModel);
 }
 
 function updateModelHint() {
-  if (isCustomSelected()) {
-    modelHint.textContent = "Enter any model ID supported by this provider";
-    return;
-  }
-  const provider = providers.find((p) => p.id === providerSelect.value);
-  if (!provider) return;
-  const model = provider.models.find((m) => m.id === modelSelect.value);
-  modelHint.textContent = model?.hint || "";
+	if (isCustomSelected()) {
+		modelHint.textContent = "Enter any model ID supported by this provider";
+		return;
+	}
+	const provider = providers.find((p) => p.id === providerSelect.value);
+	if (!provider) return;
+	const model = provider.models.find((m) => m.id === modelSelect.value);
+	modelHint.textContent = model?.hint || "";
 }
 
 function showAiStatus(providerId) {
-  const provider = providers.find((p) => p.id === providerId);
-  if (!provider) return;
+	const provider = providers.find((p) => p.id === providerId);
+	if (!provider) return;
 
-  if (providerId === "chrome-free-ai") {
-    aiStatusSection.hidden = false;
-    aiStatusContent.innerHTML = `<p class="status-info">Checking model status…</p>`;
+	if (providerId === "chrome-free-ai") {
+		aiStatusSection.hidden = false;
+		aiStatusContent.innerHTML = `<p class="status-info">Checking model status…</p>`;
 
-    chrome.runtime
-      .sendMessage({ type: "GET_AI_STATUS", providerId })
-      .then((result) => {
-        if (!result || !result.status) {
-          aiStatusContent.innerHTML = `<p class="status-error">Could not check model status</p>`;
-          return;
-        }
+		chrome.runtime
+			.sendMessage({ type: "GET_AI_STATUS", providerId })
+			.then((result) => {
+				if (!result?.status) {
+					aiStatusContent.innerHTML = `<p class="status-error">Could not check model status</p>`;
+					return;
+				}
 
-        const s = result.status;
+				const s = result.status;
 
-        if (s === "available") {
-          aiStatusContent.innerHTML = `<p class="status-ready">✓ Local Gemini Nano ready to use</p>`;
-        } else if (s === "downloadable") {
-          aiStatusContent.innerHTML = `
+				if (s === "available") {
+					aiStatusContent.innerHTML = `<p class="status-ready">✓ Local Gemini Nano ready to use</p>`;
+				} else if (s === "downloadable") {
+					aiStatusContent.innerHTML = `
           <p class="status-info">Gemini Nano needs to be downloaded (~22GB free space required)</p>
           <button id="download-ai-btn" class="btn-primary">Download Gemini Nano</button>
         `;
-          document.getElementById("download-ai-btn").addEventListener("click", () => {
-            chrome.runtime.sendMessage({ type: "TRIGGER_MODEL_DOWNLOAD" });
-            aiStatusContent.innerHTML = `<p class="status-info">Download started. Check back later.</p>`;
-          });
-        } else if (s === "downloading") {
-          aiStatusContent.innerHTML = `<p class="status-info">Model download in progress. Check back later.</p>`;
-        } else {
-          aiStatusContent.innerHTML = `
+					document
+						.getElementById("download-ai-btn")
+						.addEventListener("click", () => {
+							chrome.runtime.sendMessage({ type: "TRIGGER_MODEL_DOWNLOAD" });
+							aiStatusContent.innerHTML = `<p class="status-info">Download started. Check back later.</p>`;
+						});
+				} else if (s === "downloading") {
+					aiStatusContent.innerHTML = `<p class="status-info">Model download in progress. Check back later.</p>`;
+				} else {
+					aiStatusContent.innerHTML = `
           <p class="status-error">✗ Chrome Free AI not supported on this browser</p>
           <p class="status-hint">
           This browser does not currently support the required AI capabilities.
       Please try a supported browser such as Google chrome.
           </p>
         `;
-        }
-      })
-      .catch((err) => {
-        log.error("GET_AI_STATUS failed:", err.message);
-        aiStatusContent.innerHTML = `<p class="status-error">Error checking model status</p>`;
-      });
-    return;
-  }
+				}
+			})
+			.catch((err) => {
+				log.error("GET_AI_STATUS failed:", err.message);
+				aiStatusContent.innerHTML = `<p class="status-error">Error checking model status</p>`;
+			});
+		return;
+	}
 
-  // Other providers: show availability status
-  aiStatusSection.hidden = provider.available;
-  if (!provider.available) {
-    const hint = provider._classRef.availabilityHint;
-    aiStatusContent.innerHTML = `
+	// Other providers: show availability status
+	aiStatusSection.hidden = provider.available;
+	if (!provider.available) {
+		const hint = provider._classRef.availabilityHint;
+		aiStatusContent.innerHTML = `
       <p class="status-error">✗ ${provider.name} is not available</p>
       ${hint ? `<p class="status-hint">${hint}</p>` : ""}
     `;
-  }
+	}
 }
 
 async function populateProviders() {
-  providers = await getAvailableProviders();
-  providers.forEach((p) => {
-    const option = document.createElement("option");
-    option.value = p.id;
-    option.textContent = p.available ? p.name : `${p.name} (unavailable)`;
-    providerSelect.appendChild(option);
-  });
+	providers = await getAvailableProviders();
+	providers.forEach((p) => {
+		const option = document.createElement("option");
+		option.value = p.id;
+		option.textContent = p.available ? p.name : `${p.name} (unavailable)`;
+		providerSelect.appendChild(option);
+	});
 
-  providerSelect.addEventListener("change", async () => {
-    const provider = providers.find((p) => p.id === providerSelect.value);
-    if (provider) {
-      log.info(`Provider changed to: ${provider.name} (${provider.id})`);
-      apiKeyInput.placeholder = provider.keyPlaceholder;
-      const isGeneric = provider.id === OPENAI_COMPATIBLE_ID;
-      baseUrlSection.hidden = !isGeneric;
-      if (isGeneric) {
-        const { baseUrl } = await getSettings();
-        baseUrlInput.value = baseUrl || "";
-        baseUrlHint.textContent = "Full API base URL including version path";
-      }
-      await populateModels(provider.id, null);
-      showAiStatus(provider.id);
-      updateMarkUnsaved();
-    }
-  });
+	providerSelect.addEventListener("change", async () => {
+		const provider = providers.find((p) => p.id === providerSelect.value);
+		if (provider) {
+			log.info(`Provider changed to: ${provider.name} (${provider.id})`);
+			apiKeyInput.placeholder = provider.keyPlaceholder;
+			const isGeneric = provider.id === OPENAI_COMPATIBLE_ID;
+			baseUrlSection.hidden = !isGeneric;
+			if (isGeneric) {
+				const { baseUrl } = await getSettings();
+				baseUrlInput.value = baseUrl || "";
+				baseUrlHint.textContent = "Full API base URL including version path";
+			}
+			await populateModels(provider.id, null);
+			showAiStatus(provider.id);
+			updateMarkUnsaved();
+		}
+	});
 
-  modelSelect.addEventListener("change", () => {
-    log.debug(`Model changed to: ${isCustomSelected() ? "custom" : modelSelect.value}`);
-    setCustomInputVisibility(isCustomSelected());
-    updateModelHint();
-    updateMarkUnsaved();
-  });
+	modelSelect.addEventListener("change", () => {
+		log.debug(
+			`Model changed to: ${isCustomSelected() ? "custom" : modelSelect.value}`,
+		);
+		setCustomInputVisibility(isCustomSelected());
+		updateModelHint();
+		updateMarkUnsaved();
+	});
 
-  async function doFetchModels(baseUrl, apiKey) {
-    const cached = await getCachedModels(baseUrl);
-    if (cached) {
-      log.debug("Using cached models for", baseUrl);
-      const provider = providers.find((p) => p.id === providerSelect.value);
-      applyFetchedModels(provider, cached, null);
-      return;
-    }
+	async function doFetchModels(baseUrl, apiKey) {
+		const cached = await getCachedModels(baseUrl, apiKey);
+		if (cached) {
+			log.debug("Using cached models for", baseUrl);
+			const provider = providers.find((p) => p.id === providerSelect.value);
+			applyFetchedModels(provider, cached, null);
+			return;
+		}
 
-    fetchModelsBtn.disabled = true;
-    fetchModelsBtn.textContent = "Fetching...";
-    baseUrlHint.textContent = "Fetching models…";
+		fetchModelsBtn.disabled = true;
+		fetchModelsBtn.textContent = "Fetching...";
+		baseUrlHint.textContent = "Fetching models…";
 
-    const result = await chrome.runtime.sendMessage({
-      type: "FETCH_MODELS",
-      baseUrl,
-      apiKey,
-    });
+		const result = await chrome.runtime.sendMessage({
+			type: "FETCH_MODELS",
+			baseUrl,
+			apiKey,
+		});
 
-    if (result.error) {
-      baseUrlHint.textContent = `Fetch failed: ${result.error}`;
-      fetchModelsBtn.disabled = false;
-      fetchModelsBtn.textContent = "Fetch";
-      return;
-    }
+		if (result.error) {
+			baseUrlHint.textContent = `Fetch failed: ${result.error}`;
+			fetchModelsBtn.disabled = false;
+			fetchModelsBtn.textContent = "Fetch";
+			return;
+		}
 
-    await setCachedModels(baseUrl, result.models);
-    const provider = providers.find((p) => p.id === providerSelect.value);
-    applyFetchedModels(provider, result.models, null);
-    modelHint.textContent = "Select a model from the list, or use Custom model to type one";
-    fetchModelsBtn.disabled = false;
-    fetchModelsBtn.textContent = "Fetch";
-  }
+		await setCachedModels(baseUrl, apiKey, result.models);
+		const provider = providers.find((p) => p.id === providerSelect.value);
+		applyFetchedModels(provider, result.models, null);
+		modelHint.textContent =
+			"Select a model from the list, or use Custom model to type one";
+		fetchModelsBtn.disabled = false;
+		fetchModelsBtn.textContent = "Fetch";
+	}
 
-  fetchModelsBtn.addEventListener("click", async () => {
-    const baseUrl = baseUrlInput.value.trim();
-    if (!baseUrl) {
-      baseUrlHint.textContent = "Please enter a base URL first";
-      return;
-    }
+	fetchModelsBtn.addEventListener("click", async () => {
+		const baseUrl = baseUrlInput.value.trim();
+		if (!baseUrl) {
+			baseUrlHint.textContent = "Please enter a base URL first";
+			return;
+		}
 
-    const apiKey = apiKeyInput.value.trim();
-    if (!apiKey) {
-      baseUrlHint.textContent = "Please enter an API key first";
-      return;
-    }
+		const apiKey = apiKeyInput.value.trim();
+		if (!apiKey) {
+			baseUrlHint.textContent = "Please enter an API key first";
+			return;
+		}
 
-    await doFetchModels(baseUrl, apiKey);
-  });
+		await doFetchModels(baseUrl, apiKey);
+	});
 
-  apiKeyInput.addEventListener("input", updateMarkUnsaved);
-  baseUrlInput.addEventListener("input", () => {
-    updateMarkUnsaved();
-    baseUrlHint.textContent = "Full API base URL including version path";
-  });
-  customModelInput.addEventListener("input", updateMarkUnsaved);
+	apiKeyInput.addEventListener("input", updateMarkUnsaved);
+	baseUrlInput.addEventListener("input", () => {
+		updateMarkUnsaved();
+		baseUrlHint.textContent = "Full API base URL including version path";
+	});
+	customModelInput.addEventListener("input", updateMarkUnsaved);
 
-  if (providers.length > 0) {
-    apiKeyInput.placeholder = providers[0].keyPlaceholder;
-  }
+	if (providers.length > 0) {
+		apiKeyInput.placeholder = providers[0].keyPlaceholder;
+	}
 }
 
 async function loadSettings() {
-  log.info("Loading saved settings");
-  const { providerId, apiKey, model, baseUrl, enabled } = await getSettings();
-  log.debug("Loaded settings", {
-    providerId,
-    model: model || "default",
-    enabled,
-    hasKey: Boolean(apiKey),
-  });
-  providerSelect.value = providerId;
-  apiKeyInput.placeholder = providers.find((p) => p.id === providerId)?.keyPlaceholder || "sk-...";
+	log.info("Loading saved settings");
+	const { providerId, apiKey, model, baseUrl, enabled } = await getSettings();
+	log.debug("Loaded settings", {
+		providerId,
+		model: model || "default",
+		enabled,
+		hasKey: Boolean(apiKey),
+	});
+	providerSelect.value = providerId;
+	apiKeyInput.placeholder =
+		providers.find((p) => p.id === providerId)?.keyPlaceholder || "sk-...";
 
-  const isGeneric = providerId === OPENAI_COMPATIBLE_ID;
-  baseUrlSection.hidden = !isGeneric;
-  if (isGeneric) {
-    baseUrlInput.value = baseUrl || "";
-  }
+	const isGeneric = providerId === OPENAI_COMPATIBLE_ID;
+	baseUrlSection.hidden = !isGeneric;
+	if (isGeneric) {
+		baseUrlInput.value = baseUrl || "";
+	}
 
-  if (isGeneric && baseUrl && apiKey && apiKey !== NO_API_KEY_SENTINEL) {
-    const cached = await getCachedModels(baseUrl);
-    if (cached) {
-      const genericProvider = providers.find((p) => p.id === OPENAI_COMPATIBLE_ID);
-      applyFetchedModels(genericProvider, cached, model);
-    } else {
-      await populateModels(providerId, model);
-      doFetchModels(baseUrl, apiKey);
-    }
-  } else {
-    await populateModels(providerId, model);
-  }
+	if (isGeneric && baseUrl && apiKey && apiKey !== NO_API_KEY_SENTINEL) {
+		const cached = await getCachedModels(baseUrl, apiKey);
+		if (cached) {
+			const genericProvider = providers.find(
+				(p) => p.id === OPENAI_COMPATIBLE_ID,
+			);
+			applyFetchedModels(genericProvider, cached, model);
+		} else {
+			await populateModels(providerId, model);
+			doFetchModels(baseUrl, apiKey);
+		}
+	} else {
+		await populateModels(providerId, model);
+	}
 
-  if (apiKey && apiKey !== NO_API_KEY_SENTINEL) apiKeyInput.value = apiKey;
-  enabledToggle.checked = enabled;
-  showAiStatus(providerId);
-  captureSavedState();
-  updateMarkUnsaved();
+	if (apiKey && apiKey !== NO_API_KEY_SENTINEL) apiKeyInput.value = apiKey;
+	enabledToggle.checked = enabled;
+	showAiStatus(providerId);
+	captureSavedState();
+	updateMarkUnsaved();
 }
 
 saveBtn.addEventListener("click", async () => {
-  const providerId = providerSelect.value;
-  const model = getSelectedModel();
-  let apiKey = apiKeyInput.value.trim();
-  const baseUrl = providerId === OPENAI_COMPATIBLE_ID ? baseUrlInput.value.trim() : "";
+	const providerId = providerSelect.value;
+	const model = getSelectedModel();
+	let apiKey = apiKeyInput.value.trim();
+	const baseUrl =
+		providerId === OPENAI_COMPATIBLE_ID ? baseUrlInput.value.trim() : "";
 
-  const providerInfo = providers.find((p) => p.id === providerId);
+	const providerInfo = providers.find((p) => p.id === providerId);
 
-  if (providerId === OPENAI_COMPATIBLE_ID && !baseUrl) {
-    log.warn("Save aborted — no base URL");
-    showStatus("Please enter a base URL", "error");
-    return;
-  }
+	if (providerId === OPENAI_COMPATIBLE_ID && !baseUrl) {
+		log.warn("Save aborted — no base URL");
+		showStatus("Please enter a base URL", "error");
+		return;
+	}
 
-  if (providerInfo?.requiresApiKey && !apiKey) {
-    log.warn("Save aborted — no API key");
-    showStatus("Please enter an API key", "error");
-    return;
-  }
+	if (providerInfo?.requiresApiKey && !apiKey) {
+		log.warn("Save aborted — no API key");
+		showStatus("Please enter an API key", "error");
+		return;
+	}
 
-  if (!model) {
-    log.warn("Save aborted — no model selected");
-    showStatus("Please select or enter a model", "error");
-    return;
-  }
+	if (!model) {
+		log.warn("Save aborted — no model selected");
+		showStatus("Please select or enter a model", "error");
+		return;
+	}
 
-  if (providerInfo?.requiresApiKey) {
-    try {
-      const provider = createProvider(providerId, apiKey, model, baseUrl);
-      provider.validateApiKey();
-    } catch (e) {
-      log.warn("Save aborted — invalid API key:", e.message);
-      showStatus(e.message, "error");
-      return;
-    }
-  }
+	if (providerInfo?.requiresApiKey) {
+		try {
+			const provider = createProvider(providerId, apiKey, model, baseUrl);
+			provider.validateApiKey();
+		} catch (e) {
+			log.warn("Save aborted — invalid API key:", e.message);
+			showStatus(e.message, "error");
+			return;
+		}
+	}
 
-  if (!apiKey && providerInfo && !providerInfo.requiresApiKey) {
-    apiKey = NO_API_KEY_SENTINEL;
-  }
+	if (!apiKey && providerInfo && !providerInfo.requiresApiKey) {
+		apiKey = NO_API_KEY_SENTINEL;
+	}
 
-  saveBtn.disabled = true;
-  saveBtn.textContent = "Verifying…";
-  log.info("Verifying provider", { providerId, model });
+	saveBtn.disabled = true;
+	saveBtn.textContent = "Verifying…";
+	log.info("Verifying provider", { providerId, model });
 
-  try {
-    const verifyResult = await chrome.runtime.sendMessage({
-      type: "VERIFY_SETTINGS",
-      providerId,
-      apiKey,
-      model,
-      baseUrl,
-    });
+	try {
+		const verifyResult = await chrome.runtime.sendMessage({
+			type: "VERIFY_SETTINGS",
+			providerId,
+			apiKey,
+			model,
+			baseUrl,
+		});
 
-    if (!verifyResult.success) {
-      log.warn("Save aborted — provider verification failed:", verifyResult.error);
-      showStatus(verifyResult.error || "Provider verification failed", "error");
-      saveBtn.disabled = false;
-      updateMarkUnsaved();
-      return;
-    }
+		if (!verifyResult.success) {
+			log.warn(
+				"Save aborted — provider verification failed:",
+				verifyResult.error,
+			);
+			showStatus(verifyResult.error || "Provider verification failed", "error");
+			saveBtn.disabled = false;
+			updateMarkUnsaved();
+			return;
+		}
 
-    log.info("Provider verified, saving settings", { providerId, model });
-    saveBtn.textContent = "Saving…";
+		log.info("Provider verified, saving settings", { providerId, model });
+		saveBtn.textContent = "Saving…";
 
-    await setSettings({ providerId, model, apiKey, baseUrl });
-    log.info("Settings saved successfully");
+		await setSettings({ providerId, model, apiKey, baseUrl });
+		log.info("Settings saved successfully");
 
-    if (baseUrl) {
-      saveBaseUrlSuggestion(baseUrl).catch((e) => log.warn("Failed to save URL suggestion:", e.message));
-      populateBaseUrlSuggestions().catch((e) => log.warn("Failed to refresh suggestions:", e.message));
-    }
+		if (baseUrl) {
+			saveBaseUrlSuggestion(baseUrl).catch((e) =>
+				log.warn("Failed to save URL suggestion:", e.message),
+			);
+			populateBaseUrlSuggestions().catch((e) =>
+				log.warn("Failed to refresh suggestions:", e.message),
+			);
+		}
 
-    showStatus("Settings saved");
-    captureSavedState();
-    updateMarkUnsaved();
-  } catch (err) {
-    log.error("Save error:", err.message);
-    showStatus("Failed to save settings", "error");
-  } finally {
-    saveBtn.disabled = false;
-    updateMarkUnsaved();
-  }
+		showStatus("Settings saved");
+		captureSavedState();
+		updateMarkUnsaved();
+	} catch (err) {
+		log.error("Save error:", err.message);
+		showStatus("Failed to save settings", "error");
+	} finally {
+		saveBtn.disabled = false;
+		updateMarkUnsaved();
+	}
 });
 
 toggleVisibility.addEventListener("click", () => {
-  const isPassword = apiKeyInput.type === "password";
-  apiKeyInput.type = isPassword ? "text" : "password";
+	const isPassword = apiKeyInput.type === "password";
+	apiKeyInput.type = isPassword ? "text" : "password";
 });
 
 enabledToggle.addEventListener("change", async () => {
-  log.info(`Extension ${enabledToggle.checked ? "enabled" : "disabled"}`);
-  await setSettings({ enabled: enabledToggle.checked });
-  captureSavedState();
-  updateMarkUnsaved();
+	log.info(`Extension ${enabledToggle.checked ? "enabled" : "disabled"}`);
+	await setSettings({ enabled: enabledToggle.checked });
+	captureSavedState();
+	updateMarkUnsaved();
 });
 
 logLevelSelect.addEventListener("change", async () => {
-  const level = logLevelSelect.value;
-  log.info(`Log level changed to: ${level}`);
-  await setSettings({ logLevel: level });
-  captureSavedState();
-  updateMarkUnsaved();
+	const level = logLevelSelect.value;
+	log.info(`Log level changed to: ${level}`);
+	await setSettings({ logLevel: level });
+	captureSavedState();
+	updateMarkUnsaved();
 });
 
 getSettings().then(({ logLevel }) => {
-  logLevelSelect.value = logLevel;
+	logLevelSelect.value = logLevel;
 });
 
 async function loadCurrentSite() {
-  try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.url) return;
-    const url = new URL(tab.url);
-    if (!["http:", "https:"].includes(url.protocol)) return;
-    currentHostname = url.hostname;
-    siteHost.textContent = currentHostname;
-    siteSection.hidden = false;
+	try {
+		const [tab] = await chrome.tabs.query({
+			active: true,
+			currentWindow: true,
+		});
+		if (!tab?.url) return;
+		const url = new URL(tab.url);
+		if (!["http:", "https:"].includes(url.protocol)) return;
+		currentHostname = url.hostname;
+		siteHost.textContent = currentHostname;
+		siteSection.hidden = false;
 
-    const { disabledSites } = await getSettings();
-    siteToggle.checked = !disabledSites.includes(currentHostname);
-    log.debug("Site toggle loaded", { currentHostname, disabled: !siteToggle.checked });
-  } catch (err) {
-    log.debug("Could not detect current site:", err.message);
-  }
+		const { disabledSites } = await getSettings();
+		siteToggle.checked = !disabledSites.includes(currentHostname);
+		log.debug("Site toggle loaded", {
+			currentHostname,
+			disabled: !siteToggle.checked,
+		});
+	} catch (err) {
+		log.debug("Could not detect current site:", err.message);
+	}
 }
 
 siteToggle.addEventListener("change", async () => {
-  if (!currentHostname) return;
-  const { disabledSites } = await getSettings();
-  const sites = new Set(disabledSites);
+	if (!currentHostname) return;
+	const { disabledSites } = await getSettings();
+	const sites = new Set(disabledSites);
 
-  if (siteToggle.checked) {
-    sites.delete(currentHostname);
-    log.info(`Enabled on ${currentHostname}`);
-  } else {
-    sites.add(currentHostname);
-    log.info(`Disabled on ${currentHostname}`);
-  }
+	if (siteToggle.checked) {
+		sites.delete(currentHostname);
+		log.info(`Enabled on ${currentHostname}`);
+	} else {
+		sites.add(currentHostname);
+		log.info(`Disabled on ${currentHostname}`);
+	}
 
-  await setSettings({ disabledSites: [...sites] });
+	await setSettings({ disabledSites: [...sites] });
 });
 
 log.info("Popup opened");
 (async () => {
-  await populateProviders();
-  loadSettings();
-  loadCurrentSite();
-  populateBaseUrlSuggestions();
+	await populateProviders();
+	loadSettings();
+	loadCurrentSite();
+	populateBaseUrlSuggestions();
 })().catch((err) => log.error("Popup init failed:", err.message));
 
 // ── Session Usage ──
@@ -553,19 +615,21 @@ const usageSection = document.getElementById("usage-section");
 const usageStats = document.getElementById("usage-stats");
 
 async function loadSessionUsage() {
-  try {
-    const data = await chrome.runtime.sendMessage({ type: "GET_SESSION_USAGE" });
-    if (!data || data.summary.totalChecks === 0) {
-      usageSection.hidden = true;
-      return;
-    }
+	try {
+		const data = await chrome.runtime.sendMessage({
+			type: "GET_SESSION_USAGE",
+		});
+		if (!data || data.summary.totalChecks === 0) {
+			usageSection.hidden = true;
+			return;
+		}
 
-    usageSection.hidden = false;
-    const s = data.summary;
-    const last = data.checks[data.checks.length - 1];
-    const fmt = (n) => n.toLocaleString();
+		usageSection.hidden = false;
+		const s = data.summary;
+		const last = data.checks[data.checks.length - 1];
+		const fmt = (n) => n.toLocaleString();
 
-    usageStats.innerHTML = `
+		usageStats.innerHTML = `
       <div class="usage-row">
         <span class="usage-stat">
           <span class="usage-value">${fmt(s.totalChecks)}</span>
@@ -583,11 +647,11 @@ async function loadSessionUsage() {
         Last: ${last.model} (${fmt(last.total_tokens)} tokens)
       </div>
     `;
-    log.debug("Session usage loaded", s);
-  } catch (err) {
-    log.debug("Could not load session usage:", err.message);
-    usageSection.hidden = true;
-  }
+		log.debug("Session usage loaded", s);
+	} catch (err) {
+		log.debug("Could not load session usage:", err.message);
+		usageSection.hidden = true;
+	}
 }
 
 loadSessionUsage();
