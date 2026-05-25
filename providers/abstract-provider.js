@@ -46,7 +46,7 @@ export class AbstractProvider {
       throw new Error("AbstractProvider is abstract — extend it, do not instantiate directly");
     }
 
-    this._enforceStaticContract(new.target);
+    AbstractProvider.enforceContract(new.target);
 
     this.apiKey = apiKey;
     this.model = model || new.target.defaultModel;
@@ -196,10 +196,10 @@ export class AbstractProvider {
   }
 
   // ──────────────────────────────────────────────
-  //  PRIVATE
+  //  CONTRACT ENFORCEMENT
   // ──────────────────────────────────────────────
 
-  _enforceStaticContract(ProviderClass) {
+  static enforceContract(ProviderClass) {
     const required = ["id", "displayName", "models", "defaultModel", "keyPlaceholder", "getModels"];
     for (const prop of required) {
       try {
