@@ -13,6 +13,7 @@
 
 import { getCachedAvailability, setCachedAvailability } from "../lib/cache.js";
 import { createLogger } from "../lib/logger.js";
+import { AbstractProvider } from "./abstract-provider.js";
 import { ChromeFreeAIProvider } from "./chrome-free-ai-provider.js";
 import { GenericOpenAIProvider } from "./generic-openai-provider.js";
 import { LMStudioProvider } from "./lmstudio-provider.js";
@@ -30,14 +31,31 @@ const PROVIDER_CLASSES = [
   GenericOpenAIProvider,
 ];
 
-const PROVIDERS_BY_ID = Object.fromEntries(PROVIDER_CLASSES.map((P) => [P.id, P]));
+// ── Validate contracts at module load — catch violations early ──
+const VALID_PROVIDER_CLASSES = [];
+const DROPPED = [];
 
-log.info(`Registered ${PROVIDER_CLASSES.length} provider(s): ${PROVIDER_CLASSES.map((P) => P.id).join(", ")}`);
+for (const P of PROVIDER_CLASSES) {
+  try {
+    AbstractProvider.enforceContract(P);
+    VALID_PROVIDER_CLASSES.push(P);
+  } catch (err) {
+    DROPPED.push(`${P.name || P.id}: ${err.message}`);
+  }
+}
+
+if (DROPPED.length > 0) {
+  log.warn(`Provider(s) excluded — contract violations:`, DROPPED);
+}
+
+const PROVIDERS_BY_ID = Object.fromEntries(VALID_PROVIDER_CLASSES.map((P) => [P.id, P]));
+
+log.info(`Registered ${VALID_PROVIDER_CLASSES.length} / ${PROVIDER_CLASSES.length} provider(s): ${VALID_PROVIDER_CLASSES.map((P) => P.id).join(", ")}`);
 
 export function createProvider(providerId, apiKey, model, baseUrl) {
   const ProviderClass = PROVIDERS_BY_ID[providerId];
   if (!ProviderClass) {
-    const available = PROVIDER_CLASSES.map((P) => P.id).join(", ");
+    const available = VALID_PROVIDER_CLASSES.map((P) => P.id).join(", ");
     log.error(`Unknown provider "${providerId}". Available: ${available}`);
     throw new Error(`Unknown provider: "${providerId}". Available: ${available}`);
   }
@@ -47,7 +65,7 @@ export function createProvider(providerId, apiKey, model, baseUrl) {
 
 export async function getAvailableProviders() {
   const list = await Promise.all(
-    PROVIDER_CLASSES.map(async (P) => {
+    VALID_PROVIDER_CLASSES.map(async (P) => {
       let available = true;
       if (P.isAvailable) {
         const cached = getCachedAvailability(P.id);
