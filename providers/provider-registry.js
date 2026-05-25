@@ -12,7 +12,7 @@
  * violators are dropped with a clear warning, valid providers continue working.
  */
 
-import { getCachedAvailability, setCachedAvailability } from "../lib/cache.js";
+import { getCachedAvailability, getCachedModels, setCachedAvailability } from "../lib/cache.js";
 import { createLogger } from "../lib/logger.js";
 import { AbstractProvider } from "./abstract-provider.js";
 import { ChromeFreeAIProvider } from "./chrome-free-ai-provider.js";
@@ -88,7 +88,14 @@ export async function getAvailableProviders() {
         keyPlaceholder: P.keyPlaceholder,
         requiresApiKey: P.requiresApiKey,
         models: P.models,
-        defaultModel: P.defaultModel,
+        // Lazy getter: evaluated each time it's accessed (popup re-reads after
+        // getModels() populates cache). Falls back to class static defaultModel
+        // when cache is empty (init time or first load).
+        get defaultModel() {
+          const cached = getCachedModels(P.id);
+          if (cached && cached.length > 0) return cached[0].id;
+          return P.defaultModel;
+        },
         available,
         // back-reference to the provider class, used by the popup for:
         //   - lazy model fetching  (_classRef.getModels())
@@ -121,4 +128,22 @@ export function getProviderInfo(providerId) {
     models: ProviderClass.models,
     defaultModel: ProviderClass.defaultModel,
   };
+}
+
+/**
+ * Fire-and-forget provider model unload hook.
+ * Called when user switches model/provider. Providers implement
+ * onModelUnloaded() to clean up resources. Errors are caught and logged.
+ * Never blocks or breaks the caller.
+ */
+export async function unloadProviderModel(providerId, modelId) {
+  if (!providerId || !modelId) return;
+  const ProviderClass = PROVIDERS_BY_ID.get(providerId);
+  if (ProviderClass?.onModelUnloaded) {
+    try {
+      await ProviderClass.onModelUnloaded(modelId);
+    } catch (err) {
+      log.warn(`onModelUnloaded hook failed for ${providerId}: ${err.message}`);
+    }
+  }
 }

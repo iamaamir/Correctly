@@ -4,6 +4,8 @@ import { AbstractOpenAICompatibleProvider } from "./abstract-openai-compatible-p
 
 const log = createLogger("ollama");
 
+const BASE_URL = "http://localhost:11434";
+
 const FALLBACK_MODELS = [
   { id: "llama3", label: "llama3", hint: "Local LLM via Ollama" },
   { id: "mistral", label: "mistral", hint: "Local LLM via Ollama" },
@@ -40,29 +42,45 @@ export class OllamaProvider extends AbstractOpenAICompatibleProvider {
     if (cached) return cached;
 
     try {
-      const response = await fetch("http://localhost:11434/api/tags", {
-        signal: AbortSignal.timeout(5000),
-      });
+      const [tagsResponse, psResponse] = await Promise.all([
+        fetch(`${BASE_URL}/api/tags`, { signal: AbortSignal.timeout(5000) }),
+        fetch(`${BASE_URL}/api/ps`, { signal: AbortSignal.timeout(3000) }).catch(() => null),
+      ]);
 
-      if (!response.ok) {
-        log.warn("Failed to fetch Ollama models:", response.status);
+      if (!tagsResponse.ok) {
+        log.warn("Failed to fetch Ollama models:", tagsResponse.status);
         return FALLBACK_MODELS;
       }
 
-      const data = await response.json();
+      const tagsData = await tagsResponse.json();
 
-      const models = data.models.map((model) => {
-        let hint = "Local LLM via Ollama";
-        if (model.details?.parameter_size) {
+      // Determine which models are loaded in memory
+      const loadedNames = new Set();
+      if (psResponse?.ok) {
+        try {
+          const psData = await psResponse.json();
+          for (const m of psData.models || []) loadedNames.add(m.name);
+        } catch { /* /api/ps parse failed — treat all as unloaded */ }
+      }
+
+      const models = tagsData.models.map((model) => {
+        const loaded = loadedNames.has(model.name);
+        let hint = loaded ? "\u2713 Loaded" : "Local LLM via Ollama";
+        if (!loaded && model.details?.parameter_size) {
           hint = `${model.details.parameter_size} model`;
-        } else if (model.details?.family) {
+        } else if (!loaded && model.details?.family) {
           hint = `${model.details.family} family model`;
         }
         return { id: model.name, label: model.name, hint };
       });
-      setCachedModels(OllamaProvider.id, models);
 
-      return models;
+      // Prioritize loaded models at top of list
+      const loaded = models.filter((m) => m.hint === "\u2713 Loaded");
+      const others = models.filter((m) => m.hint !== "\u2713 Loaded");
+      const sorted = [...loaded, ...others];
+
+      setCachedModels(OllamaProvider.id, sorted);
+      return sorted;
     } catch (error) {
       log.warn("Error fetching Ollama models:", error.message);
       return FALLBACK_MODELS;
@@ -73,12 +91,33 @@ export class OllamaProvider extends AbstractOpenAICompatibleProvider {
     return getCachedModels(OllamaProvider.id) || FALLBACK_MODELS;
   }
 
+  static async onModelUnloaded(oldModelId) {
+    if (!oldModelId) return;
+    try {
+      const response = await fetch(`${BASE_URL}/api/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: oldModelId, keep_alive: 0 }),
+        signal: AbortSignal.timeout(3000),
+      });
+      if (response.ok) {
+        log.info(`Unloaded previous model: ${oldModelId}`);
+      } else if (response.status === 404) {
+        log.debug(`Model ${oldModelId} not found in Ollama`);
+      } else {
+        log.warn(`Unload returned ${response.status} for ${oldModelId}`);
+      }
+    } catch (err) {
+      log.warn(`Failed to unload ${oldModelId}: ${err.message}`);
+    }
+  }
+
   static async isAvailable() {
     const cached = getCachedAvailability(OllamaProvider.id);
     if (cached !== null) return cached;
 
     try {
-      const response = await fetch("http://localhost:11434/api/tags", {
+      const response = await fetch(`${BASE_URL}/api/tags`, {
         signal: AbortSignal.timeout(5000),
       });
 
@@ -96,7 +135,7 @@ export class OllamaProvider extends AbstractOpenAICompatibleProvider {
 
   constructor(apiKey, model) {
     super(apiKey, model);
-    this.endpoint = "http://localhost:11434/v1/chat/completions";
+    this.endpoint = `${BASE_URL}/v1/chat/completions`;
   }
 
   _onApiError(status, err, _response) {
