@@ -169,12 +169,14 @@ function renderModelDropdown(models, selectedModel, defaultModel) {
   setCustomInputVisibility(false);
 
   if (models && models.length > 0) {
-    models.forEach((m) => {
+    const frag = document.createDocumentFragment();
+    for (const m of models) {
       const option = document.createElement("option");
       option.value = m.id;
       option.textContent = m.label;
-      modelSelect.appendChild(option);
-    });
+      frag.appendChild(option);
+    }
+    modelSelect.appendChild(frag);
   }
 
   const customOption = document.createElement("option");
@@ -292,12 +294,14 @@ function showAiStatus(providerId) {
 
 async function populateProviders() {
   providers = await getAvailableProviders();
-  providers.forEach((p) => {
+  const frag = document.createDocumentFragment();
+  for (const p of providers) {
     const option = document.createElement("option");
     option.value = p.id;
     option.textContent = p.available ? p.name : `${p.name} (unavailable)`;
-    providerSelect.appendChild(option);
-  });
+    frag.appendChild(option);
+  }
+  providerSelect.appendChild(frag);
 
   providerSelect.addEventListener("change", async () => {
     const provider = providers.find((p) => p.id === providerSelect.value);
