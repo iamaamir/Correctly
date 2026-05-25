@@ -8,7 +8,8 @@
  *   3. Import it below and add the class to the PROVIDER_CLASSES array
  *
  * That's it. The registry reads all metadata from the class itself.
- * The AbstractProvider contract enforces correctness at instantiation time.
+ * AbstractProvider.enforceContract() validates every class at module load time —
+ * violators are dropped with a clear warning, valid providers continue working.
  */
 
 import { getCachedAvailability, setCachedAvailability } from "../lib/cache.js";

@@ -14,7 +14,7 @@
  *   - Constructor contract (apiKey + model)
  *   - Response shape validation
  *   - Empty text short-circuit
- *   - Enforcing the abstract contract at instantiation time
+ *   - Enforcing the abstract contract (constructor + static enforceContract)
  *
  * RESPONSE CONTRACT:
  *   correctGrammar() must return:
