@@ -23,89 +23,81 @@ const log = createLogger("registry");
 
 // ── Add new provider classes here ──
 const PROVIDER_CLASSES = [
-	OpenAIProvider,
-	ChromeFreeAIProvider,
-	OllamaProvider,
-	LMStudioProvider,
-	GenericOpenAIProvider,
+  OpenAIProvider,
+  ChromeFreeAIProvider,
+  OllamaProvider,
+  LMStudioProvider,
+  GenericOpenAIProvider,
 ];
 
-const PROVIDERS_BY_ID = Object.fromEntries(
-	PROVIDER_CLASSES.map((P) => [P.id, P]),
-);
+const PROVIDERS_BY_ID = Object.fromEntries(PROVIDER_CLASSES.map((P) => [P.id, P]));
 
-log.info(
-	`Registered ${PROVIDER_CLASSES.length} provider(s): ${PROVIDER_CLASSES.map((P) => P.id).join(", ")}`,
-);
+log.info(`Registered ${PROVIDER_CLASSES.length} provider(s): ${PROVIDER_CLASSES.map((P) => P.id).join(", ")}`);
 
 export function createProvider(providerId, apiKey, model, baseUrl) {
-	const ProviderClass = PROVIDERS_BY_ID[providerId];
-	if (!ProviderClass) {
-		const available = PROVIDER_CLASSES.map((P) => P.id).join(", ");
-		log.error(`Unknown provider "${providerId}". Available: ${available}`);
-		throw new Error(
-			`Unknown provider: "${providerId}". Available: ${available}`,
-		);
-	}
-	log.debug(
-		`Creating provider: ${ProviderClass.displayName} (model: ${model || ProviderClass.defaultModel})`,
-	);
-	return new ProviderClass(apiKey, model, baseUrl);
+  const ProviderClass = PROVIDERS_BY_ID[providerId];
+  if (!ProviderClass) {
+    const available = PROVIDER_CLASSES.map((P) => P.id).join(", ");
+    log.error(`Unknown provider "${providerId}". Available: ${available}`);
+    throw new Error(`Unknown provider: "${providerId}". Available: ${available}`);
+  }
+  log.debug(`Creating provider: ${ProviderClass.displayName} (model: ${model || ProviderClass.defaultModel})`);
+  return new ProviderClass(apiKey, model, baseUrl);
 }
 
 export async function getAvailableProviders() {
-	const list = await Promise.all(
-		PROVIDER_CLASSES.map(async (P) => {
-			let available = true;
-			if (P.isAvailable) {
-				const cached = getCachedAvailability(P.id);
-				if (cached !== null) {
-					available = cached;
-				} else {
-					available = await P.isAvailable();
-					setCachedAvailability(P.id, available);
-				}
-			}
-			if (!available) {
-				log.info(`Provider ${P.id} is not available`);
-			}
-			return {
-				id: P.id,
-				name: P.displayName,
-				keyPlaceholder: P.keyPlaceholder,
-				requiresApiKey: P.requiresApiKey,
-				models: P.models,
-				defaultModel: P.defaultModel,
-				available,
-				// back-reference to the provider class, used by the popup for:
-				//   - lazy model fetching  (_classRef.getModels())
-				//   - reading static metadata  (_classRef.availabilityHint)
-				_classRef: P,
-			};
-		}),
-	);
+  const list = await Promise.all(
+    PROVIDER_CLASSES.map(async (P) => {
+      let available = true;
+      if (P.isAvailable) {
+        const cached = getCachedAvailability(P.id);
+        if (cached !== null) {
+          available = cached;
+        } else {
+          available = await P.isAvailable();
+          setCachedAvailability(P.id, available);
+        }
+      }
+      if (!available) {
+        log.info(`Provider ${P.id} is not available`);
+      }
+      return {
+        id: P.id,
+        name: P.displayName,
+        keyPlaceholder: P.keyPlaceholder,
+        requiresApiKey: P.requiresApiKey,
+        models: P.models,
+        defaultModel: P.defaultModel,
+        available,
+        // back-reference to the provider class, used by the popup for:
+        //   - lazy model fetching  (_classRef.getModels())
+        //   - reading static metadata  (_classRef.availabilityHint)
+        _classRef: P,
+      };
+    }),
+  );
 
-	log.info(
-		`Available providers: ${list
-			.filter((p) => p.available)
-			.map((p) => p.id)
-			.join(", ")}`,
-	);
-	return list;
+  log.info(
+    `Available providers: ${list
+      .filter((p) => p.available)
+      .map((p) => p.id)
+      .join(", ")}`,
+  );
+  return list;
 }
 
 export function getProviderInfo(providerId) {
-	const ProviderClass = PROVIDERS_BY_ID[providerId];
-	if (!ProviderClass) {
-		log.warn(`getProviderInfo: unknown provider "${providerId}"`);
-		return null;
-	}
-	return {
-		id: ProviderClass.id,
-		name: ProviderClass.displayName,
-		keyPlaceholder: ProviderClass.keyPlaceholder,
-		requiresApiKey: ProviderClass.requiresApiKey,
-		models: ProviderClass.models,
-		defaultModel: ProviderClass.defaultModel,
-	};
+  const ProviderClass = PROVIDERS_BY_ID[providerId];
+  if (!ProviderClass) {
+    log.warn(`getProviderInfo: unknown provider "${providerId}"`);
+    return null;
+  }
+  return {
+    id: ProviderClass.id,
+    name: ProviderClass.displayName,
+    keyPlaceholder: ProviderClass.keyPlaceholder,
+    requiresApiKey: ProviderClass.requiresApiKey,
+    models: ProviderClass.models,
+    defaultModel: ProviderClass.defaultModel,
+  };
 }

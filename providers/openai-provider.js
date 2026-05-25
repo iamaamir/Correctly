@@ -1,5 +1,5 @@
-import { AbstractOpenAICompatibleProvider } from "./abstract-openai-compatible-provider.js";
 import { createLogger } from "../lib/logger.js";
+import { AbstractOpenAICompatibleProvider } from "./abstract-openai-compatible-provider.js";
 
 const log = createLogger("openai");
 
@@ -24,7 +24,11 @@ export class OpenAIProvider extends AbstractOpenAICompatibleProvider {
     return [
       { id: "gpt-4o-mini", label: "GPT-4o Mini", hint: "Fast & cheap" },
       { id: "gpt-4o", label: "GPT-4o", hint: "Best quality" },
-      { id: "gpt-4.1-nano", label: "GPT-4.1 Nano", hint: "Fastest, lowest cost" },
+      {
+        id: "gpt-4.1-nano",
+        label: "GPT-4.1 Nano",
+        hint: "Fastest, lowest cost",
+      },
       { id: "gpt-4.1-mini", label: "GPT-4.1 Mini", hint: "Balanced" },
       { id: "gpt-4.1", label: "GPT-4.1", hint: "Most capable" },
     ];

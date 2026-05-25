@@ -3,15 +3,8 @@
   "name": "Correctly",
   "version": "0.3.0",
   "description": "A minimalist AI-powered grammar checker. Bring your own API key.",
-  "host_permissions": [
-    "http://localhost:11434/*"
-  ],
-  "permissions": [
-    "storage",
-    "activeTab",
-    "tabs",
-    "declarativeNetRequest"
-  ],
+  "host_permissions": ["http://localhost:11434/*"],
+  "permissions": ["storage", "activeTab", "tabs", "declarativeNetRequest"],
   "declarative_net_request": {
     "rule_resources": [
       {
