@@ -10,15 +10,11 @@ const RETRY_CONFIG = {
 
 async function fetchWithRetry(url, options) {
   for (let i = 0; i <= RETRY_CONFIG.maxRetries; i++) {
-    let timeoutId;
     try {
-      const controller = new AbortController();
-      timeoutId = setTimeout(() => controller.abort(), 30000);
       const response = await fetch(url, {
         ...options,
-        signal: controller.signal,
+        signal: AbortSignal.timeout(30000),
       });
-      clearTimeout(timeoutId);
       if (!response.ok && response.status >= 500 && i < RETRY_CONFIG.maxRetries) {
         const delay = Math.min(RETRY_CONFIG.baseDelayMs * 2 ** i, RETRY_CONFIG.maxDelayMs);
         await new Promise((r) => setTimeout(r, delay));
@@ -26,7 +22,6 @@ async function fetchWithRetry(url, options) {
       }
       return response;
     } catch (error) {
-      clearTimeout(timeoutId);
       if (error.name === "AbortError") throw new Error("Request timeout");
       if (error.name === "TypeError" && error.message.includes("fetch") && i < RETRY_CONFIG.maxRetries) {
         const delay = Math.min(RETRY_CONFIG.baseDelayMs * 2 ** i, RETRY_CONFIG.maxDelayMs);
