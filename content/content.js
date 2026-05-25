@@ -54,6 +54,7 @@
   let dismissedElement = null;
   let indicatorEl = null;
   let lastCheckedText = new WeakMap();
+  let checkGeneration = 0;
 
   // Input types that contain prose and should be grammar-checked
   const PROSE_INPUT_TYPES = new Set(["text", "search", "email"]);
@@ -414,8 +415,11 @@
     const currentText = getTextFromElement(activeElement);
     const updatedText = currentText.replace(change.original, change.replacement);
     applyingCorrection = true;
-    setTextOnElement(activeElement, updatedText);
-    applyingCorrection = false;
+    try {
+      setTextOnElement(activeElement, updatedText);
+    } finally {
+      applyingCorrection = false;
+    }
     lastCheckedText.set(activeElement, updatedText);
 
     currentCorrection.changes.splice(index, 1);
@@ -441,8 +445,11 @@
         text = text.replace(change.original, change.replacement);
       }
       applyingCorrection = true;
-      setTextOnElement(activeElement, text);
-      applyingCorrection = false;
+      try {
+        setTextOnElement(activeElement, text);
+      } finally {
+        applyingCorrection = false;
+      }
       lastCheckedText.set(activeElement, text);
       log.info(
         `Applied remaining ${currentCorrection.changes.length} correction(s) on ${describeElement(activeElement)}`,
@@ -521,7 +528,8 @@
       return;
     }
 
-    log.info(`Checking grammar on ${describeElement(element)} — ${text.length} chars`);
+    const gen = ++checkGeneration;
+    log.info(`Checking grammar on ${describeElement(element)} — ${text.length} chars (gen ${gen})`);
     showIndicator(element);
     const endTimer = log.time("check-roundtrip");
 
@@ -533,6 +541,12 @@
       });
 
       endTimer();
+
+      if (gen !== checkGeneration) {
+        log.debug(`Check gen ${gen} superseded by gen ${checkGeneration} — discarding stale response`);
+        return;
+      }
+
       removeIndicator();
 
       if (response.success) {
@@ -553,6 +567,12 @@
       }
     } catch (err) {
       endTimer();
+
+      if (gen !== checkGeneration) {
+        log.debug(`Check gen ${gen} error discarded (superseded by gen ${checkGeneration})`);
+        return;
+      }
+
       removeIndicator();
       log.error("Message to background failed:", err.message);
     }
