@@ -60,7 +60,7 @@ export function registerSettingsHandlers(handlers, { log }) {
     const baseUrl = message.baseUrl;
     const apiKey = message.apiKey || "";
     if (!baseUrl) {
-      sendResponse({ models: [], error: "Base URL is required" });
+      sendResponse({ success: false, error: "Base URL is required" });
       return true;
     }
 
@@ -75,7 +75,7 @@ export function registerSettingsHandlers(handlers, { log }) {
       });
       if (!response.ok) {
         sendResponse({
-          models: [],
+          success: false,
           error: `Server returned ${response.status}`,
         });
         return true;
@@ -87,10 +87,10 @@ export function registerSettingsHandlers(handlers, { log }) {
         hint: m.owned_by ? `by ${m.owned_by}` : "",
       }));
       log.info(`Fetched ${models.length} models from ${baseUrl}`);
-      sendResponse({ models, error: null });
+      sendResponse({ success: true, data: models });
     } catch (err) {
       log.warn(`FETCH_MODELS failed: ${err.message}`);
-      sendResponse({ models: [], error: err.message });
+      sendResponse({ success: false, error: err.message });
     }
     return true;
   });

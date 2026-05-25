@@ -347,16 +347,16 @@ async function populateProviders() {
       apiKey,
     });
 
-    if (result.error) {
+    if (!result.success) {
       baseUrlHint.textContent = `Fetch failed: ${result.error}`;
       fetchModelsBtn.disabled = false;
       fetchModelsBtn.textContent = "Fetch";
       return;
     }
 
-    await setCachedModels(baseUrl, apiKey, result.models);
+    await setCachedModels(baseUrl, apiKey, result.data);
     const provider = providers.find((p) => p.id === providerSelect.value);
-    applyFetchedModels(provider, result.models, null);
+    applyFetchedModels(provider, result.data, null);
     modelHint.textContent = "Select a model from the list, or use Custom model to type one";
     fetchModelsBtn.disabled = false;
     fetchModelsBtn.textContent = "Fetch";
