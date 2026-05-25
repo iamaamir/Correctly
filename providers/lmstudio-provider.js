@@ -6,6 +6,8 @@ const log = createLogger("lmstudio");
 
 const FALLBACK_MODELS = [{ id: "local-model", label: "local-model", hint: "Loaded in LM Studio" }];
 
+const BASE_URL = "http://localhost:1234";
+
 export class LMStudioProvider extends AbstractOpenAICompatibleProvider {
   static get id() {
     return "lmstudio";
@@ -36,7 +38,7 @@ export class LMStudioProvider extends AbstractOpenAICompatibleProvider {
     if (cached) return cached;
 
     try {
-      const response = await fetch("http://localhost:1234/v1/models", {
+      const response = await fetch(`${BASE_URL}/api/v1/models`, {
         signal: AbortSignal.timeout(5000),
       });
 
@@ -47,14 +49,22 @@ export class LMStudioProvider extends AbstractOpenAICompatibleProvider {
 
       const data = await response.json();
 
-      const models = (data.data || []).map((model) => ({
-        id: model.id,
-        label: model.id,
-        hint: "Local LLM via LM Studio",
-      }));
-      setCachedModels(LMStudioProvider.id, models);
+      const models = (data.models || []).map((m) => {
+        const loaded = m.loaded_instances && m.loaded_instances.length > 0;
+        return {
+          id: m.key,
+          label: m.display_name || m.key,
+          hint: loaded ? "\u2713 Loaded" : "Local LLM via LM Studio",
+        };
+      });
 
-      return models;
+      // Prioritize loaded models at top of list
+      const loaded = models.filter((m) => m.hint === "\u2713 Loaded");
+      const others = models.filter((m) => m.hint !== "\u2713 Loaded");
+      const sorted = [...loaded, ...others];
+
+      setCachedModels(LMStudioProvider.id, sorted);
+      return sorted;
     } catch (error) {
       log.warn("Error fetching LM Studio models:", error.message);
       return FALLBACK_MODELS;
@@ -70,7 +80,7 @@ export class LMStudioProvider extends AbstractOpenAICompatibleProvider {
     if (cached !== null) return cached;
 
     try {
-      const response = await fetch("http://localhost:1234/v1/models", {
+      const response = await fetch(`${BASE_URL}/v1/models`, {
         signal: AbortSignal.timeout(5000),
       });
       const available = response.ok;
@@ -82,9 +92,30 @@ export class LMStudioProvider extends AbstractOpenAICompatibleProvider {
     }
   }
 
+  static async onModelUnloaded(oldModelId) {
+    if (!oldModelId || oldModelId === "local-model") return;
+    try {
+      const response = await fetch(`${BASE_URL}/api/v1/models/unload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instance_id: oldModelId }),
+        signal: AbortSignal.timeout(3000),
+      });
+      if (response.ok) {
+        log.info(`Unloaded previous model: ${oldModelId}`);
+      } else if (response.status === 404) {
+        log.debug(`Model ${oldModelId} not found in LM Studio (already unloaded)`);
+      } else {
+        log.warn(`Unload returned ${response.status} for ${oldModelId}`);
+      }
+    } catch (err) {
+      log.warn(`Failed to unload ${oldModelId}: ${err.message}`);
+    }
+  }
+
   constructor(apiKey, model) {
     super(apiKey, model);
-    this.endpoint = "http://localhost:1234/v1/chat/completions";
+    this.endpoint = `${BASE_URL}/v1/chat/completions`;
   }
 
   _onApiError(status, _err, _response) {
