@@ -103,6 +103,13 @@ Correctly supports any service that offers an OpenAI-compatible API (e.g., [Groq
 4. Click **Fetch** to load available models, or type a model name manually
 5. Select a model, click **Save** — the extension verifies the connection before saving
 
+
+
+https://github.com/user-attachments/assets/f2f22ebd-cebb-4fe9-86b5-14df1a88ffd9
+
+
+
+
 ## Privacy and Security
 
 - **Your API key is stored locally** in `chrome.storage.local` on your device. It is never sent to any server other than your chosen AI provider.
