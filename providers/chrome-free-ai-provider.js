@@ -50,16 +50,6 @@ export class ChromeFreeAIProvider extends AbstractProvider {
     return "gemini-nano";
   }
 
-  static get models() {
-    return [
-      {
-        id: "gemini-nano",
-        label: "Gemini Nano",
-        hint: "Built-in, private, offline",
-      },
-    ];
-  }
-
   static get requiresApiKey() {
     return false;
   }
