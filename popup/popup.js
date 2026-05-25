@@ -73,6 +73,17 @@ const SAVED_URLS_SET = new Set();
 let savedUrlsLoaded = false;
 let pendingUrlSave = null;
 
+function sanitizeBaseUrl(url) {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url.trim());
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+    return parsed.toString();
+  } catch {
+    return "";
+  }
+}
+
 async function loadSavedUrls() {
   if (savedUrlsLoaded) return;
   const { [SAVED_URLS_KEY]: saved = [] } = await chrome.storage.local.get(SAVED_URLS_KEY);
@@ -90,10 +101,11 @@ async function populateBaseUrlSuggestions() {
 }
 
 async function saveBaseUrlSuggestion(url) {
-  if (!url) return;
+  const safeUrl = sanitizeBaseUrl(url);
+  if (!safeUrl) return;
   await loadSavedUrls();
-  if (SAVED_URLS_SET.has(url)) return;
-  SAVED_URLS_SET.add(url);
+  if (SAVED_URLS_SET.has(safeUrl)) return;
+  SAVED_URLS_SET.add(safeUrl);
   if (pendingUrlSave) clearTimeout(pendingUrlSave);
   pendingUrlSave = setTimeout(async () => {
     await chrome.storage.local.set({
