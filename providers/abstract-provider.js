@@ -129,6 +129,19 @@ export class AbstractProvider {
   }
 
   /**
+   * Optional hook: called when this provider's model is being unloaded (e.g., user
+   * switches to a different model or provider). Providers can override to clean up
+   * resources (e.g., unload a local model from memory).
+   *
+   * This is fire-and-forget — errors are logged but never propagated.
+   * @param {string} _oldModelId — the model ID that was previously active
+   * @returns {Promise<void>}
+   */
+  static async onModelUnloaded(_oldModelId) {
+    // no-op by default
+  }
+
+  /**
    * Hint shown when provider is unavailable.
    * Override to provide specific setup instructions.
    * @returns {string|null}
