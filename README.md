@@ -79,8 +79,10 @@ correctly/
 │   ├── generic-openai-provider.js  # Generic OpenAI-compatible (Groq, OpenRouter, etc.)
 │   └── provider-registry.js   # Provider lookup and creation
 └── lib/
+    ├── cache.js               # Unified TTL cache (models, availability)
     ├── config.js              # Shared configuration
-    └── logger.js              # Tagged, leveled console logger
+    ├── logger.js              # Tagged, leveled console logger
+    └── settings.js            # Settings persistence and caching
 ```
 
 ## Using LM Studio
