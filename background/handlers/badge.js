@@ -1,6 +1,6 @@
-import { BADGE_DURATION_ISSUES, BADGE_DURATION_OK, BADGE_DURATION_ERROR } from "../../lib/config.js";
+import { BADGE_DURATION_ERROR, BADGE_DURATION_ISSUES, BADGE_DURATION_OK } from "../../lib/config.js";
 
-export { BADGE_DURATION_ISSUES, BADGE_DURATION_OK, BADGE_DURATION_ERROR };
+export { BADGE_DURATION_ERROR, BADGE_DURATION_ISSUES, BADGE_DURATION_OK };
 
 export function updateBadge(tabId, state) {
   const badges = {
