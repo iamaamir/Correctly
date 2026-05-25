@@ -76,7 +76,7 @@ export class AbstractProvider {
    * @returns {Promise<Array<{id: string, label: string, hint: string}>>}
    */
   static async getModels() {
-    return AbstractProvider.models;
+    return this.models;
   }
 
   /*
