@@ -1,5 +1,6 @@
 import { createLogger } from "../lib/logger.js";
 import { getSettings, setSettings } from "../lib/settings.js";
+import { sanitizeBaseUrl, validateBaseUrl } from "../lib/url-utils.js";
 import { createProvider, getAvailableProviders } from "../providers/provider-registry.js";
 
 const log = createLogger("popup");
@@ -72,17 +73,6 @@ function applyFetchedModels(provider, models, selectedModel) {
 const SAVED_URLS_SET = new Set();
 let savedUrlsLoaded = false;
 let pendingUrlSave = null;
-
-function sanitizeBaseUrl(url) {
-  if (!url) return "";
-  try {
-    const parsed = new URL(url.trim());
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
-    return parsed.toString();
-  } catch {
-    return "";
-  }
-}
 
 async function loadSavedUrls() {
   if (savedUrlsLoaded) return;
@@ -444,14 +434,28 @@ saveBtn.addEventListener("click", async () => {
   const providerId = providerSelect.value;
   const model = getSelectedModel();
   let apiKey = apiKeyInput.value.trim();
-  const baseUrl = providerId === OPENAI_COMPATIBLE_ID ? baseUrlInput.value.trim() : "";
+  let baseUrl = providerId === OPENAI_COMPATIBLE_ID ? baseUrlInput.value.trim() : "";
 
   const providerInfo = providers.find((p) => p.id === providerId);
 
-  if (providerId === OPENAI_COMPATIBLE_ID && !baseUrl) {
-    log.warn("Save aborted — no base URL");
-    showStatus("Please enter a base URL", "error");
-    return;
+  if (providerId === OPENAI_COMPATIBLE_ID) {
+    if (!baseUrl) {
+      log.warn("Save aborted — no base URL");
+      showStatus("Please enter a base URL", "error");
+      return;
+    }
+    const validation = validateBaseUrl(baseUrl);
+    if (validation.xss) {
+      log.warn("Save aborted — XSS detected in URL");
+      showStatus(validation.error, "error");
+      return;
+    }
+    if (!validation.valid) {
+      log.warn("Save aborted — invalid base URL");
+      showStatus(validation.error, "error");
+      return;
+    }
+    baseUrl = validation.sanitized;
   }
 
   if (providerInfo?.requiresApiKey && !apiKey) {
