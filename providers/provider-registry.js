@@ -51,7 +51,9 @@ if (DROPPED.length > 0) {
 
 const PROVIDERS_BY_ID = Object.fromEntries(VALID_PROVIDER_CLASSES.map((P) => [P.id, P]));
 
-log.info(`Registered ${VALID_PROVIDER_CLASSES.length} / ${PROVIDER_CLASSES.length} provider(s): ${VALID_PROVIDER_CLASSES.map((P) => P.id).join(", ")}`);
+log.info(
+  `Registered ${VALID_PROVIDER_CLASSES.length} / ${PROVIDER_CLASSES.length} provider(s): ${VALID_PROVIDER_CLASSES.map((P) => P.id).join(", ")}`,
+);
 
 export function createProvider(providerId, apiKey, model, baseUrl) {
   const ProviderClass = PROVIDERS_BY_ID[providerId];

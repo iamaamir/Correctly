@@ -76,6 +76,7 @@ export class AbstractProvider {
    * @returns {Promise<Array<{id: string, label: string, hint: string}>>}
    */
   static async getModels() {
+    // biome-ignore lint/complexity/noThisInStatic: needed for polymorphic dispatch to subclass models
     return this.models;
   }
 
