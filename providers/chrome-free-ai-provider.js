@@ -114,9 +114,7 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       throw new Error(`Chrome Free AI not available. ${ChromeFreeAIProvider.CHROME_FLAGS_HELP}`);
     }
     if (status === ChromeFreeAIProvider.STATUS.DOWNLOADABLE) {
-      throw new Error(
-        "Chrome Free AI model not downloaded. Open the extension popup to download it.",
-      );
+      throw new Error("Chrome Free AI model not downloaded. Open the extension popup to download it.");
     }
     if (status === ChromeFreeAIProvider.STATUS.DOWNLOADING) {
       throw new Error("Chrome Free AI model still downloading. Try again soon.");
@@ -126,9 +124,7 @@ export class ChromeFreeAIProvider extends AbstractProvider {
     const session = await LanguageModel.create({
       initialPrompts: [{ role: "system", content: SYSTEM_PROMPT }],
     });
-    log.debug(
-      `Session created — context window: ${session.contextWindow}, usage: ${session.contextUsage}`,
-    );
+    log.debug(`Session created — context window: ${session.contextWindow}, usage: ${session.contextUsage}`);
 
     try {
       log.debug("Calling session.prompt with responseConstraint");
