@@ -49,14 +49,14 @@ if (DROPPED.length > 0) {
   log.warn(`Provider(s) excluded — contract violations:`, DROPPED);
 }
 
-const PROVIDERS_BY_ID = Object.fromEntries(VALID_PROVIDER_CLASSES.map((P) => [P.id, P]));
+const PROVIDERS_BY_ID = new Map(VALID_PROVIDER_CLASSES.map((P) => [P.id, P]));
 
 log.info(
   `Registered ${VALID_PROVIDER_CLASSES.length} / ${PROVIDER_CLASSES.length} provider(s): ${VALID_PROVIDER_CLASSES.map((P) => P.id).join(", ")}`,
 );
 
 export function createProvider(providerId, apiKey, model, baseUrl) {
-  const ProviderClass = PROVIDERS_BY_ID[providerId];
+  const ProviderClass = PROVIDERS_BY_ID.get(providerId);
   if (!ProviderClass) {
     const available = VALID_PROVIDER_CLASSES.map((P) => P.id).join(", ");
     log.error(`Unknown provider "${providerId}". Available: ${available}`);
@@ -108,7 +108,7 @@ export async function getAvailableProviders() {
 }
 
 export function getProviderInfo(providerId) {
-  const ProviderClass = PROVIDERS_BY_ID[providerId];
+  const ProviderClass = PROVIDERS_BY_ID.get(providerId);
   if (!ProviderClass) {
     log.warn(`getProviderInfo: unknown provider "${providerId}"`);
     return null;
