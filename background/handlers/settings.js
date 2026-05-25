@@ -1,6 +1,8 @@
 import { getSettings } from "../../lib/settings.js";
 import { createProvider } from "../../providers/provider-registry.js";
 
+const TRAILING_SLASHES = /\/+$/;
+
 const VERIFY_TEXT = "Aamir go to school yesterday";
 
 async function verifySettings(providerId, apiKey, model, baseUrl, log) {
@@ -64,7 +66,7 @@ export function registerSettingsHandlers(handlers, { log }) {
 
     log.info(`FETCH_MODELS from ${baseUrl}`);
     try {
-      const url = `${baseUrl.replace(/\/+$/, "")}/models`;
+      const url = `${baseUrl.replace(TRAILING_SLASHES, "")}/models`;
       const headers = { "Content-Type": "application/json" };
       if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
       const response = await fetch(url, {
