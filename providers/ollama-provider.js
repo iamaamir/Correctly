@@ -60,7 +60,9 @@ export class OllamaProvider extends AbstractOpenAICompatibleProvider {
         try {
           const psData = await psResponse.json();
           for (const m of psData.models || []) loadedNames.add(m.name);
-        } catch { /* /api/ps parse failed — treat all as unloaded */ }
+        } catch {
+          /* /api/ps parse failed — treat all as unloaded */
+        }
       }
 
       const models = tagsData.models.map((model) => {
