@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Correctly</title>
+  <meta name="color-scheme" content="light dark">
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -24,9 +25,9 @@
       <input type="text" id="custom-model" placeholder="e.g. gpt-5-turbo" autocomplete="off" hidden />
       <p class="model-hint" id="model-hint"></p>
       <button type="button" id="reset-cache-btn" class="btn-link">Reset model cache</button>
-      <div id="verify-confidence" class="grammar-instinct" hidden>
+      <div id="verify-confidence" class="grammar-instinct" hidden aria-live="polite">
         <div class="grammar-instinct__label">GRAMMAR INSTINCT</div>
-        <div class="grammar-instinct__row" id="gi-row">
+        <div class="grammar-instinct__row">
           <div class="grammar-instinct__emoji-row" id="gi-emojis"></div>
           <div class="grammar-instinct__title" id="gi-title"></div>
         </div>
@@ -63,7 +64,7 @@
       <button type="button" id="save-btn" class="btn-primary">Save</button>
     </section>
 
-    <div id="status-msg" class="status" hidden></div>
+    <div id="status-msg" class="status" hidden aria-live="polite"></div>
 
     <section class="toggle-section">
       <label class="toggle-label">

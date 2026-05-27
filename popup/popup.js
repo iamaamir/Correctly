@@ -20,7 +20,6 @@ const siteHost = document.getElementById("site-host");
 const logLevelSelect = document.getElementById("log-level");
 const resetCacheBtn = document.getElementById("reset-cache-btn");
 const confidenceSection = document.getElementById("verify-confidence");
-const giRow = document.getElementById("gi-row");
 const giEmojis = document.getElementById("gi-emojis");
 const giTitle = document.getElementById("gi-title");
 const giDesc = document.getElementById("gi-desc");
@@ -117,6 +116,9 @@ async function saveBaseUrlSuggestion(url) {
 }
 
 let statusTimer;
+let statusExitTimer;
+const STATUS_EXIT_DURATION_MS = 250;
+
 function showStatus(message, type = "success") {
   const DURATIONS = {
     success: 2500,
@@ -129,11 +131,27 @@ function showStatus(message, type = "success") {
   const MAX_DURATION_MS = 8000;
   const MS_PER_CHARACTER = 45;
 
-  clearTimeout(statusTimer); // to avoid double msg
+  clearTimeout(statusTimer);
+  clearTimeout(statusExitTimer);
+  statusMsg.classList.remove("status--leaving");
 
-  statusMsg.textContent = message;
-  statusMsg.className = `status ${type}`;
-  statusMsg.hidden = false;
+  const alreadyVisible = !statusMsg.hidden;
+
+  if (alreadyVisible && document.startViewTransition) {
+    try {
+      document.startViewTransition(() => {
+        statusMsg.textContent = message;
+        statusMsg.className = `status ${type}`;
+      });
+    } catch {
+      statusMsg.textContent = message;
+      statusMsg.className = `status ${type}`;
+    }
+  } else {
+    statusMsg.textContent = message;
+    statusMsg.className = `status ${type}`;
+    statusMsg.hidden = false;
+  }
 
   const baseDuration = DURATIONS[type] ?? DURATIONS.info;
 
@@ -142,8 +160,14 @@ function showStatus(message, type = "success") {
   const duration = Math.min(MAX_DURATION_MS, Math.max(MIN_DURATION_MS, baseDuration + readingTime));
 
   statusTimer = setTimeout(() => {
-    statusMsg.hidden = true;
+    statusMsg.classList.add("status--leaving");
+    statusExitTimer = setTimeout(() => {
+      statusMsg.hidden = true;
+      statusMsg.classList.remove("status--leaving");
+    }, STATUS_EXIT_DURATION_MS);
   }, duration);
+
+  statusMsg.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function captureSavedState() {
@@ -595,7 +619,7 @@ enabledToggle.addEventListener("change", async () => {
 const CONFIDENCE_TIERS = [
   {
     max: 30,
-    emoji: "💔",
+    emoji: "😐",
     label: "Tentative",
     count: 1,
     cls: "grammar-instinct--tentative",
@@ -628,9 +652,9 @@ const CONFIDENCE_TIERS = [
 ];
 
 const SPEED_TIERS = [
-  { max: 2000, label: "Fast", emoji: "\u26A1", cls: "speed--fast" },
-  { max: 5000, label: "Moderate", emoji: "\uD83D\uDEB6", cls: "speed--moderate" },
-  { max: Infinity, label: "Slow", emoji: "\uD83D\uDC22", cls: "speed--slow" },
+  { max: 2000, label: "Fast", emoji: "⚡", cls: "speed--fast" },
+  { max: 5000, label: "Moderate", emoji: "🚶", cls: "speed--moderate" },
+  { max: Infinity, label: "Slow", emoji: "🐢", cls: "speed--slow" },
 ];
 
 function showSpeedInfo(responseTimeMs) {
@@ -666,17 +690,23 @@ function showConfidenceEmojis(confidence) {
   }
 
   const emojiRow = giEmojis;
-  giRow.classList.add("fade");
   giTitle.textContent = tier.label;
   giDesc.textContent = tier.desc;
   confidenceSection.className = `grammar-instinct ${tier.cls}`;
 
-  requestAnimationFrame(() => {
-    emojiRow.replaceChildren(...slots);
-    giRow.classList.remove("fade");
-  });
+  const alreadyVisible = !confidenceSection.hidden;
+  const update = () => emojiRow.replaceChildren(...slots);
 
-  confidenceSection.hidden = false;
+  if (alreadyVisible && document.startViewTransition) {
+    try {
+      document.startViewTransition(update);
+    } catch {
+      update();
+    }
+  } else {
+    update();
+    confidenceSection.hidden = false;
+  }
 }
 
 function toggleResetCacheBtn(logLevel) {
@@ -701,6 +731,8 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type !== "VERIFY_PROGRESS" || !saveBtn.disabled) return;
   if (msg.status === "done") {
     saveBtn.textContent = "Done \u2713";
+    saveBtn.classList.add("btn-success");
+    setTimeout(() => saveBtn.classList.remove("btn-success"), 420);
     if (msg.confidence != null) showConfidenceEmojis(msg.confidence);
     showSpeedInfo(msg.responseTimeMs);
   } else {
@@ -792,10 +824,12 @@ async function loadSessionUsage() {
       <div class="usage-detail">
         ${fmt(s.totalPromptTokens)} prompt + ${fmt(s.totalCompletionTokens)} completion
       </div>
-      <div class="usage-last">
-        Last: ${last.model} (${fmt(last.total_tokens)} tokens)
-      </div>
     `;
+
+    const lastRow = document.createElement("div");
+    lastRow.className = "usage-last";
+    lastRow.textContent = `Last: ${last.model} (${fmt(last.total_tokens)} tokens)`;
+    usageStats.appendChild(lastRow);
     log.debug("Session usage loaded", s);
   } catch (err) {
     log.debug("Could not load session usage:", err.message);
