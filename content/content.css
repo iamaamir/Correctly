@@ -192,6 +192,13 @@
   line-height: 1.4;
 }
 
+.correctly-confidence {
+  font-size: 11px;
+  color: #888;
+  margin: 0 0 8px;
+  padding: 0 8px;
+}
+
 .correctly-no-errors {
   text-align: center;
   color: #2d7d46;
@@ -254,6 +261,11 @@
   border-radius: 50%;
   animation: correctly-pulse 1.2s infinite ease-in-out;
 }
+
+.correctly-indicator-dot--checking { background: #2D7D46; }
+.correctly-indicator-dot--retrying { background: #FDD835; }
+.correctly-indicator-dot--fallback { background: #E65100; }
+.correctly-indicator-dot--error    { background: #C62828; }
 
 @keyframes correctly-pulse {
   0%,

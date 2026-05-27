@@ -23,6 +23,16 @@
       <select id="model-select"></select>
       <input type="text" id="custom-model" placeholder="e.g. gpt-5-turbo" autocomplete="off" hidden />
       <p class="model-hint" id="model-hint"></p>
+      <button type="button" id="reset-cache-btn" class="btn-link">Reset model cache</button>
+      <div id="verify-confidence" class="grammar-instinct" hidden>
+        <div class="grammar-instinct__label">GRAMMAR INSTINCT</div>
+        <div class="grammar-instinct__row" id="gi-row">
+          <div class="grammar-instinct__emoji-row" id="gi-emojis"></div>
+          <div class="grammar-instinct__title" id="gi-title"></div>
+        </div>
+        <div class="grammar-instinct__description" id="gi-desc"></div>
+        <div class="grammar-instinct__speed" id="gi-speed"></div>
+      </div>
     </section>
 
     <section class="base-url-section" id="base-url-section" hidden>
