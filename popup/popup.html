@@ -1,94 +1,118 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Correctly</title>
-  <link rel="stylesheet" href="popup.css">
-</head>
-<body>
-  <div class="container">
-    <header>
-      <h1>Correctly</h1>
-      <p class="subtitle">AI Grammar Checker</p>
-    </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Correctly</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Correctly</h1>
+        <p class="subtitle">AI Grammar Checker</p>
+      </header>
 
-    <section class="provider-section">
-      <label for="provider-select">Provider</label>
-      <select id="provider-select"></select>
-    </section>
+      <section class="provider-section">
+        <label for="provider-select">Provider</label>
+        <select id="provider-select"></select>
+      </section>
 
-    <section class="model-section">
-      <label for="model-select">Model</label>
-      <select id="model-select"></select>
-      <input type="text" id="custom-model" placeholder="e.g. gpt-5-turbo" autocomplete="off" hidden />
-      <p class="model-hint" id="model-hint"></p>
-    </section>
+      <section class="model-section">
+        <label for="model-select">Model</label>
+        <select id="model-select"></select>
+        <input
+          type="text"
+          id="custom-model"
+          placeholder="e.g. gpt-5-turbo"
+          autocomplete="off"
+          hidden
+        />
+        <p class="model-hint" id="model-hint"></p>
+      </section>
 
-    <section class="base-url-section" id="base-url-section" hidden>
-      <label for="base-url">Base URL</label>
-      <div class="base-url-wrapper">
-        <input type="text" id="base-url" placeholder="https://api.groq.com/openai/v1" autocomplete="off" list="base-url-suggestions" />
-        <button type="button" id="fetch-models-btn" class="btn-secondary" title="Fetch available models">Fetch</button>
-      </div>
-      <p class="base-url-hint" id="base-url-hint">Full API base URL including version path</p>
-      <datalist id="base-url-suggestions"></datalist>
-    </section>
+      <section class="base-url-section" id="base-url-section" hidden>
+        <label for="base-url">Base URL</label>
+        <div class="base-url-wrapper">
+          <input
+            type="text"
+            id="base-url"
+            placeholder="https://api.groq.com/openai/v1"
+            autocomplete="off"
+            list="base-url-suggestions"
+          />
+          <button
+            type="button"
+            id="fetch-models-btn"
+            class="btn-secondary"
+            title="Fetch available models"
+          >
+            Fetch
+          </button>
+        </div>
+        <p class="base-url-hint" id="base-url-hint">Full API base URL including version path</p>
+        <datalist id="base-url-suggestions"></datalist>
+      </section>
 
-    <section class="ai-status-section" id="ai-status-section" hidden>
-      <div id="ai-status-content"></div>
-    </section>
+      <section class="ai-status-section" id="ai-status-section" hidden>
+        <div id="ai-status-content"></div>
+      </section>
 
-    <section class="key-section">
-      <label for="api-key">API Key</label>
-      <div class="key-input-wrapper">
-        <input type="password" id="api-key" autocomplete="off" />
-        <button type="button" id="toggle-visibility" title="Show/hide key" aria-label="Toggle key visibility">
-          <span class="eye-icon">&#128065;</span>
-        </button>
-      </div>
-    </section>
+      <section class="key-section">
+        <label for="api-key">API Key</label>
+        <div class="key-input-wrapper">
+          <input type="password" id="api-key" autocomplete="off" />
+          <button
+            type="button"
+            id="toggle-visibility"
+            title="Show/hide key"
+            aria-label="Toggle key visibility"
+          >
+            <span class="eye-icon">&#128065;</span>
+          </button>
+        </div>
+      </section>
 
-    <section class="actions">
-      <button type="button" id="save-btn" class="btn-primary">Save</button>
-    </section>
+      <section class="actions">
+        <button type="button" id="save-btn" class="btn-primary">Save</button>
+      </section>
 
-    <div id="status-msg" class="status" hidden></div>
+      <div id="status-msg" class="status" hidden></div>
 
-    <section class="toggle-section">
-      <label class="toggle-label">
-        <span>Enabled</span>
-        <input type="checkbox" id="enabled-toggle" checked />
-        <span class="toggle-slider"></span>
-      </label>
-    </section>
+      <section class="toggle-section">
+        <label class="toggle-label">
+          <span id="toggle-status">Enable Extension</span>
+          <input type="checkbox" id="enabled-toggle" checked />
+          <span class="toggle-slider"></span>
+        </label>
+      </section>
 
-    <section class="site-section" id="site-section" hidden>
-      <label class="toggle-label">
-        <span id="site-label">Active on this site</span>
-        <input type="checkbox" id="site-toggle" checked />
-        <span class="toggle-slider"></span>
-      </label>
-      <p class="site-host" id="site-host"></p>
-    </section>
+      <section class="site-section" id="site-section" hidden>
+        <label class="toggle-label">
+          <span id="site-label">Enabled on this site</span>
+          <input type="checkbox" id="site-toggle" checked />
+          <span class="toggle-slider"></span>
+        </label>
+        <p class="site-host" id="site-host"></p>
+      </section>
 
-    <section class="usage-section" id="usage-section" hidden>
-      <label>Session Usage</label>
-      <div class="usage-stats" id="usage-stats"></div>
-    </section>
+      <section class="usage-section" id="usage-section" hidden>
+        <label>Session Usage</label>
+        <div class="usage-stats" id="usage-stats"></div>
+      </section>
 
-    <section class="log-section">
-      <label for="log-level">Console Logs</label>
-      <select id="log-level">
-        <option value="silent">Silent</option>
-        <option value="error">Errors only</option>
-        <option value="warn">Warnings &amp; errors</option>
-        <option value="info" selected>Standard</option>
-        <option value="debug">Verbose (debug)</option>
-      </select>
-    </section>
-  </div>
+      <section class="log-section">
+        <label for="log-level">Console Logs</label>
+        <select id="log-level">
+          <option value="silent">Silent</option>
+          <option value="error">Errors only</option>
+          <option value="warn">Warnings &amp; errors</option>
+          <option value="info" selected>Standard</option>
+          <option value="debug">Verbose (debug)</option>
+        </select>
+      </section>
+    </div>
 
-  <script src="popup.js" type="module"></script>
-</body>
+    <script src="popup.js" type="module"></script>
+  </body>
 </html>

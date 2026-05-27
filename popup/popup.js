@@ -70,6 +70,45 @@ function applyFetchedModels(provider, models, selectedModel) {
   baseUrlHint.textContent = "";
 }
 
+async function doFetchModels(baseUrl, apiKey) {
+  const cached = await getCachedModels(baseUrl, apiKey);
+  if (cached) {
+    log.debug("Using cached models for", baseUrl);
+    const provider = providers.find((p) => p.id === providerSelect.value);
+    applyFetchedModels(provider, cached, null);
+    return;
+  }
+
+  fetchModelsBtn.disabled = true;
+  fetchModelsBtn.textContent = "Fetching...";
+  baseUrlHint.textContent = "Fetching models…";
+
+  try {
+    const result = await chrome.runtime.sendMessage({
+      type: "FETCH_MODELS",
+      baseUrl,
+      apiKey,
+    });
+
+    if (!result.success) {
+      baseUrlHint.textContent = `Fetch failed: ${result.error}`;
+      fetchModelsBtn.disabled = false;
+      fetchModelsBtn.textContent = "Fetch";
+      return;
+    }
+
+    await setCachedModels(baseUrl, apiKey, result.data);
+    const provider = providers.find((p) => p.id === providerSelect.value);
+    applyFetchedModels(provider, result.data, null);
+    modelHint.textContent = "Select a model from the list, or use Custom model to type one";
+  } catch (err) {
+    log.error("Fetch models failed:", err.message);
+    baseUrlHint.textContent = `Fetch failed: ${err.message}`;
+  }
+  fetchModelsBtn.disabled = false;
+  fetchModelsBtn.textContent = "Fetch";
+}
+
 const SAVED_URLS_SET = new Set();
 let savedUrlsLoaded = false;
 let pendingUrlSave = null;
@@ -351,40 +390,6 @@ async function populateProviders() {
     updateMarkUnsaved();
   });
 
-  async function doFetchModels(baseUrl, apiKey) {
-    const cached = await getCachedModels(baseUrl, apiKey);
-    if (cached) {
-      log.debug("Using cached models for", baseUrl);
-      const provider = providers.find((p) => p.id === providerSelect.value);
-      applyFetchedModels(provider, cached, null);
-      return;
-    }
-
-    fetchModelsBtn.disabled = true;
-    fetchModelsBtn.textContent = "Fetching...";
-    baseUrlHint.textContent = "Fetching models…";
-
-    const result = await chrome.runtime.sendMessage({
-      type: "FETCH_MODELS",
-      baseUrl,
-      apiKey,
-    });
-
-    if (!result.success) {
-      baseUrlHint.textContent = `Fetch failed: ${result.error}`;
-      fetchModelsBtn.disabled = false;
-      fetchModelsBtn.textContent = "Fetch";
-      return;
-    }
-
-    await setCachedModels(baseUrl, apiKey, result.data);
-    const provider = providers.find((p) => p.id === providerSelect.value);
-    applyFetchedModels(provider, result.data, null);
-    modelHint.textContent = "Select a model from the list, or use Custom model to type one";
-    fetchModelsBtn.disabled = false;
-    fetchModelsBtn.textContent = "Fetch";
-  }
-
   fetchModelsBtn.addEventListener("click", async () => {
     const baseUrl = baseUrlInput.value.trim();
     if (!baseUrl) {
@@ -416,7 +421,7 @@ async function populateProviders() {
 async function loadSettings() {
   log.info("Loading saved settings");
   const { providerId, apiKey, model, baseUrl, enabled } = await getSettings();
-  log.debug("Loaded settings", {
+  log.info("Loaded settings", {
     providerId,
     model: model || "default",
     enabled,
@@ -446,6 +451,7 @@ async function loadSettings() {
 
   if (apiKey && apiKey !== NO_API_KEY_SENTINEL) apiKeyInput.value = apiKey;
   enabledToggle.checked = enabled;
+  document.getElementById("toggle-status").textContent = enabled ? "Enable Extension" : "Disable Extension";
   showAiStatus(providerId);
   captureSavedState();
   updateMarkUnsaved();
@@ -557,7 +563,12 @@ toggleVisibility.addEventListener("click", () => {
 
 enabledToggle.addEventListener("change", async () => {
   log.info(`Extension ${enabledToggle.checked ? "enabled" : "disabled"}`);
+  const toggleStatus = document.getElementById("toggle-status");
+  const enabled = enabledToggle.checked;
+  toggleStatus.textContent = enabled ? "Enable Extension" : "Disable Extension";
+
   await setSettings({ enabled: enabledToggle.checked });
+  loadCurrentSite();
   captureSavedState();
   updateMarkUnsaved();
 });
@@ -587,11 +598,15 @@ async function loadCurrentSite() {
     siteHost.textContent = currentHostname;
     siteSection.hidden = false;
 
-    const { disabledSites } = await getSettings();
-    siteToggle.checked = !disabledSites.includes(currentHostname);
+    const { disabledSites, enabled } = await getSettings();
+    const siteEnabled = enabled && !disabledSites.includes(currentHostname);
+    siteToggle.checked = siteEnabled;
+    siteToggle.disabled = !enabled;
+    const siteStatus = document.getElementById("site-label");
+    siteStatus.textContent = siteEnabled ? "Enabled on this site" : "Disabled on this site";
     log.debug("Site toggle loaded", {
       currentHostname,
-      disabled: !siteToggle.checked,
+      disabled: !siteEnabled,
     });
   } catch (err) {
     log.debug("Could not detect current site:", err.message);
@@ -600,15 +615,19 @@ async function loadCurrentSite() {
 
 siteToggle.addEventListener("change", async () => {
   if (!currentHostname) return;
-  const { disabledSites } = await getSettings();
+  const { disabledSites, enabled } = await getSettings();
+  if (!enabled) return;
   const sites = new Set(disabledSites);
+  const siteStatus = document.getElementById("site-label");
 
   if (siteToggle.checked) {
     sites.delete(currentHostname);
     log.info(`Enabled on ${currentHostname}`);
+    siteStatus.textContent = `Enabled on this site`;
   } else {
     sites.add(currentHostname);
     log.info(`Disabled on ${currentHostname}`);
+    siteStatus.textContent = `Disabled on this site`;
   }
 
   await setSettings({ disabledSites: [...sites] });
