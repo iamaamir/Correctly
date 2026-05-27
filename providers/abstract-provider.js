@@ -37,7 +37,7 @@
  *     Must return same structure as getModels().
  */
 import { createLogger } from "../lib/logger.js";
-import { scoreResponse, mergeConfidence } from "../lib/score.js";
+import { mergeConfidence, scoreResponse } from "../lib/score.js";
 
 const log = createLogger("provider");
 
@@ -191,9 +191,9 @@ export class AbstractProvider {
     }
 
     const levels = [
-      { fn: () => this._doCorrectGrammar(text),        status: "checking" },
-      { fn: () => this._doCorrectGrammarLevel2(text),  status: "retrying" },
-      { fn: () => this._doCorrectGrammarLevel3(text),  status: "fallback" },
+      { fn: () => this._doCorrectGrammar(text), status: "checking" },
+      { fn: () => this._doCorrectGrammarLevel2(text), status: "retrying" },
+      { fn: () => this._doCorrectGrammarLevel3(text), status: "fallback" },
     ];
 
     const startLevel = await this._getStartLevel();
@@ -255,9 +255,7 @@ export class AbstractProvider {
    * @returns {Promise<{corrected: string, changes: Array}>}
    */
   async _doCorrectGrammarLevel2(_text) {
-    throw new Error(
-      `${this.constructor.name} does not support cascade level 2 — override _doCorrectGrammarLevel2`,
-    );
+    throw new Error(`${this.constructor.name} does not support cascade level 2 — override _doCorrectGrammarLevel2`);
   }
 
   /**
@@ -269,9 +267,7 @@ export class AbstractProvider {
    * @returns {Promise<{corrected: string, changes: Array}>}
    */
   async _doCorrectGrammarLevel3(_text) {
-    throw new Error(
-      `${this.constructor.name} does not support cascade level 3 — override _doCorrectGrammarLevel3`,
-    );
+    throw new Error(`${this.constructor.name} does not support cascade level 3 — override _doCorrectGrammarLevel3`);
   }
 
   /**

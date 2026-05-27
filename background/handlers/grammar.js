@@ -113,7 +113,12 @@ async function handleGrammarCheck(text, log, { tabId } = {}) {
     });
   }
 
-  return { corrected: result.corrected, changes: result.changes, responseTimeMs: result.responseTimeMs };
+  return {
+    corrected: result.corrected,
+    changes: result.changes,
+    confidence: result.confidence,
+    responseTimeMs: result.responseTimeMs,
+  };
 }
 
 export function registerGrammarHandlers(handlers, { log }) {

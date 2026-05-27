@@ -50,11 +50,7 @@ async function getCachedModels(baseUrl, apiKey) {
   if (mem && Date.now() - mem.timestamp < MODELS_CACHE_TTL) return mem.models;
   const data = await chrome.storage.session.get(MODELS_CACHE_KEY);
   const storage = data[MODELS_CACHE_KEY];
-  if (
-    storage &&
-    storage.cacheKey === cacheKey &&
-    Date.now() - storage.timestamp < MODELS_CACHE_TTL
-  ) {
+  if (storage && storage.cacheKey === cacheKey && Date.now() - storage.timestamp < MODELS_CACHE_TTL) {
     MODEL_CACHE_MEM.set(cacheKey, {
       models: storage.models,
       timestamp: storage.timestamp,
@@ -579,12 +575,8 @@ saveBtn.addEventListener("click", async () => {
     log.info("Settings saved successfully");
 
     if (baseUrl) {
-      saveBaseUrlSuggestion(baseUrl).catch((e) =>
-        log.warn("Failed to save URL suggestion:", e.message),
-      );
-      populateBaseUrlSuggestions().catch((e) =>
-        log.warn("Failed to refresh suggestions:", e.message),
-      );
+      saveBaseUrlSuggestion(baseUrl).catch((e) => log.warn("Failed to save URL suggestion:", e.message));
+      populateBaseUrlSuggestions().catch((e) => log.warn("Failed to refresh suggestions:", e.message));
     }
 
     if (verifyResult.warning) {

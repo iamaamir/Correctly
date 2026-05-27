@@ -84,8 +84,14 @@ input:focus {
 }
 
 @keyframes custom-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .model-hint {
@@ -191,9 +197,15 @@ input:focus {
 }
 
 @keyframes btn-success-pulse {
-  0% { transform: scale(1); }
-  30% { transform: scale(1.03); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .btn-unsaved {
@@ -234,7 +246,10 @@ input:focus {
 }
 
 @keyframes status-in {
-  from { opacity: 0; transform: scaleY(0.85); }
+  from {
+    opacity: 0;
+    transform: scaleY(0.85);
+  }
 }
 
 ::view-transition-old(status-msg) {
@@ -246,13 +261,25 @@ input:focus {
 }
 
 @keyframes status-exit {
-  from { opacity: 1; transform: scale(1); }
-  to { opacity: 0; transform: scale(0.95); }
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
 }
 
 @keyframes status-enter {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .status.status--leaving {
@@ -261,8 +288,14 @@ input:focus {
 }
 
 @keyframes status-out {
-  from { opacity: 1; transform: scale(1); }
-  to { opacity: 0; transform: scaleY(0.85); }
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scaleY(0.85);
+  }
 }
 
 .status.success {
@@ -497,7 +530,10 @@ input:focus {
 }
 
 @keyframes gi-in {
-  from { opacity: 0; transform: scaleY(0.8); }
+  from {
+    opacity: 0;
+    transform: scaleY(0.8);
+  }
 }
 
 .grammar-instinct[hidden] {
@@ -533,13 +569,25 @@ input:focus {
 }
 
 @keyframes gi-emoji-exit {
-  from { opacity: 1; transform: scale(1); }
-  to { opacity: 0; transform: scale(0.85); }
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.85);
+  }
 }
 
 @keyframes gi-emoji-enter {
-  from { opacity: 0; transform: scale(0.85); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .grammar-instinct__emoji-row .active {
@@ -573,23 +621,45 @@ input:focus {
   margin-top: 4px;
 }
 
-.grammar-instinct__speed.speed--fast { color: #1f733f; }
-.grammar-instinct__speed.speed--moderate { color: #9c6a00; }
-.grammar-instinct__speed.speed--slow { color: #b34a2f; }
+.grammar-instinct__speed.speed--fast {
+  color: #1f733f;
+}
+.grammar-instinct__speed.speed--moderate {
+  color: #9c6a00;
+}
+.grammar-instinct__speed.speed--slow {
+  color: #b34a2f;
+}
 
 /* ── Tier accent colors ── */
 
-.grammar-instinct--tentative .grammar-instinct__emoji-row .active { color: #d46a4c; }
-.grammar-instinct--tentative .grammar-instinct__title { color: #d46a4c; }
+.grammar-instinct--tentative .grammar-instinct__emoji-row .active {
+  color: #d46a4c;
+}
+.grammar-instinct--tentative .grammar-instinct__title {
+  color: #d46a4c;
+}
 
-.grammar-instinct--reliable .grammar-instinct__emoji-row .active { color: #e6a100; }
-.grammar-instinct--reliable .grammar-instinct__title { color: #e6a100; }
+.grammar-instinct--reliable .grammar-instinct__emoji-row .active {
+  color: #e6a100;
+}
+.grammar-instinct--reliable .grammar-instinct__title {
+  color: #e6a100;
+}
 
-.grammar-instinct--strong .grammar-instinct__emoji-row .active { color: #2e8b57; }
-.grammar-instinct--strong .grammar-instinct__title { color: #2e8b57; }
+.grammar-instinct--strong .grammar-instinct__emoji-row .active {
+  color: #2e8b57;
+}
+.grammar-instinct--strong .grammar-instinct__title {
+  color: #2e8b57;
+}
 
-.grammar-instinct--exceptional .grammar-instinct__emoji-row .active { color: #2e8b57; }
-.grammar-instinct--exceptional .grammar-instinct__title { color: #2e8b57; }
+.grammar-instinct--exceptional .grammar-instinct__emoji-row .active {
+  color: #2e8b57;
+}
+.grammar-instinct--exceptional .grammar-instinct__title {
+  color: #2e8b57;
+}
 
 /* ── Dark mode ── */
 
@@ -770,21 +840,43 @@ input:focus {
     color: #555;
   }
 
-  .grammar-instinct--tentative .grammar-instinct__emoji-row .active { color: #e8835f; }
-  .grammar-instinct--tentative .grammar-instinct__title { color: #e8835f; }
+  .grammar-instinct--tentative .grammar-instinct__emoji-row .active {
+    color: #e8835f;
+  }
+  .grammar-instinct--tentative .grammar-instinct__title {
+    color: #e8835f;
+  }
 
-  .grammar-instinct--reliable .grammar-instinct__emoji-row .active { color: #f0b400; }
-  .grammar-instinct--reliable .grammar-instinct__title { color: #f0b400; }
+  .grammar-instinct--reliable .grammar-instinct__emoji-row .active {
+    color: #f0b400;
+  }
+  .grammar-instinct--reliable .grammar-instinct__title {
+    color: #f0b400;
+  }
 
-  .grammar-instinct--strong .grammar-instinct__emoji-row .active { color: #3da55e; }
-  .grammar-instinct--strong .grammar-instinct__title { color: #3da55e; }
+  .grammar-instinct--strong .grammar-instinct__emoji-row .active {
+    color: #3da55e;
+  }
+  .grammar-instinct--strong .grammar-instinct__title {
+    color: #3da55e;
+  }
 
-  .grammar-instinct--exceptional .grammar-instinct__emoji-row .active { color: #3da55e; }
-  .grammar-instinct--exceptional .grammar-instinct__title { color: #3da55e; }
+  .grammar-instinct--exceptional .grammar-instinct__emoji-row .active {
+    color: #3da55e;
+  }
+  .grammar-instinct--exceptional .grammar-instinct__title {
+    color: #3da55e;
+  }
 
-  .grammar-instinct__speed.speed--fast { color: #3da55e; }
-  .grammar-instinct__speed.speed--moderate { color: #f0b400; }
-  .grammar-instinct__speed.speed--slow { color: #e8835f; }
+  .grammar-instinct__speed.speed--fast {
+    color: #3da55e;
+  }
+  .grammar-instinct__speed.speed--moderate {
+    color: #f0b400;
+  }
+  .grammar-instinct__speed.speed--slow {
+    color: #e8835f;
+  }
 }
 
 /* ── Hidden until debug ── */

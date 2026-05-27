@@ -1,10 +1,4 @@
-import {
-  AI_MAX_TOKENS_MIN,
-  AI_TEMPERATURE,
-  SYSTEM_PROMPT,
-  SYSTEM_PROMPT_L2,
-  SYSTEM_PROMPT_L3,
-} from "../lib/config.js";
+import { AI_MAX_TOKENS_MIN, AI_TEMPERATURE, SYSTEM_PROMPT, SYSTEM_PROMPT_L2, SYSTEM_PROMPT_L3 } from "../lib/config.js";
 import { createLogger } from "../lib/logger.js";
 import { AbstractProvider } from "./abstract-provider.js";
 
@@ -29,11 +23,7 @@ async function fetchWithRetry(url, options) {
       return response;
     } catch (error) {
       if (error.name === "AbortError") throw new Error("Request timeout");
-      if (
-        error.name === "TypeError" &&
-        error.message.includes("fetch") &&
-        i < RETRY_CONFIG.maxRetries
-      ) {
+      if (error.name === "TypeError" && error.message.includes("fetch") && i < RETRY_CONFIG.maxRetries) {
         const delay = Math.min(RETRY_CONFIG.baseDelayMs * 2 ** i, RETRY_CONFIG.maxDelayMs);
         await new Promise((r) => setTimeout(r, delay));
         continue;
@@ -77,9 +67,7 @@ export class AbstractOpenAICompatibleProvider extends AbstractProvider {
   constructor(apiKey, model) {
     super(apiKey, model);
     if (new.target === AbstractOpenAICompatibleProvider) {
-      throw new Error(
-        "AbstractOpenAICompatibleProvider is abstract — extend it, do not instantiate directly",
-      );
+      throw new Error("AbstractOpenAICompatibleProvider is abstract — extend it, do not instantiate directly");
     }
     this.endpoint = "";
   }
@@ -180,10 +168,7 @@ export class AbstractOpenAICompatibleProvider extends AbstractProvider {
     try {
       return await attempt(true);
     } catch (err) {
-      if (
-        err.message &&
-        (err.message.includes("response_format") || err.message.includes("json_schema"))
-      ) {
+      if (err.message && (err.message.includes("response_format") || err.message.includes("json_schema"))) {
         log.warn("response_format rejected, retrying without it");
         try {
           const result = await attempt(false);

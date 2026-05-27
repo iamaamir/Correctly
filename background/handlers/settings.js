@@ -27,9 +27,7 @@ async function verifySettings(providerId, apiKey, model, baseUrl, log, { onProgr
     } catch {}
 
     const warning =
-      level >= 3
-        ? "This model provides full-text corrections only — individual changes are not available."
-        : null;
+      level >= 3 ? "This model provides full-text corrections only — individual changes are not available." : null;
 
     if (warning) log.warn(`Verify: ${warning}`);
     log.info(`Verify result: "${result.corrected}" (cascade level ${level})`);
@@ -59,20 +57,13 @@ export function registerSettingsHandlers(handlers, { log }) {
       model: message.model,
     });
     try {
-      const result = await verifySettings(
-        message.providerId,
-        message.apiKey,
-        message.model,
-        message.baseUrl,
-        log,
-        {
-          onProgress: (info) => {
-            try {
-              chrome.runtime.sendMessage({ type: "VERIFY_PROGRESS", ...info }).catch(() => {});
-            } catch {}
-          },
+      const result = await verifySettings(message.providerId, message.apiKey, message.model, message.baseUrl, log, {
+        onProgress: (info) => {
+          try {
+            chrome.runtime.sendMessage({ type: "VERIFY_PROGRESS", ...info }).catch(() => {});
+          } catch {}
         },
-      );
+      });
       log.info("Verification result:", result);
       sendResponse(result);
     } catch (err) {
