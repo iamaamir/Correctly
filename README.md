@@ -7,6 +7,8 @@ A minimalist Chrome extension that checks grammar, spelling, and punctuation usi
 
 <img width="358" height="556" alt="image" src="https://github.com/user-attachments/assets/4ff66285-56b7-4c94-bdf2-58f3bd0b7a00" />
 
+![Release](https://www.shieldcn.dev/github/release/iamaamir/Correctly.svg?size=sm&mode=light&theme=zinc)
+![CI](https://www.shieldcn.dev/github/ci/iamaamir/Correctly.svg?variant=secondary&size=sm&mode=light&theme=zinc)
 
 
 ## Features
@@ -131,5 +133,5 @@ https://github.com/user-attachments/assets/f2f22ebd-cebb-4fe9-86b5-14df1a88ffd9
 Then add the class to `PROVIDER_CLASSES` in `provider-registry.js`.
 
 ## License
+![License](https://www.shieldcn.dev/github/license/iamaamir/Correctly.svg?variant=ghost&size=sm&mode=light&theme=zinc)
 
-BSD-3
