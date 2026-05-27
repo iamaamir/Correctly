@@ -18,6 +18,13 @@ const siteSection = document.getElementById("site-section");
 const siteToggle = document.getElementById("site-toggle");
 const siteHost = document.getElementById("site-host");
 const logLevelSelect = document.getElementById("log-level");
+const resetCacheBtn = document.getElementById("reset-cache-btn");
+const confidenceSection = document.getElementById("verify-confidence");
+const giRow = document.getElementById("gi-row");
+const giEmojis = document.getElementById("gi-emojis");
+const giTitle = document.getElementById("gi-title");
+const giDesc = document.getElementById("gi-desc");
+const giSpeed = document.getElementById("gi-speed");
 const aiStatusSection = document.getElementById("ai-status-section");
 const aiStatusContent = document.getElementById("ai-status-content");
 const baseUrlSection = document.getElementById("base-url-section");
@@ -44,7 +51,11 @@ async function getCachedModels(baseUrl, apiKey) {
   if (mem && Date.now() - mem.timestamp < MODELS_CACHE_TTL) return mem.models;
   const data = await chrome.storage.session.get(MODELS_CACHE_KEY);
   const storage = data[MODELS_CACHE_KEY];
-  if (storage && storage.cacheKey === cacheKey && Date.now() - storage.timestamp < MODELS_CACHE_TTL) {
+  if (
+    storage &&
+    storage.cacheKey === cacheKey &&
+    Date.now() - storage.timestamp < MODELS_CACHE_TTL
+  ) {
     MODEL_CACHE_MEM.set(cacheKey, {
       models: storage.models,
       timestamp: storage.timestamp,
@@ -349,6 +360,13 @@ async function populateProviders() {
     setCustomInputVisibility(isCustomSelected());
     updateModelHint();
     updateMarkUnsaved();
+    confidenceSection.hidden = true;
+  });
+
+  document.getElementById("reset-cache-btn").addEventListener("click", async () => {
+    await chrome.storage.local.remove("modelLevelCache");
+    showStatus("Model cache cleared", "info");
+    log.info("Model level cache cleared");
   });
 
   async function doFetchModels(baseUrl, apiKey) {
@@ -406,7 +424,10 @@ async function populateProviders() {
     updateMarkUnsaved();
     baseUrlHint.textContent = "Full API base URL including version path";
   });
-  customModelInput.addEventListener("input", updateMarkUnsaved);
+  customModelInput.addEventListener("input", () => {
+    updateMarkUnsaved();
+    confidenceSection.hidden = true;
+  });
 
   if (providers.length > 0) {
     apiKeyInput.placeholder = providers[0].keyPlaceholder;
@@ -534,11 +555,20 @@ saveBtn.addEventListener("click", async () => {
     log.info("Settings saved successfully");
 
     if (baseUrl) {
-      saveBaseUrlSuggestion(baseUrl).catch((e) => log.warn("Failed to save URL suggestion:", e.message));
-      populateBaseUrlSuggestions().catch((e) => log.warn("Failed to refresh suggestions:", e.message));
+      saveBaseUrlSuggestion(baseUrl).catch((e) =>
+        log.warn("Failed to save URL suggestion:", e.message),
+      );
+      populateBaseUrlSuggestions().catch((e) =>
+        log.warn("Failed to refresh suggestions:", e.message),
+      );
     }
 
-    showStatus("Settings saved");
+    if (verifyResult.warning) {
+      showStatus(`Settings saved. ${verifyResult.warning}`, "warning");
+    } else {
+      showStatus("Settings saved");
+    }
+
     captureSavedState();
     updateMarkUnsaved();
   } catch (err) {
@@ -562,9 +592,101 @@ enabledToggle.addEventListener("change", async () => {
   updateMarkUnsaved();
 });
 
+const CONFIDENCE_TIERS = [
+  {
+    max: 30,
+    emoji: "💔",
+    label: "Tentative",
+    count: 1,
+    cls: "grammar-instinct--tentative",
+    desc: "May miss some grammar and spelling issues.",
+  },
+  {
+    max: 60,
+    emoji: "🫠",
+    label: "Reliable",
+    count: 2,
+    cls: "grammar-instinct--reliable",
+    desc: "Good at fixing most common grammar and spelling issues.",
+  },
+  {
+    max: 85,
+    emoji: "💪",
+    label: "Strong",
+    count: 3,
+    cls: "grammar-instinct--strong",
+    desc: "Consistently catches grammar and spelling issues.",
+  },
+  {
+    max: 100,
+    emoji: "👍",
+    label: "Exceptional",
+    count: 4,
+    cls: "grammar-instinct--exceptional",
+    desc: "Excellent grammar and spelling correction.",
+  },
+];
+
+const SPEED_TIERS = [
+  { max: 2000, label: "Fast", emoji: "\u26A1", cls: "speed--fast" },
+  { max: 5000, label: "Moderate", emoji: "\uD83D\uDEB6", cls: "speed--moderate" },
+  { max: Infinity, label: "Slow", emoji: "\uD83D\uDC22", cls: "speed--slow" },
+];
+
+function showSpeedInfo(responseTimeMs) {
+  if (responseTimeMs == null || typeof responseTimeMs !== "number") {
+    giSpeed.hidden = true;
+    return;
+  }
+
+  const tier = SPEED_TIERS.find((t) => responseTimeMs <= t.max) || SPEED_TIERS[0];
+  const secs = (responseTimeMs / 1000).toFixed(1);
+  giSpeed.textContent = `${tier.emoji} ${tier.label} — ${secs}s`;
+  giSpeed.className = `grammar-instinct__speed ${tier.cls}`;
+  giSpeed.hidden = false;
+}
+
+function showConfidenceEmojis(confidence) {
+  if (confidence == null || typeof confidence !== "number") {
+    confidenceSection.hidden = true;
+    giSpeed.hidden = true;
+    return;
+  }
+
+  const pct = Math.min(100, Math.max(0, confidence));
+  const tier = CONFIDENCE_TIERS.find((t) => pct <= t.max) || CONFIDENCE_TIERS[0];
+  const slots = [];
+
+  for (let i = 0; i < 4; i++) {
+    const filled = i < tier.count;
+    const el = document.createElement("span");
+    el.className = filled ? "active" : "inactive";
+    el.textContent = filled ? tier.emoji : "\u25CB";
+    slots.push(el);
+  }
+
+  const emojiRow = giEmojis;
+  giRow.classList.add("fade");
+  giTitle.textContent = tier.label;
+  giDesc.textContent = tier.desc;
+  confidenceSection.className = `grammar-instinct ${tier.cls}`;
+
+  requestAnimationFrame(() => {
+    emojiRow.replaceChildren(...slots);
+    giRow.classList.remove("fade");
+  });
+
+  confidenceSection.hidden = false;
+}
+
+function toggleResetCacheBtn(logLevel) {
+  resetCacheBtn.classList.toggle("visible", logLevel === "debug");
+}
+
 logLevelSelect.addEventListener("change", async () => {
   const level = logLevelSelect.value;
   log.info(`Log level changed to: ${level}`);
+  toggleResetCacheBtn(level);
   await setSettings({ logLevel: level });
   captureSavedState();
   updateMarkUnsaved();
@@ -572,6 +694,20 @@ logLevelSelect.addEventListener("change", async () => {
 
 getSettings().then(({ logLevel }) => {
   logLevelSelect.value = logLevel;
+  toggleResetCacheBtn(logLevel);
+});
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type !== "VERIFY_PROGRESS" || !saveBtn.disabled) return;
+  if (msg.status === "done") {
+    saveBtn.textContent = "Done \u2713";
+    if (msg.confidence != null) showConfidenceEmojis(msg.confidence);
+    showSpeedInfo(msg.responseTimeMs);
+  } else {
+    saveBtn.textContent = `Verifying (${msg.status})...`;
+    confidenceSection.hidden = true;
+    giSpeed.hidden = true;
+  }
 });
 
 async function loadCurrentSite() {

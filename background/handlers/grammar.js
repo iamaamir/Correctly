@@ -78,7 +78,7 @@ function getOrCreateProvider(providerId, apiKey, model, baseUrl, log) {
   return cachedProvider;
 }
 
-async function handleGrammarCheck(text, log) {
+async function handleGrammarCheck(text, log, { tabId } = {}) {
   const { providerId, apiKey, model, baseUrl, enabled } = await getSettings();
 
   log.debug("Settings loaded", {
@@ -94,7 +94,13 @@ async function handleGrammarCheck(text, log) {
   const provider = getOrCreateProvider(providerId, apiKey, model, baseUrl, log);
   log.info(`Using provider: ${provider.providerName}, model: ${provider.model}`);
 
-  const result = await provider.correctGrammar(text);
+  const result = await provider.correctGrammar(text, {
+    onProgress: (info) => {
+      if (tabId) {
+        chrome.tabs.sendMessage(tabId, { type: "CHECK_PROGRESS", status: info.status }).catch(() => {});
+      }
+    },
+  });
 
   if (result.usage) {
     addTokenUsageRecord({
@@ -107,7 +113,7 @@ async function handleGrammarCheck(text, log) {
     });
   }
 
-  return { corrected: result.corrected, changes: result.changes };
+  return { corrected: result.corrected, changes: result.changes, responseTimeMs: result.responseTimeMs };
 }
 
 export function registerGrammarHandlers(handlers, { log }) {
@@ -121,7 +127,7 @@ export function registerGrammarHandlers(handlers, { log }) {
     updateBadge(tabId, "checking");
 
     try {
-      const result = await handleGrammarCheck(message.text, log);
+      const result = await handleGrammarCheck(message.text, log, { tabId: sender.tab?.id });
       endTimer();
       const hasIssues = result.changes?.length > 0;
       updateBadge(tabId, hasIssues ? "found" : "ok");

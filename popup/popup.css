@@ -81,6 +81,22 @@ input:focus {
   min-height: 14px;
 }
 
+.btn-link {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 4px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.btn-link:hover {
+  color: #555;
+}
+
 .key-section {
   margin-bottom: 16px;
 }
@@ -175,6 +191,11 @@ input:focus {
 .status.error {
   background: #ffebee;
   color: #c62828;
+}
+
+.status.warning {
+  background: #fff8e1;
+  color: #e65100;
 }
 
 .toggle-section {
@@ -377,4 +398,124 @@ input:focus {
   font-size: 13px;
   padding: 8px 10px;
   color: #555;
+}
+
+/* ── Grammar Instinct ── */
+
+.grammar-instinct {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.grammar-instinct[hidden] {
+  display: none;
+}
+
+.grammar-instinct__label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #999;
+  letter-spacing: 1px;
+}
+
+.grammar-instinct__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: opacity 150ms ease;
+}
+
+.grammar-instinct__row.fade {
+  opacity: 0;
+}
+
+.grammar-instinct__emoji-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.grammar-instinct__emoji-row .active {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.grammar-instinct__emoji-row .inactive {
+  font-size: 22px;
+  line-height: 1;
+  color: #d5d5d5;
+}
+
+.grammar-instinct__title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  transition: color 150ms ease;
+}
+
+.grammar-instinct__description {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #777;
+}
+
+.grammar-instinct__speed {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #999;
+  margin-top: 4px;
+}
+
+.grammar-instinct__speed.speed--fast { color: #2e8b57; }
+.grammar-instinct__speed.speed--moderate { color: #e6a100; }
+.grammar-instinct__speed.speed--slow { color: #d46a4c; }
+
+/* ── Tier accent colors ── */
+
+.grammar-instinct--tentative .grammar-instinct__emoji-row .active { color: #d46a4c; }
+.grammar-instinct--tentative .grammar-instinct__title { color: #d46a4c; }
+
+.grammar-instinct--reliable .grammar-instinct__emoji-row .active { color: #e6a100; }
+.grammar-instinct--reliable .grammar-instinct__title { color: #e6a100; }
+
+.grammar-instinct--strong .grammar-instinct__emoji-row .active { color: #2e8b57; }
+.grammar-instinct--strong .grammar-instinct__title { color: #2e8b57; }
+
+.grammar-instinct--exceptional .grammar-instinct__emoji-row .active { color: #2e8b57; }
+.grammar-instinct--exceptional .grammar-instinct__title { color: #2e8b57; }
+
+/* ── Dark mode ── */
+
+@media (prefers-color-scheme: dark) {
+  .grammar-instinct__emoji-row .inactive {
+    color: #555;
+  }
+
+  .grammar-instinct--tentative .grammar-instinct__emoji-row .active { color: #e8835f; }
+  .grammar-instinct--tentative .grammar-instinct__title { color: #e8835f; }
+
+  .grammar-instinct--reliable .grammar-instinct__emoji-row .active { color: #f0b400; }
+  .grammar-instinct--reliable .grammar-instinct__title { color: #f0b400; }
+
+  .grammar-instinct--strong .grammar-instinct__emoji-row .active { color: #3da55e; }
+  .grammar-instinct--strong .grammar-instinct__title { color: #3da55e; }
+
+  .grammar-instinct--exceptional .grammar-instinct__emoji-row .active { color: #3da55e; }
+  .grammar-instinct--exceptional .grammar-instinct__title { color: #3da55e; }
+
+  .grammar-instinct__speed.speed--fast { color: #3da55e; }
+  .grammar-instinct__speed.speed--moderate { color: #f0b400; }
+  .grammar-instinct__speed.speed--slow { color: #e8835f; }
+}
+
+/* ── Hidden until debug ── */
+
+#reset-cache-btn {
+  display: none;
+}
+
+#reset-cache-btn.visible {
+  display: inline;
 }
