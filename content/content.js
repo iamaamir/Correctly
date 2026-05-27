@@ -285,11 +285,31 @@
     const tooltip = createTooltip();
     const body = tooltip.querySelector(".correctly-body");
 
+    let html = "";
+    if (correction.confidence) {
+      html += `<p class="correctly-confidence">Confidence: ${correction.confidence}/10</p>`;
+    }
+
     if (correction.changes.length === 0) {
-      body.innerHTML = '<p class="correctly-no-errors">No grammar issues found.</p>';
-      tooltip.querySelector(".correctly-accept").style.display = "none";
+      const currentText = getTextFromElement(element);
+      if (correction.corrected && correction.corrected !== currentText) {
+        html += `
+          <div class="correctly-change">
+            <div class="correctly-diff">
+              <span class="correctly-original">${escapeHtml(currentText)}</span>
+              <span class="correctly-arrow">&rarr;</span>
+              <span class="correctly-replacement">${escapeHtml(correction.corrected)}</span>
+            </div>
+            <p class="correctly-explanation">Full text correction</p>
+          </div>
+        `;
+        tooltip.querySelector(".correctly-accept").style.display = "";
+      } else {
+        html += '<p class="correctly-no-errors">No grammar issues found.</p>';
+        tooltip.querySelector(".correctly-accept").style.display = "none";
+      }
     } else {
-      body.innerHTML = correction.changes
+      html += correction.changes
         .map(
           (change, i) => `
         <div class="correctly-change" data-index="${i}">
@@ -310,6 +330,7 @@
         .join("");
       tooltip.querySelector(".correctly-accept").style.display = "";
     }
+    body.innerHTML = html;
 
     positionTooltip(tooltip, element);
     tooltip.classList.add("correctly-visible");
@@ -439,7 +460,9 @@
   }
 
   function acceptCorrections() {
-    if (activeElement && currentCorrection && currentCorrection.changes.length > 0) {
+    if (!activeElement || !currentCorrection) { hideTooltip(); return; }
+
+    if (currentCorrection.changes.length > 0) {
       let text = getTextFromElement(activeElement);
       for (const change of currentCorrection.changes) {
         text = text.replace(change.original, change.replacement);
@@ -452,11 +475,34 @@
       }
       lastCheckedText.set(activeElement, text);
       log.info(
-        `Applied remaining ${currentCorrection.changes.length} correction(s) on ${describeElement(activeElement)}`,
+        `Applied ${currentCorrection.changes.length} correction(s) on ${describeElement(activeElement)}`,
+      );
+    } else if (currentCorrection.corrected) {
+      applyingCorrection = true;
+      try {
+        setTextOnElement(activeElement, currentCorrection.corrected);
+      } finally {
+        applyingCorrection = false;
+      }
+      lastCheckedText.set(activeElement, currentCorrection.corrected);
+      log.info(
+        `Applied full text correction on ${describeElement(activeElement)}`,
       );
     }
+
     hideTooltip();
   }
+
+  // ── Cascade progress listener ──
+
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === "CHECK_PROGRESS") {
+      if (!indicatorEl) return;
+      const dot = indicatorEl.querySelector(".correctly-indicator-dot");
+      if (!dot) return;
+      dot.className = `correctly-indicator-dot correctly-indicator-dot--${msg.status}`;
+    }
+  });
 
   const escapeHtmlDiv = document.createElement("div");
   function escapeHtml(text) {
@@ -464,11 +510,11 @@
     return escapeHtmlDiv.innerHTML;
   }
 
-  function showIndicator(element) {
+  function showIndicator(element, status = "checking") {
     removeIndicator();
     const indicator = document.createElement("div");
     indicator.className = "correctly-indicator";
-    indicator.innerHTML = '<span class="correctly-indicator-dot"></span>';
+    indicator.innerHTML = `<span class="correctly-indicator-dot correctly-indicator-dot--${status}"></span>`;
     indicator.title = "Correctly is checking...";
 
     const rect = element.getBoundingClientRect();
@@ -558,10 +604,8 @@
             "Corrections:",
             response.data.changes.map((c) => `"${c.original}" → "${c.replacement}"`),
           );
-          showTooltip(element, response.data);
-        } else {
-          log.debug("No issues — text is clean");
         }
+        showTooltip(element, response.data);
       } else {
         log.error("Grammar check failed:", response.error);
       }

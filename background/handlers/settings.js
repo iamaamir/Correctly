@@ -3,20 +3,45 @@ import { createProvider } from "../../providers/provider-registry.js";
 
 const TRAILING_SLASHES = /\/+$/;
 
-const VERIFY_TEXT = "Aamir go to school yesterday";
+const VERIFY_TEXT = "Their going to they're house after work, and then there meeting us their for dinner.";
 
-async function verifySettings(providerId, apiKey, model, baseUrl, log) {
+async function verifySettings(providerId, apiKey, model, baseUrl, log, { onProgress } = {}) {
   try {
     const provider = createProvider(providerId || "openai", apiKey, model, baseUrl);
-    const result = await provider.correctGrammar(VERIFY_TEXT);
+
+    // Run the grammar check (cascade may trigger progress callbacks)
+    const result = await provider.correctGrammar(VERIFY_TEXT, { onProgress });
+
     if (!result || typeof result.corrected !== "string") {
       return { success: false, error: "Unexpected response from provider" };
     }
-    if (!Array.isArray(result.changes) || result.changes.length === 0) {
-      log.warn("Verify: no changes reported for known-incorrect input");
-    }
-    log.info(`Verify result: "${result.corrected}"`);
-    return { success: true };
+
+    // Read the cascade level from cache — if L3, the model doesn't
+    // support structured output (e.g. fine-tuned GEC models).
+    let level = 1;
+    try {
+      const cacheData = await chrome.storage.local.get("modelLevelCache");
+      const cache = cacheData.modelLevelCache || {};
+      const entry = cache[`${provider.providerId}:${provider.model}`];
+      if (entry) level = entry.level;
+    } catch {}
+
+    const warning =
+      level >= 3
+        ? "This model provides full-text corrections only — individual changes are not available."
+        : null;
+
+    if (warning) log.warn(`Verify: ${warning}`);
+    log.info(`Verify result: "${result.corrected}" (cascade level ${level})`);
+
+    return {
+      success: true,
+      warning,
+      level,
+      confidence: result.confidence ?? null,
+      corrected: result.corrected,
+      responseTimeMs: result.responseTimeMs,
+    };
   } catch (err) {
     return { success: false, error: err.message };
   }
@@ -34,7 +59,20 @@ export function registerSettingsHandlers(handlers, { log }) {
       model: message.model,
     });
     try {
-      const result = await verifySettings(message.providerId, message.apiKey, message.model, message.baseUrl, log);
+      const result = await verifySettings(
+        message.providerId,
+        message.apiKey,
+        message.model,
+        message.baseUrl,
+        log,
+        {
+          onProgress: (info) => {
+            try {
+              chrome.runtime.sendMessage({ type: "VERIFY_PROGRESS", ...info }).catch(() => {});
+            } catch {}
+          },
+        },
+      );
       log.info("Verification result:", result);
       sendResponse(result);
     } catch (err) {

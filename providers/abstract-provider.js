@@ -37,6 +37,7 @@
  *     Must return same structure as getModels().
  */
 import { createLogger } from "../lib/logger.js";
+import { scoreResponse, mergeConfidence } from "../lib/score.js";
 
 const log = createLogger("provider");
 
@@ -170,8 +171,17 @@ export class AbstractProvider {
   /**
    * Public entry point. Validates input, delegates to _doCorrectGrammar,
    * then validates the response shape.
+   *
+   * Cascades through three levels on failure:
+   *   Level 1 — structured JSON via RESPONSE_SCHEMA
+   *   Level 2 — CoT prompt + JSON extraction from unstructured text
+   *   Level 3 — plain text, no changes
+   *
+   * @param {string} text — text to check
+   * @param {{ onProgress?: (status: string) => void }} [options]
+   * @returns {Promise<{corrected: string, changes: Array}>}
    */
-  async correctGrammar(text) {
+  async correctGrammar(text, { onProgress } = {}) {
     log.debug(`correctGrammar called — ${text?.length || 0} chars`);
     this.validateApiKey();
 
@@ -180,9 +190,51 @@ export class AbstractProvider {
       return { corrected: text, changes: [] };
     }
 
-    log.debug(`Delegating to ${this.constructor.name}._doCorrectGrammar`);
-    const result = await this._doCorrectGrammar(text);
-    return this._validateResponse(result, text);
+    const levels = [
+      { fn: () => this._doCorrectGrammar(text),        status: "checking" },
+      { fn: () => this._doCorrectGrammarLevel2(text),  status: "retrying" },
+      { fn: () => this._doCorrectGrammarLevel3(text),  status: "fallback" },
+    ];
+
+    const startLevel = await this._getStartLevel();
+    log.debug(`Cascade starting at level ${startLevel}`);
+
+    for (let i = startLevel - 1; i < levels.length; i++) {
+      const { fn, status } = levels[i];
+      onProgress?.({ status });
+      log.debug(`Cascade level ${i + 1} — ${status}`);
+      try {
+        const t0 = performance.now();
+        const result = await fn();
+        result.responseTimeMs = Math.round(performance.now() - t0);
+        const validated = this._validateResponse(result, text);
+
+        // Score the response with our own checks, then merge with model's self-reported confidence
+        const scored = await scoreResponse(validated, text, i + 1);
+        const modelConfidence = typeof validated.confidence === "number" ? validated.confidence : 5;
+        const merged = await mergeConfidence(modelConfidence, scored.score);
+        onProgress?.({ status, confidence: merged });
+
+        if (i < 2 && validated.changes.length === 0 && validated.corrected !== text) {
+          log.debug(`Level ${i + 1}: changes empty but corrected differs — cascading`);
+          continue;
+        }
+
+        if (i >= 2 || merged >= 60) {
+          await this._updateCacheOnSuccess(startLevel, i + 1);
+          validated.confidence = i >= 2 ? Math.min(merged, 30) : merged;
+          onProgress?.({ status: "done", confidence: validated.confidence, responseTimeMs: validated.responseTimeMs });
+          return validated;
+        }
+
+        log.debug(`Level ${i + 1}: merged confidence ${merged} < 60, cascading`);
+      } catch (err) {
+        if (!this._isCascadeableError(err)) throw err;
+        log.debug(`Level ${i + 1} cascadeable error: ${err.message}`);
+      }
+    }
+
+    throw new Error("Grammar check failed after exhausting all cascade levels");
   }
 
   /**
@@ -192,6 +244,34 @@ export class AbstractProvider {
    */
   async _doCorrectGrammar(_text) {
     throw new Error(`${this.constructor.name} must implement _doCorrectGrammar(text)`);
+  }
+
+  /**
+   * Level 2 cascade fallback — CoT prompt with JSON extraction.
+   * Subclasses should override to send a simpler prompt without
+   * structured output enforcement, then extract JSON from the text response.
+   * Default implementation throws to skip this level.
+   * @param {string} _text — non-empty, already validated
+   * @returns {Promise<{corrected: string, changes: Array}>}
+   */
+  async _doCorrectGrammarLevel2(_text) {
+    throw new Error(
+      `${this.constructor.name} does not support cascade level 2 — override _doCorrectGrammarLevel2`,
+    );
+  }
+
+  /**
+   * Level 3 cascade fallback — plain text, no changes array.
+   * Subclasses should override to send a minimal prompt and return
+   * { corrected: text.trim(), changes: [] }.
+   * Default implementation throws to skip this level.
+   * @param {string} _text — non-empty, already validated
+   * @returns {Promise<{corrected: string, changes: Array}>}
+   */
+  async _doCorrectGrammarLevel3(_text) {
+    throw new Error(
+      `${this.constructor.name} does not support cascade level 3 — override _doCorrectGrammarLevel3`,
+    );
   }
 
   /**
@@ -207,6 +287,128 @@ export class AbstractProvider {
     }
     log.debug("API key validated");
     return true;
+  }
+
+  // ──────────────────────────────────────────────
+  //  CASCADE HELPERS
+  // ──────────────────────────────────────────────
+
+  /**
+   * Determines whether an error should trigger a cascade to the next level.
+   * Network errors, timeouts, and API auth/rate-limit errors are NOT
+   * cascadeable — they should propagate immediately.
+   * @param {Error} err
+   * @returns {boolean}
+   */
+  _isCascadeableError(err) {
+    const msg = err.message || "";
+    return (
+      msg.includes("Failed to parse") ||
+      msg.includes("Provider returned invalid response") ||
+      msg.includes("Provider response missing") ||
+      msg.includes("Empty response from")
+    );
+  }
+
+  /**
+   * Checks whether the confidence score is high enough to accept this level's
+   * result. If confidence is absent (null/undefined), it is treated as
+   * acceptable — this allows Level 3 (which has no confidence) to always pass.
+   * @param {number|null|undefined} confidence
+   * @returns {boolean}
+   */
+  _isConfidenceAcceptable(confidence) {
+    if (confidence === null || confidence === undefined) return true;
+    return confidence >= 6;
+  }
+
+  /**
+   * Reads the model level cache from chrome.storage.local to determine which
+   * cascade level to start at. Returns 1 if no cache entry exists.
+   * If a cached level > 1 has had 10+ successful checks, tries level 1
+   * (auto-upgrade attempt).
+   * @returns {Promise<number>} — start level (1, 2, or 3)
+   */
+  async _getStartLevel() {
+    try {
+      const data = await chrome.storage.local.get("modelLevelCache");
+      const cache = data.modelLevelCache || {};
+      const entry = cache[`${this.providerId}:${this.model}`];
+      if (!entry) return 1;
+      if (entry.level >= 3) {
+        log.debug(`Cache pinned at L3 — model does not support structured output`);
+        return 3;
+      }
+      if (entry.level > 1 && entry.checksAtLevel >= 10) {
+        log.debug(`Cache auto-upgrade — L${entry.level} has ${entry.checksAtLevel} checks, trying L1`);
+        return 1;
+      }
+      return entry.level;
+    } catch {
+      return 1;
+    }
+  }
+
+  /**
+   * Updates the model level cache after a successful check.
+   * - If we tried a lower level than cached (auto-upgrade succeeded): upgrade cache
+   * - If we fell back to a higher level: downgrade cache
+   * - If same level: increment checksAtLevel
+   * @param {number} prevStart — the level we started at
+   * @param {number} succeededLevel — the level that succeeded (1-indexed)
+   */
+  async _updateCacheOnSuccess(prevStart, succeededLevel) {
+    try {
+      const data = await chrome.storage.local.get("modelLevelCache");
+      const cache = data.modelLevelCache || {};
+      const key = `${this.providerId}:${this.model}`;
+      const existing = cache[key];
+
+      if (succeededLevel < prevStart) {
+        cache[key] = { level: succeededLevel, checksAtLevel: 0 };
+        log.debug(`Cache upgraded to level ${succeededLevel}`);
+      } else if (succeededLevel > prevStart) {
+        cache[key] = { level: succeededLevel, checksAtLevel: 0 };
+        log.debug(`Cache downgraded to level ${succeededLevel}`);
+      } else {
+        cache[key] = {
+          level: succeededLevel,
+          checksAtLevel: (existing?.checksAtLevel || 0) + 1,
+        };
+        log.debug(`Cache checksAtLevel incremented to ${cache[key].checksAtLevel} at level ${succeededLevel}`);
+      }
+
+      await chrome.storage.local.set({ modelLevelCache: cache });
+    } catch (err) {
+      log.warn("Failed to update model level cache:", err.message);
+    }
+  }
+
+  /**
+   * Attempts to extract a JSON object from free-form text.
+   * Tries JSON code fences first, then falls back to finding the first
+   * { ... } block. Throws if neither approach yields valid JSON.
+   * @param {string} text — raw response text potentially containing JSON
+   * @returns {object}
+   */
+  _extractJsonFromText(text) {
+    const fenceMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)```/);
+    if (fenceMatch) {
+      try {
+        return JSON.parse(fenceMatch[1].trim());
+      } catch {
+        // fall through to brace matching
+      }
+    }
+    const braceMatch = text.match(/\{[\s\S]*\}/);
+    if (braceMatch) {
+      try {
+        return JSON.parse(braceMatch[0]);
+      } catch {
+        throw new Error("Failed to parse grammar correction response");
+      }
+    }
+    throw new Error("Failed to parse grammar correction response");
   }
 
   // ──────────────────────────────────────────────

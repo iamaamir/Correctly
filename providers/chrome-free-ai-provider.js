@@ -1,4 +1,4 @@
-import { SYSTEM_PROMPT } from "../lib/config.js";
+import { SYSTEM_PROMPT, SYSTEM_PROMPT_L2, SYSTEM_PROMPT_L3 } from "../lib/config.js";
 import { createLogger } from "../lib/logger.js";
 import { AbstractProvider } from "./abstract-provider.js";
 
@@ -21,6 +21,7 @@ const GRAMMAR_SCHEMA = {
         additionalProperties: false,
       },
     },
+    confidence: { type: "number" },
   },
   required: ["corrected", "changes"],
   additionalProperties: false,
@@ -156,6 +157,67 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       throw new Error(`Chrome Free AI error: ${e.message}`);
     } finally {
       log.debug("Destroying session");
+      session.destroy();
+    }
+  }
+
+  async _doCorrectGrammarLevel2(text) {
+    const log = createLogger(this.providerId);
+    log.info(`L2 grammar check start`, { inputLength: text.length });
+
+    const status = await ChromeFreeAIProvider.getStatus();
+    if (status !== ChromeFreeAIProvider.STATUS.AVAILABLE) {
+      throw new Error(`Chrome Free AI not available`);
+    }
+
+    log.debug("Creating LanguageModel session for L2");
+    const session = await LanguageModel.create({
+      initialPrompts: [{ role: "system", content: SYSTEM_PROMPT_L2 }],
+    });
+
+    try {
+      log.debug("Calling session.prompt without responseConstraint");
+      const result = await session.prompt(text);
+      log.debug("Raw L2 response:", result);
+      const parsed = this._extractJsonFromText(result);
+      log.info(`L2 parsed — ${parsed.changes?.length || 0} corrections`);
+      return parsed;
+    } catch (e) {
+      log.error("L2 grammar check failed:", e.message);
+      if (e instanceof SyntaxError || e.message.includes("Failed to parse")) {
+        throw new Error("Failed to parse grammar correction response");
+      }
+      throw new Error(`Chrome Free AI error: ${e.message}`);
+    } finally {
+      log.debug("Destroying L2 session");
+      session.destroy();
+    }
+  }
+
+  async _doCorrectGrammarLevel3(text) {
+    const log = createLogger(this.providerId);
+    log.info(`L3 grammar check start`, { inputLength: text.length });
+
+    const status = await ChromeFreeAIProvider.getStatus();
+    if (status !== ChromeFreeAIProvider.STATUS.AVAILABLE) {
+      throw new Error(`Chrome Free AI not available`);
+    }
+
+    log.debug("Creating LanguageModel session for L3");
+    const session = await LanguageModel.create({
+      initialPrompts: [{ role: "system", content: SYSTEM_PROMPT_L3 }],
+    });
+
+    try {
+      log.debug("Calling session.prompt for plain text");
+      const result = await session.prompt(text);
+      log.debug("Raw L3 response:", result);
+      return { corrected: result.trim(), changes: [] };
+    } catch (e) {
+      log.error("L3 grammar check failed:", e.message);
+      throw new Error(`Chrome Free AI error: ${e.message}`);
+    } finally {
+      log.debug("Destroying L3 session");
       session.destroy();
     }
   }
