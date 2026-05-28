@@ -80,6 +80,17 @@ function getModelsCacheKey(baseUrl, apiKey) {
   return `${baseUrl}|${apiKey || ""}`;
 }
 
+function cancelModelFetchFlow() {
+  if (modelFetchTimer) {
+    clearTimeout(modelFetchTimer);
+    modelFetchTimer = null;
+  }
+  // Invalidate any in-flight fetch result so stale async completions are ignored.
+  modelFetchRequestId += 1;
+  activeModelFetch = null;
+  activeModelFetchKey = "";
+}
+
 function applyFetchedModels(provider, models, selectedModel) {
   const fetched = models || [];
   const limited = fetched.slice(0, 20);
@@ -525,6 +536,7 @@ async function populateProviders() {
   providerSelect.appendChild(frag);
 
   providerSelect.addEventListener("change", async () => {
+    cancelModelFetchFlow();
     const provider = providers.find((p) => p.id === providerSelect.value);
     if (provider) {
       log.info(`Provider changed to: ${provider.name} (${provider.id})`);
