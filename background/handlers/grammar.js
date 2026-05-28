@@ -117,6 +117,7 @@ async function handleGrammarCheck(text, log, { tabId } = {}) {
     corrected: result.corrected,
     changes: result.changes,
     confidence: result.confidence,
+    cascadeLevel: result.cascadeLevel,
     responseTimeMs: result.responseTimeMs,
   };
 }

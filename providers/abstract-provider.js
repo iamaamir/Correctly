@@ -222,8 +222,20 @@ export class AbstractProvider {
 
         if (i >= 2 || merged >= 60) {
           await this._updateCacheOnSuccess(startLevel, i + 1);
-          validated.confidence = i >= 2 ? Math.min(merged, 30) : merged;
-          onProgress?.({ status: "done", confidence: validated.confidence, responseTimeMs: validated.responseTimeMs });
+          if (scored.suppressed.length > 0) {
+            log.debug(
+              `Level ${i + 1}: suppressing ${scored.suppressed.length} low-confidence change(s) before display`,
+            );
+            validated.changes = scored.usable.map(({ _index, _entryScore, _issues, ...change }) => change);
+          }
+          validated.confidence = i >= 2 ? Math.min(Math.max(merged, 45), 55) : merged;
+          validated.cascadeLevel = i + 1;
+          onProgress?.({
+            status: "done",
+            confidence: validated.confidence,
+            level: validated.cascadeLevel,
+            responseTimeMs: validated.responseTimeMs,
+          });
           return validated;
         }
 

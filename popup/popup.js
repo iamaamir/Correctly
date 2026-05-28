@@ -29,7 +29,6 @@ const aiStatusSection = document.getElementById("ai-status-section");
 const aiStatusContent = document.getElementById("ai-status-content");
 const baseUrlSection = document.getElementById("base-url-section");
 const baseUrlInput = document.getElementById("base-url");
-const fetchModelsBtn = document.getElementById("fetch-models-btn");
 const baseUrlHint = document.getElementById("base-url-hint");
 
 let currentHostname = null;
@@ -38,8 +37,16 @@ const CUSTOM_VALUE = "__custom__";
 const NO_API_KEY_SENTINEL = "noapikeyrequired";
 const OPENAI_COMPATIBLE_ID = "openai-compatible";
 const SAVED_URLS_KEY = "savedBaseUrls";
+const MODEL_FETCH_DEBOUNCE_MS = 1200;
+const MODEL_FETCH_RETRY_COOLDOWN_MS = 30000;
 let providers = [];
 let savedState = null;
+let modelFetchTimer = null;
+let modelFetchRequestId = 0;
+let loadedModelsKey = "";
+let activeModelFetch = null;
+let activeModelFetchKey = "";
+let lastModelFetchFailure = { key: "", timestamp: 0 };
 
 const MODELS_CACHE_KEY = "fetchedModelsCache";
 const MODELS_CACHE_TTL = 5 * 60 * 1000;
@@ -69,12 +76,150 @@ async function setCachedModels(baseUrl, apiKey, models) {
   });
 }
 
+function getModelsCacheKey(baseUrl, apiKey) {
+  return `${baseUrl}|${apiKey || ""}`;
+}
+
 function applyFetchedModels(provider, models, selectedModel) {
   const fetched = models || [];
   const limited = fetched.slice(0, 20);
   if (provider) provider.models = limited;
   renderModelDropdown(limited, selectedModel || limited[0]?.id, provider?.defaultModel);
-  baseUrlHint.textContent = "";
+  highlightModelSelect(fetched.length > 0);
+  baseUrlHint.textContent = fetched.length > 0 ? "Models loaded" : "No models found for this endpoint";
+}
+
+function highlightModelSelect(shouldHighlight) {
+  modelSelect.classList.remove("model-select--loaded");
+  if (!shouldHighlight) return;
+
+  requestAnimationFrame(() => {
+    modelSelect.classList.add("model-select--loaded");
+  });
+
+  setTimeout(() => {
+    modelSelect.classList.remove("model-select--loaded");
+  }, 1800);
+}
+
+async function doFetchModels(baseUrl, apiKey, selectedModel = null) {
+  const cacheKey = getModelsCacheKey(baseUrl, apiKey);
+  if (activeModelFetch && activeModelFetchKey === cacheKey) {
+    return await activeModelFetch;
+  }
+
+  const now = Date.now();
+  if (lastModelFetchFailure.key === cacheKey && now - lastModelFetchFailure.timestamp < MODEL_FETCH_RETRY_COOLDOWN_MS) {
+    baseUrlHint.textContent = "Model loading paused after a failed attempt. Save will retry.";
+    return false;
+  }
+
+  const requestId = ++modelFetchRequestId;
+  const cached = await getCachedModels(baseUrl, apiKey);
+  if (requestId !== modelFetchRequestId) return false;
+
+  if (cached) {
+    log.debug("Using cached models for", baseUrl);
+    const provider = providers.find((p) => p.id === providerSelect.value);
+    applyFetchedModels(provider, cached, selectedModel);
+    loadedModelsKey = cacheKey;
+    return true;
+  }
+
+  baseUrlHint.textContent = "Loading models...";
+  modelSelect.classList.remove("model-select--loaded");
+
+  activeModelFetchKey = cacheKey;
+  activeModelFetch = (async () => {
+    const result = await chrome.runtime.sendMessage({
+      type: "FETCH_MODELS",
+      baseUrl,
+      apiKey,
+    });
+
+    if (requestId !== modelFetchRequestId) return false;
+
+    if (!result.success) {
+      lastModelFetchFailure = { key: cacheKey, timestamp: Date.now() };
+      baseUrlHint.textContent = `Could not load models: ${result.error}`;
+      return false;
+    }
+
+    await setCachedModels(baseUrl, apiKey, result.data);
+    const provider = providers.find((p) => p.id === providerSelect.value);
+    applyFetchedModels(provider, result.data, selectedModel);
+    loadedModelsKey = cacheKey;
+    lastModelFetchFailure = { key: "", timestamp: 0 };
+    modelHint.textContent = "Models loaded. Choose one from the list, or select Custom model.";
+    return true;
+  })();
+
+  try {
+    return await activeModelFetch;
+  } finally {
+    if (activeModelFetchKey === cacheKey) {
+      activeModelFetch = null;
+      activeModelFetchKey = "";
+    }
+  }
+}
+
+function scheduleModelFetch() {
+  if (modelFetchTimer) clearTimeout(modelFetchTimer);
+  if (providerSelect.value !== OPENAI_COMPATIBLE_ID) return;
+
+  const baseUrl = baseUrlInput.value.trim();
+  const apiKey = apiKeyInput.value.trim();
+  modelSelect.classList.remove("model-select--loaded");
+
+  if (!baseUrl) {
+    baseUrlHint.textContent = "Models load after URL and API key are entered";
+    modelHint.textContent = "Enter endpoint details to load available models";
+    loadedModelsKey = "";
+    return;
+  }
+
+  const validation = validateBaseUrl(baseUrl);
+  if (!validation.valid) {
+    baseUrlHint.textContent = "Enter a valid base URL to load models";
+    modelHint.textContent = "Enter endpoint details to load available models";
+    loadedModelsKey = "";
+    return;
+  }
+
+  if (!apiKey) {
+    baseUrlHint.textContent = "Enter an API key to load models";
+    modelHint.textContent = "Enter endpoint details to load available models";
+    loadedModelsKey = "";
+    return;
+  }
+
+  loadedModelsKey = "";
+  const cacheKey = getModelsCacheKey(validation.sanitized, apiKey);
+  if (lastModelFetchFailure.key === cacheKey) {
+    const elapsed = Date.now() - lastModelFetchFailure.timestamp;
+    if (elapsed < MODEL_FETCH_RETRY_COOLDOWN_MS) {
+      baseUrlHint.textContent = "Model loading paused after a failed attempt. Save will retry.";
+      modelHint.textContent = "Select Custom model to type a model ID.";
+      return;
+    }
+  }
+
+  baseUrlHint.textContent = "Models load automatically after you stop typing";
+  modelHint.textContent = "Waiting for endpoint details to settle...";
+  modelFetchTimer = setTimeout(() => {
+    doFetchModels(validation.sanitized, apiKey).catch((err) => {
+      baseUrlHint.textContent = `Could not load models: ${err.message}`;
+    });
+  }, MODEL_FETCH_DEBOUNCE_MS);
+}
+
+async function ensureModelsLoaded(baseUrl, apiKey, selectedModel = null) {
+  if (modelFetchTimer) clearTimeout(modelFetchTimer);
+  if (loadedModelsKey === getModelsCacheKey(baseUrl, apiKey)) return;
+  lastModelFetchFailure = { key: "", timestamp: 0 };
+  const loaded = await doFetchModels(baseUrl, apiKey, selectedModel);
+  if (!loaded) throw new Error("Could not load models");
 }
 
 const SAVED_URLS_SET = new Set();
@@ -197,6 +342,11 @@ function updateMarkUnsaved() {
   if (saveBtn.disabled) return;
   saveBtn.className = "btn-primary";
   saveBtn.textContent = "Save";
+}
+
+function clearCompatibilityScore() {
+  confidenceSection.hidden = true;
+  qualitySpeed.hidden = true;
 }
 
 function isCustomSelected() {
@@ -378,15 +528,17 @@ async function populateProviders() {
     const provider = providers.find((p) => p.id === providerSelect.value);
     if (provider) {
       log.info(`Provider changed to: ${provider.name} (${provider.id})`);
+      clearCompatibilityScore();
       apiKeyInput.placeholder = provider.keyPlaceholder;
       const isGeneric = provider.id === OPENAI_COMPATIBLE_ID;
       baseUrlSection.hidden = !isGeneric;
       if (isGeneric) {
         const { baseUrl } = await getSettings();
         baseUrlInput.value = baseUrl || "";
-        baseUrlHint.textContent = "Full API base URL including version path";
+        baseUrlHint.textContent = "Models load after URL and API key are entered";
       }
       await populateModels(provider.id, null);
+      if (isGeneric) scheduleModelFetch();
       showAiStatus(provider.id);
       updateMarkUnsaved();
     }
@@ -394,10 +546,10 @@ async function populateProviders() {
 
   modelSelect.addEventListener("change", () => {
     log.debug(`Model changed to: ${isCustomSelected() ? "custom" : modelSelect.value}`);
+    clearCompatibilityScore();
     setCustomInputVisibility(isCustomSelected());
     updateModelHint();
     updateMarkUnsaved();
-    confidenceSection.hidden = true;
   });
 
   document.getElementById("reset-cache-btn").addEventListener("click", async () => {
@@ -406,64 +558,19 @@ async function populateProviders() {
     log.info("Model level cache cleared");
   });
 
-  async function doFetchModels(baseUrl, apiKey) {
-    const cached = await getCachedModels(baseUrl, apiKey);
-    if (cached) {
-      log.debug("Using cached models for", baseUrl);
-      const provider = providers.find((p) => p.id === providerSelect.value);
-      applyFetchedModels(provider, cached, null);
-      return;
-    }
-
-    fetchModelsBtn.disabled = true;
-    fetchModelsBtn.textContent = "Fetching...";
-    baseUrlHint.textContent = "Fetching models…";
-
-    const result = await chrome.runtime.sendMessage({
-      type: "FETCH_MODELS",
-      baseUrl,
-      apiKey,
-    });
-
-    if (!result.success) {
-      baseUrlHint.textContent = `Fetch failed: ${result.error}`;
-      fetchModelsBtn.disabled = false;
-      fetchModelsBtn.textContent = "Fetch";
-      return;
-    }
-
-    await setCachedModels(baseUrl, apiKey, result.data);
-    const provider = providers.find((p) => p.id === providerSelect.value);
-    applyFetchedModels(provider, result.data, null);
-    modelHint.textContent = "Select a model from the list, or use Custom model to type one";
-    fetchModelsBtn.disabled = false;
-    fetchModelsBtn.textContent = "Fetch";
-  }
-
-  fetchModelsBtn.addEventListener("click", async () => {
-    const baseUrl = baseUrlInput.value.trim();
-    if (!baseUrl) {
-      baseUrlHint.textContent = "Please enter a base URL first";
-      return;
-    }
-
-    const apiKey = apiKeyInput.value.trim();
-    if (!apiKey) {
-      baseUrlHint.textContent = "Please enter an API key first";
-      return;
-    }
-
-    await doFetchModels(baseUrl, apiKey);
-  });
-
-  apiKeyInput.addEventListener("input", updateMarkUnsaved);
-  baseUrlInput.addEventListener("input", () => {
+  apiKeyInput.addEventListener("input", () => {
+    clearCompatibilityScore();
     updateMarkUnsaved();
-    baseUrlHint.textContent = "Full API base URL including version path";
+    scheduleModelFetch();
+  });
+  baseUrlInput.addEventListener("input", () => {
+    clearCompatibilityScore();
+    updateMarkUnsaved();
+    scheduleModelFetch();
   });
   customModelInput.addEventListener("input", () => {
+    clearCompatibilityScore();
     updateMarkUnsaved();
-    confidenceSection.hidden = true;
   });
 
   if (providers.length > 0) {
@@ -496,7 +603,9 @@ async function loadSettings() {
       applyFetchedModels(genericProvider, cached, model);
     } else {
       await populateModels(providerId, model);
-      doFetchModels(baseUrl, apiKey);
+      doFetchModels(baseUrl, apiKey, model).catch((err) => {
+        baseUrlHint.textContent = `Could not load models: ${err.message}`;
+      });
     }
   } else {
     await populateModels(providerId, model);
@@ -511,7 +620,7 @@ async function loadSettings() {
 
 saveBtn.addEventListener("click", async () => {
   const providerId = providerSelect.value;
-  const model = getSelectedModel();
+  let model = getSelectedModel();
   let apiKey = apiKeyInput.value.trim();
   let baseUrl = providerId === OPENAI_COMPATIBLE_ID ? baseUrlInput.value.trim() : "";
 
@@ -543,9 +652,29 @@ saveBtn.addEventListener("click", async () => {
     return;
   }
 
+  if (providerId === OPENAI_COMPATIBLE_ID && !isCustomSelected()) {
+    try {
+      saveBtn.disabled = true;
+      saveBtn.setAttribute("aria-busy", "true");
+      saveBtn.textContent = "Loading models...";
+      await ensureModelsLoaded(baseUrl, apiKey, model);
+      model = getSelectedModel();
+    } catch (err) {
+      log.warn("Model loading failed before save:", err.message);
+      showStatus("Could not load models. Select Custom model and enter a model ID.", "error");
+      saveBtn.disabled = false;
+      saveBtn.removeAttribute("aria-busy");
+      updateMarkUnsaved();
+      return;
+    }
+  }
+
   if (!model) {
     log.warn("Save aborted — no model selected");
     showStatus("Please select or enter a model", "error");
+    saveBtn.disabled = false;
+    saveBtn.removeAttribute("aria-busy");
+    updateMarkUnsaved();
     return;
   }
 
@@ -568,6 +697,7 @@ saveBtn.addEventListener("click", async () => {
   saveBtn.setAttribute("aria-busy", "true");
   saveBtn.className = "btn-primary";
   saveBtn.textContent = "Verifying…";
+  clearCompatibilityScore();
   log.info("Verifying provider", { providerId, model });
 
   try {
@@ -590,6 +720,8 @@ saveBtn.addEventListener("click", async () => {
 
     log.info("Provider verified, saving settings", { providerId, model });
     saveBtn.textContent = "Saving…";
+    if (verifyResult.confidence != null) showCompatibilityScore(verifyResult.confidence, verifyResult.level);
+    showSpeedInfo(verifyResult.responseTimeMs);
 
     await setSettings({ providerId, model, apiKey, baseUrl });
     log.info("Settings saved successfully");
@@ -599,11 +731,7 @@ saveBtn.addEventListener("click", async () => {
       populateBaseUrlSuggestions().catch((e) => log.warn("Failed to refresh suggestions:", e.message));
     }
 
-    if (verifyResult.warning) {
-      showStatus(`Settings saved. ${verifyResult.warning}`, "warning");
-    } else {
-      showStatus("Settings saved");
-    }
+    showStatus("Settings saved");
 
     captureSavedState();
     updateMarkUnsaved();
@@ -632,32 +760,39 @@ enabledToggle.addEventListener("change", async () => {
 
 const COMPATIBILITY_TIERS = [
   {
-    max: 30,
-    label: "Limited",
+    max: 15,
+    label: "Not ready",
     count: 1,
     cls: "model-quality--limited",
-    desc: "This model may only provide full-text corrections.",
+    desc: "This model did not pass the test. Try another model or provider.",
+  },
+  {
+    max: 30,
+    label: "Basic",
+    count: 1,
+    cls: "model-quality--limited",
+    desc: "This model can help, but results may be less precise.",
   },
   {
     max: 60,
-    label: "Usable",
+    label: "Good",
     count: 2,
     cls: "model-quality--usable",
-    desc: "This model can handle common grammar checks.",
+    desc: "This model can handle everyday grammar checks.",
   },
   {
     max: 85,
-    label: "Strong",
+    label: "Great",
     count: 3,
     cls: "model-quality--strong",
-    desc: "This model supports structured suggestions reliably.",
+    desc: "This model gives clear, reliable suggestions.",
   },
   {
     max: 100,
     label: "Excellent",
     count: 4,
     cls: "model-quality--excellent",
-    desc: "This model is a strong fit for detailed corrections.",
+    desc: "This model is a strong fit for detailed writing help.",
   },
 ];
 
@@ -680,15 +815,23 @@ function showSpeedInfo(responseTimeMs) {
   qualitySpeed.hidden = false;
 }
 
-function showCompatibilityScore(confidence) {
+function showCompatibilityScore(confidence, level = null) {
   if (confidence == null || typeof confidence !== "number") {
     confidenceSection.hidden = true;
     qualitySpeed.hidden = true;
     return;
   }
 
-  const pct = Math.min(100, Math.max(0, confidence));
-  const tier = COMPATIBILITY_TIERS.find((t) => pct <= t.max) || COMPATIBILITY_TIERS[0];
+  const pct = normalizeCompatibilityScore(confidence);
+  const tier =
+    level >= 3
+      ? {
+          label: "Good",
+          count: 2,
+          cls: "model-quality--usable",
+          desc: "This model can fix your text, but suggestions may be less detailed.",
+        }
+      : COMPATIBILITY_TIERS.find((t) => pct <= t.max) || COMPATIBILITY_TIERS[0];
   const segments = [];
 
   for (let i = 0; i < 4; i++) {
@@ -717,6 +860,12 @@ function showCompatibilityScore(confidence) {
   }
 }
 
+function normalizeCompatibilityScore(confidence) {
+  const score = Number.isFinite(confidence) ? confidence : 0;
+  if (score > 0 && score <= 10) return Math.round(score * 10);
+  return Math.round(Math.min(100, Math.max(0, score)));
+}
+
 function toggleResetCacheBtn(logLevel) {
   resetCacheBtn.classList.toggle("visible", logLevel === "debug");
 }
@@ -737,7 +886,7 @@ getSettings().then(({ logLevel }) => {
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type !== "VERIFY_PROGRESS" || !saveBtn.disabled) return;
   if (msg.status === "done") {
-    if (msg.confidence != null) showCompatibilityScore(msg.confidence);
+    if (msg.confidence != null) showCompatibilityScore(msg.confidence, msg.level);
     showSpeedInfo(msg.responseTimeMs);
   } else {
     confidenceSection.hidden = true;
