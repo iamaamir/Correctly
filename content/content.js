@@ -46,6 +46,7 @@
   const DEBOUNCE_MS = 1500;
   const MIN_TEXT_LENGTH = 10;
   const IGNORE_NUDGE_THRESHOLD = 3;
+  const ERROR_NUDGE_COOLDOWN_MS = 30000;
 
   let debounceTimer = null;
   let activeElement = null;
@@ -58,6 +59,7 @@
   let ignoreState = new WeakMap();
   let lastCheckedText = new WeakMap();
   let checkGeneration = 0;
+  let lastErrorNudge = { message: "", timestamp: 0 };
 
   // Input types that contain prose and should be grammar-checked
   const PROSE_INPUT_TYPES = new Set(["text", "search", "email"]);
@@ -342,7 +344,7 @@
     const acceptButton = tooltip.querySelector(".correctly-accept");
     const countLabel = tooltip.querySelector(".correctly-suggestion-count");
 
-    const { changes, corrected, confidence } = correction;
+    const { changes, corrected, confidence, cascadeLevel } = correction;
     const currentText = getTextFromElement(element);
     const issueCount = getCorrectionCount(correction, currentText);
 
@@ -355,7 +357,7 @@
         const change = document.createElement("div");
         change.className = "correctly-change";
         change.appendChild(createSuggestionText(currentText, corrected));
-        appendConfidence(change, confidence);
+        appendConfidence(change, confidence, cascadeLevel);
         body.appendChild(change);
       } else {
         const noErrors = document.createElement("p");
@@ -441,11 +443,17 @@
     return suggestion;
   }
 
-  function appendConfidence(parent, confidence) {
+  function appendConfidence(parent, confidence, cascadeLevel = null) {
     if (!confidence) return;
     const confidenceEl = document.createElement("p");
     confidenceEl.className = "correctly-confidence";
-    confidenceEl.textContent = `Confidence: ${confidence}/10`;
+    if (cascadeLevel >= 3) {
+      confidenceEl.textContent = "Corrected whole text";
+      parent.appendChild(confidenceEl);
+      return;
+    }
+    const score = confidence > 0 && confidence <= 10 ? confidence * 10 : confidence;
+    confidenceEl.textContent = `Confidence: ${Math.round(Math.min(100, Math.max(0, score)))}%`;
     parent.appendChild(confidenceEl);
   }
   const TOOLTIP_GAP = 8;
@@ -690,47 +698,26 @@
   }
 
   function showIgnoreNudge(element) {
-    removeNudges();
-    const nudge = document.createElement("div");
-    nudge.className = "correctly-nudge";
-    nudge.setAttribute("role", "status");
-    nudge.setAttribute("aria-live", "polite");
-
-    const message = document.createElement("div");
-    message.className = "correctly-nudge__message";
-    message.textContent =
-      "We noticed you keep ignoring suggestions here. If they are getting in the way, you can disable Correctly on this site.";
-
-    const actions = document.createElement("div");
-    actions.className = "correctly-nudge__actions";
-
-    const disableButton = document.createElement("button");
-    disableButton.className = "correctly-nudge__disable";
-    disableButton.type = "button";
-    disableButton.textContent = "Disable on this site";
-    disableButton.addEventListener("click", disableOnCurrentSite);
-
-    const dismissButton = document.createElement("button");
-    dismissButton.className = "correctly-nudge__dismiss";
-    dismissButton.type = "button";
-    dismissButton.textContent = "Dismiss";
-    dismissButton.addEventListener("click", () => {
-      resetIgnoreState(element);
-      removeNudges();
+    showNudge({
+      anchor: element,
+      message:
+        "We noticed you keep ignoring suggestions here. If they are getting in the way, you can disable Correctly on this site.",
+      actions: [
+        {
+          label: "Disable on this site",
+          kind: "primary",
+          onClick: disableOnCurrentSite,
+        },
+        {
+          label: "Dismiss",
+          kind: "secondary",
+          onClick: () => {
+            resetIgnoreState(element);
+            removeNudges();
+          },
+        },
+      ],
     });
-
-    actions.append(disableButton, dismissButton);
-    nudge.append(message, actions);
-    document.body.appendChild(nudge);
-
-    const rect = element.getBoundingClientRect();
-    const top = Math.min(window.scrollY + window.innerHeight - 56, rect.bottom + window.scrollY + 12);
-    const left = Math.max(
-      window.scrollX + VIEWPORT_PADDING,
-      Math.min(rect.left + window.scrollX, window.scrollX + window.innerWidth - 330),
-    );
-    nudge.style.top = `${top}px`;
-    nudge.style.left = `${left}px`;
   }
 
   async function disableOnCurrentSite() {
@@ -747,26 +734,97 @@
   }
 
   function showDisabledNudge() {
+    showNudge({
+      message: "Correctly is disabled on this site. You can enable it again from the extension settings.",
+      compact: true,
+      durationMs: 4200,
+    });
+  }
+
+  function showCheckErrorNudge(error, element) {
+    const message = error
+      ? `Correctly could not check this text. ${error}`
+      : "Correctly could not check this text. Try again in a moment.";
+    const now = Date.now();
+
+    if (lastErrorNudge.message === message && now - lastErrorNudge.timestamp < ERROR_NUDGE_COOLDOWN_MS) {
+      return;
+    }
+
+    lastErrorNudge = { message, timestamp: now };
+    showNudge({
+      anchor: element,
+      message,
+      compact: true,
+      durationMs: 6000,
+    });
+  }
+
+  function showNudge({ message, actions = [], anchor = null, compact = false, durationMs = null }) {
     removeNudges();
     const nudge = document.createElement("div");
-    nudge.className = "correctly-nudge correctly-nudge--compact";
+    nudge.className = compact ? "correctly-nudge correctly-nudge--compact" : "correctly-nudge";
     nudge.setAttribute("role", "status");
     nudge.setAttribute("aria-live", "polite");
-    nudge.textContent = "Correctly is disabled on this site. You can enable it again from the extension settings.";
+
+    if (actions.length > 0) {
+      const messageEl = document.createElement("div");
+      messageEl.className = "correctly-nudge__message";
+      messageEl.textContent = message;
+
+      const actionsEl = document.createElement("div");
+      actionsEl.className = "correctly-nudge__actions";
+
+      actionsEl.append(
+        ...actions.map((action) => {
+          const button = document.createElement("button");
+          button.className =
+            action.kind === "primary" ? "correctly-nudge__action correctly-nudge__action--primary" : "correctly-nudge__action";
+          button.type = "button";
+          button.textContent = action.label;
+          button.addEventListener("click", action.onClick);
+          return button;
+        }),
+      );
+
+      nudge.append(messageEl, actionsEl);
+    } else {
+      nudge.textContent = message;
+    }
+
     document.body.appendChild(nudge);
 
-    const top = window.scrollY + VIEWPORT_PADDING;
-    const left = Math.max(
-      window.scrollX + VIEWPORT_PADDING,
-      Math.min(window.scrollX + window.innerWidth - 330, window.scrollX + window.innerWidth / 2 - 160),
-    );
+    const { top, left } = getNudgePosition(anchor);
     nudge.style.top = `${top}px`;
     nudge.style.left = `${left}px`;
 
-    setTimeout(() => {
-      nudge.classList.add("correctly-nudge--leaving");
-      setTimeout(() => nudge.remove(), 180);
-    }, 4200);
+    if (durationMs !== null) {
+      setTimeout(() => {
+        nudge.classList.add("correctly-nudge--leaving");
+        setTimeout(() => nudge.remove(), 180);
+      }, durationMs);
+    }
+  }
+
+  function getNudgePosition(anchor) {
+    if (anchor) {
+      const rect = anchor.getBoundingClientRect();
+      return {
+        top: Math.min(window.scrollY + window.innerHeight - 56, rect.bottom + window.scrollY + 12),
+        left: Math.max(
+          window.scrollX + VIEWPORT_PADDING,
+          Math.min(rect.left + window.scrollX, window.scrollX + window.innerWidth - 330),
+        ),
+      };
+    }
+
+    return {
+      top: window.scrollY + VIEWPORT_PADDING,
+      left: Math.max(
+        window.scrollX + VIEWPORT_PADDING,
+        Math.min(window.scrollX + window.innerWidth - 330, window.scrollX + window.innerWidth / 2 - 160),
+      ),
+    };
   }
 
   function removeNudges() {
@@ -835,6 +893,7 @@
         showTooltip(element, response.data);
       } else {
         log.error("Grammar check failed:", response.error);
+        showCheckErrorNudge(response.error, element);
       }
     } catch (err) {
       endTimer();
@@ -846,6 +905,7 @@
 
       removeIndicator();
       log.error("Message to background failed:", err.message);
+      showCheckErrorNudge(null, element);
     }
   }
 
@@ -955,7 +1015,8 @@
   async function init() {
     log.info(`Initializing on ${window.location.href}`);
 
-    chrome.storage.onChanged.addListener(async (changes) => {
+    chrome.storage.onChanged.addListener(async (changes, areaName) => {
+      if (areaName !== "local") return;
       if (changes.enabled || changes.disabledSites || changes.apiKey || changes.providerId || changes.baseUrl) {
         try {
           const status = await chrome.runtime.sendMessage({

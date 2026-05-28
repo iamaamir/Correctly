@@ -341,8 +341,7 @@
   gap: 8px;
 }
 
-.correctly-nudge__disable,
-.correctly-nudge__dismiss {
+.correctly-nudge__action {
   min-height: 34px;
   border-radius: 7px;
   padding: 7px 10px;
@@ -352,29 +351,28 @@
   cursor: pointer;
 }
 
-.correctly-nudge__disable {
+.correctly-nudge__action {
+  border: 1px solid #d2ddd2;
+  background: #fff;
+  color: #4f574f;
+}
+
+.correctly-nudge__action:hover {
+  background: #eef4ef;
+}
+
+.correctly-nudge__action--primary {
   flex: 1;
   border: none;
   background: #2d7d46;
   color: #fff;
 }
 
-.correctly-nudge__disable:hover {
+.correctly-nudge__action--primary:hover {
   background: #236b38;
 }
 
-.correctly-nudge__dismiss {
-  border: 1px solid #d2ddd2;
-  background: #fff;
-  color: #4f574f;
-}
-
-.correctly-nudge__dismiss:hover {
-  background: #eef4ef;
-}
-
-.correctly-nudge__disable:focus-visible,
-.correctly-nudge__dismiss:focus-visible {
+.correctly-nudge__action:focus-visible {
   outline: 2px solid #2d7d46;
   outline-offset: 2px;
 }

@@ -101,6 +101,28 @@ input:focus {
   min-height: 14px;
 }
 
+#model-select.model-select--loaded {
+  animation: model-select-loaded 1.6s var(--ease-out-expo);
+}
+
+@keyframes model-select-loaded {
+  0% {
+    border-color: #2d7d46;
+    box-shadow: 0 0 0 0 rgba(45, 125, 70, 0.24);
+    background: #f4fbf6;
+  }
+  45% {
+    border-color: #2d7d46;
+    box-shadow: 0 0 0 5px rgba(45, 125, 70, 0.12);
+    background: #f4fbf6;
+  }
+  100% {
+    border-color: #ddd;
+    box-shadow: 0 0 0 0 rgba(45, 125, 70, 0);
+    background: #fff;
+  }
+}
+
 .btn-link {
   background: none;
   border: none;
@@ -433,12 +455,11 @@ input:focus {
 }
 
 .base-url-wrapper {
-  display: flex;
-  gap: 8px;
+  display: block;
 }
 
 .base-url-wrapper input {
-  flex: 1;
+  width: 100%;
 }
 
 .base-url-hint {

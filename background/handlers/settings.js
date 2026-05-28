@@ -25,6 +25,7 @@ async function verifySettings(providerId, apiKey, model, baseUrl, log, { onProgr
       const entry = cache[`${provider.providerId}:${provider.model}`];
       if (entry) level = entry.level;
     } catch {}
+    level = result.cascadeLevel ?? level;
 
     const warning =
       level >= 3 ? "This model provides full-text corrections only — individual changes are not available." : null;
