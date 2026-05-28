@@ -11,6 +11,7 @@ const customModelInput = document.getElementById("custom-model");
 const modelHint = document.getElementById("model-hint");
 const apiKeyInput = document.getElementById("api-key");
 const saveBtn = document.getElementById("save-btn");
+const saveState = document.getElementById("save-state");
 const statusMsg = document.getElementById("status-msg");
 const toggleVisibility = document.getElementById("toggle-visibility");
 const enabledToggle = document.getElementById("enabled-toggle");
@@ -20,10 +21,10 @@ const siteHost = document.getElementById("site-host");
 const logLevelSelect = document.getElementById("log-level");
 const resetCacheBtn = document.getElementById("reset-cache-btn");
 const confidenceSection = document.getElementById("verify-confidence");
-const giEmojis = document.getElementById("gi-emojis");
-const giTitle = document.getElementById("gi-title");
-const giDesc = document.getElementById("gi-desc");
-const giSpeed = document.getElementById("gi-speed");
+const qualityMeter = document.getElementById("quality-meter");
+const qualityTitle = document.getElementById("quality-title");
+const qualityDesc = document.getElementById("quality-desc");
+const qualitySpeed = document.getElementById("quality-speed");
 const aiStatusSection = document.getElementById("ai-status-section");
 const aiStatusContent = document.getElementById("ai-status-content");
 const baseUrlSection = document.getElementById("base-url-section");
@@ -38,7 +39,7 @@ const NO_API_KEY_SENTINEL = "noapikeyrequired";
 const OPENAI_COMPATIBLE_ID = "openai-compatible";
 const SAVED_URLS_KEY = "savedBaseUrls";
 let providers = [];
-let savedState = {};
+let savedState = null;
 
 const MODELS_CACHE_KEY = "fetchedModelsCache";
 const MODELS_CACHE_TTL = 5 * 60 * 1000;
@@ -91,9 +92,13 @@ async function populateBaseUrlSuggestions() {
   const datalist = document.getElementById("base-url-suggestions");
   if (!datalist) return;
   await loadSavedUrls();
-  datalist.innerHTML = Array.from(SAVED_URLS_SET)
-    .map((url) => `<option value="${url}">`)
-    .join("");
+  datalist.replaceChildren(
+    ...Array.from(SAVED_URLS_SET).map((url) => {
+      const option = document.createElement("option");
+      option.value = url;
+      return option;
+    }),
+  );
 }
 
 async function saveBaseUrlSuggestion(url) {
@@ -170,32 +175,28 @@ function captureSavedState() {
   savedState = {
     providerId: providerSelect.value,
     model: getSelectedModel(),
-    apiKey: apiKeyInput.value,
-    baseUrl: baseUrlInput.value,
-    enabled: enabledToggle.checked,
-    logLevel: logLevelSelect.value,
+    apiKey: apiKeyInput.value.trim(),
+    baseUrl: providerSelect.value === OPENAI_COMPATIBLE_ID ? baseUrlInput.value.trim() : "",
   };
 }
 
 function hasUnsavedChanges() {
+  if (!savedState) return false;
   return (
     savedState.providerId !== providerSelect.value ||
     savedState.model !== getSelectedModel() ||
-    savedState.apiKey !== apiKeyInput.value ||
-    savedState.baseUrl !== baseUrlInput.value ||
-    savedState.enabled !== enabledToggle.checked ||
-    savedState.logLevel !== logLevelSelect.value
+    savedState.apiKey !== apiKeyInput.value.trim() ||
+    savedState.baseUrl !== (providerSelect.value === OPENAI_COMPATIBLE_ID ? baseUrlInput.value.trim() : "")
   );
 }
 
 function updateMarkUnsaved() {
   const unsaved = hasUnsavedChanges();
-  saveBtn.className = unsaved ? "btn-primary btn-unsaved" : "btn-primary";
-  if (unsaved) {
-    saveBtn.textContent = "Unsaved changes";
-  } else {
-    saveBtn.textContent = "Save";
-  }
+  saveState.hidden = !unsaved;
+  saveState.textContent = unsaved ? "Unsaved changes" : "";
+  if (saveBtn.disabled) return;
+  saveBtn.className = "btn-primary";
+  saveBtn.textContent = "Save";
 }
 
 function isCustomSelected() {
@@ -217,7 +218,7 @@ function setCustomInputVisibility(show) {
 }
 
 function renderModelDropdown(models, selectedModel, defaultModel) {
-  modelSelect.innerHTML = "";
+  modelSelect.replaceChildren();
   modelHint.textContent = "";
   customModelInput.value = "";
   setCustomInputVisibility(false);
@@ -262,7 +263,7 @@ async function populateModels(providerId, selectedModel) {
   if (!provider) return;
 
   // Loading state
-  modelSelect.innerHTML = "";
+  modelSelect.replaceChildren();
   const loadingOpt = document.createElement("option");
   loadingOpt.disabled = true;
   loadingOpt.textContent = "Loading models…";
@@ -293,44 +294,39 @@ function showAiStatus(providerId) {
 
   if (providerId === "chrome-free-ai") {
     aiStatusSection.hidden = false;
-    aiStatusContent.innerHTML = `<p class="status-info">Checking model status…</p>`;
+    renderAiStatus("info", "Checking model status…");
 
     chrome.runtime
       .sendMessage({ type: "GET_AI_STATUS", providerId })
       .then((result) => {
         if (!result?.status) {
-          aiStatusContent.innerHTML = `<p class="status-error">Could not check model status</p>`;
+          renderAiStatus("error", "Could not check model status");
           return;
         }
 
         const s = result.status;
 
         if (s === "available") {
-          aiStatusContent.innerHTML = `<p class="status-ready">✓ Local Gemini Nano ready to use</p>`;
+          renderAiStatus("ready", "Local Gemini Nano ready to use");
         } else if (s === "downloadable") {
-          aiStatusContent.innerHTML = `
-          <p class="status-info">Gemini Nano needs to be downloaded (~22GB free space required)</p>
-          <button id="download-ai-btn" class="btn-primary">Download Gemini Nano</button>
-        `;
-          document.getElementById("download-ai-btn").addEventListener("click", () => {
-            chrome.runtime.sendMessage({ type: "TRIGGER_MODEL_DOWNLOAD" });
-            aiStatusContent.innerHTML = `<p class="status-info">Download started. Check back later.</p>`;
+          renderAiStatus("info", "Gemini Nano needs to be downloaded (~22GB free space required)", {
+            actionLabel: "Download Gemini Nano",
+            onAction: () => {
+              chrome.runtime.sendMessage({ type: "TRIGGER_MODEL_DOWNLOAD" });
+              renderAiStatus("info", "Download started. Check back later.");
+            },
           });
         } else if (s === "downloading") {
-          aiStatusContent.innerHTML = `<p class="status-info">Model download in progress. Check back later.</p>`;
+          renderAiStatus("info", "Model download in progress. Check back later.");
         } else {
-          aiStatusContent.innerHTML = `
-          <p class="status-error">✗ Chrome Free AI not supported on this browser</p>
-          <p class="status-hint">
-          This browser does not currently support the required AI capabilities.
-      Please try a supported browser such as Google chrome.
-          </p>
-        `;
+          renderAiStatus("error", "Chrome Free AI is not supported in this browser", {
+            hint: "This browser does not currently support the required AI capabilities. Try a supported version of Google Chrome.",
+          });
         }
       })
       .catch((err) => {
         log.error("GET_AI_STATUS failed:", err.message);
-        aiStatusContent.innerHTML = `<p class="status-error">Error checking model status</p>`;
+        renderAiStatus("error", "Error checking model status");
       });
     return;
   }
@@ -339,11 +335,32 @@ function showAiStatus(providerId) {
   aiStatusSection.hidden = provider.available;
   if (!provider.available) {
     const hint = provider._classRef.availabilityHint;
-    aiStatusContent.innerHTML = `
-      <p class="status-error">✗ ${provider.name} is not available</p>
-      ${hint ? `<p class="status-hint">${hint}</p>` : ""}
-    `;
+    renderAiStatus("error", `${provider.name} is not available`, { hint });
   }
+}
+
+function renderAiStatus(type, message, { hint, actionLabel, onAction } = {}) {
+  const messageEl = document.createElement("p");
+  messageEl.className = `status-${type}`;
+  messageEl.textContent = message;
+
+  const children = [messageEl];
+  if (hint) {
+    const hintEl = document.createElement("p");
+    hintEl.className = "status-hint";
+    hintEl.textContent = hint;
+    children.push(hintEl);
+  }
+  if (actionLabel) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn-primary";
+    button.textContent = actionLabel;
+    button.addEventListener("click", onAction);
+    children.push(button);
+  }
+
+  aiStatusContent.replaceChildren(...children);
 }
 
 async function populateProviders() {
@@ -548,6 +565,8 @@ saveBtn.addEventListener("click", async () => {
   }
 
   saveBtn.disabled = true;
+  saveBtn.setAttribute("aria-busy", "true");
+  saveBtn.className = "btn-primary";
   saveBtn.textContent = "Verifying…";
   log.info("Verifying provider", { providerId, model });
 
@@ -564,6 +583,7 @@ saveBtn.addEventListener("click", async () => {
       log.warn("Save aborted — provider verification failed:", verifyResult.error);
       showStatus(verifyResult.error || "Provider verification failed", "error");
       saveBtn.disabled = false;
+      saveBtn.removeAttribute("aria-busy");
       updateMarkUnsaved();
       return;
     }
@@ -592,6 +612,7 @@ saveBtn.addEventListener("click", async () => {
     showStatus("Failed to save settings", "error");
   } finally {
     saveBtn.disabled = false;
+    saveBtn.removeAttribute("aria-busy");
     updateMarkUnsaved();
   }
 });
@@ -599,95 +620,90 @@ saveBtn.addEventListener("click", async () => {
 toggleVisibility.addEventListener("click", () => {
   const isPassword = apiKeyInput.type === "password";
   apiKeyInput.type = isPassword ? "text" : "password";
+  toggleVisibility.setAttribute("aria-pressed", String(isPassword));
+  toggleVisibility.setAttribute("aria-label", isPassword ? "Hide API key" : "Show API key");
 });
 
 enabledToggle.addEventListener("change", async () => {
   log.info(`Extension ${enabledToggle.checked ? "enabled" : "disabled"}`);
   await setSettings({ enabled: enabledToggle.checked });
-  captureSavedState();
   updateMarkUnsaved();
 });
 
-const CONFIDENCE_TIERS = [
+const COMPATIBILITY_TIERS = [
   {
     max: 30,
-    emoji: "😐",
-    label: "Tentative",
+    label: "Limited",
     count: 1,
-    cls: "grammar-instinct--tentative",
-    desc: "May miss some grammar and spelling issues.",
+    cls: "model-quality--limited",
+    desc: "This model may only provide full-text corrections.",
   },
   {
     max: 60,
-    emoji: "🫠",
-    label: "Reliable",
+    label: "Usable",
     count: 2,
-    cls: "grammar-instinct--reliable",
-    desc: "Good at fixing most common grammar and spelling issues.",
+    cls: "model-quality--usable",
+    desc: "This model can handle common grammar checks.",
   },
   {
     max: 85,
-    emoji: "💪",
     label: "Strong",
     count: 3,
-    cls: "grammar-instinct--strong",
-    desc: "Consistently catches grammar and spelling issues.",
+    cls: "model-quality--strong",
+    desc: "This model supports structured suggestions reliably.",
   },
   {
     max: 100,
-    emoji: "👍",
-    label: "Exceptional",
+    label: "Excellent",
     count: 4,
-    cls: "grammar-instinct--exceptional",
-    desc: "Excellent grammar and spelling correction.",
+    cls: "model-quality--excellent",
+    desc: "This model is a strong fit for detailed corrections.",
   },
 ];
 
 const SPEED_TIERS = [
-  { max: 2000, label: "Fast", emoji: "⚡", cls: "speed--fast" },
-  { max: 5000, label: "Moderate", emoji: "🚶", cls: "speed--moderate" },
-  { max: Infinity, label: "Slow", emoji: "🐢", cls: "speed--slow" },
+  { max: 2000, label: "Fast", cls: "speed--fast" },
+  { max: 5000, label: "Moderate", cls: "speed--moderate" },
+  { max: Infinity, label: "Slow", cls: "speed--slow" },
 ];
 
 function showSpeedInfo(responseTimeMs) {
   if (responseTimeMs == null || typeof responseTimeMs !== "number") {
-    giSpeed.hidden = true;
+    qualitySpeed.hidden = true;
     return;
   }
 
   const tier = SPEED_TIERS.find((t) => responseTimeMs <= t.max) || SPEED_TIERS[0];
   const secs = (responseTimeMs / 1000).toFixed(1);
-  giSpeed.textContent = `${tier.emoji} ${tier.label} — ${secs}s`;
-  giSpeed.className = `grammar-instinct__speed ${tier.cls}`;
-  giSpeed.hidden = false;
+  qualitySpeed.textContent = `${tier.label} response, ${secs}s`;
+  qualitySpeed.className = `model-quality__speed ${tier.cls}`;
+  qualitySpeed.hidden = false;
 }
 
-function showConfidenceEmojis(confidence) {
+function showCompatibilityScore(confidence) {
   if (confidence == null || typeof confidence !== "number") {
     confidenceSection.hidden = true;
-    giSpeed.hidden = true;
+    qualitySpeed.hidden = true;
     return;
   }
 
   const pct = Math.min(100, Math.max(0, confidence));
-  const tier = CONFIDENCE_TIERS.find((t) => pct <= t.max) || CONFIDENCE_TIERS[0];
-  const slots = [];
+  const tier = COMPATIBILITY_TIERS.find((t) => pct <= t.max) || COMPATIBILITY_TIERS[0];
+  const segments = [];
 
   for (let i = 0; i < 4; i++) {
     const filled = i < tier.count;
     const el = document.createElement("span");
     el.className = filled ? "active" : "inactive";
-    el.textContent = filled ? tier.emoji : "\u25CB";
-    slots.push(el);
+    segments.push(el);
   }
 
-  const emojiRow = giEmojis;
-  giTitle.textContent = tier.label;
-  giDesc.textContent = tier.desc;
-  confidenceSection.className = `grammar-instinct ${tier.cls}`;
+  qualityTitle.textContent = `${tier.label} (${pct}/100)`;
+  qualityDesc.textContent = tier.desc;
+  confidenceSection.className = `model-quality ${tier.cls}`;
 
   const alreadyVisible = !confidenceSection.hidden;
-  const update = () => emojiRow.replaceChildren(...slots);
+  const update = () => qualityMeter.replaceChildren(...segments);
 
   if (alreadyVisible && document.startViewTransition) {
     try {
@@ -710,7 +726,6 @@ logLevelSelect.addEventListener("change", async () => {
   log.info(`Log level changed to: ${level}`);
   toggleResetCacheBtn(level);
   await setSettings({ logLevel: level });
-  captureSavedState();
   updateMarkUnsaved();
 });
 
@@ -722,15 +737,11 @@ getSettings().then(({ logLevel }) => {
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type !== "VERIFY_PROGRESS" || !saveBtn.disabled) return;
   if (msg.status === "done") {
-    saveBtn.textContent = "Done \u2713";
-    saveBtn.classList.add("btn-success");
-    setTimeout(() => saveBtn.classList.remove("btn-success"), 420);
-    if (msg.confidence != null) showConfidenceEmojis(msg.confidence);
+    if (msg.confidence != null) showCompatibilityScore(msg.confidence);
     showSpeedInfo(msg.responseTimeMs);
   } else {
-    saveBtn.textContent = `Verifying (${msg.status})...`;
     confidenceSection.hidden = true;
-    giSpeed.hidden = true;
+    qualitySpeed.hidden = true;
   }
 });
 
@@ -802,31 +813,39 @@ async function loadSessionUsage() {
     const last = data.checks[data.checks.length - 1];
     const fmt = (n) => n.toLocaleString();
 
-    usageStats.innerHTML = `
-      <div class="usage-row">
-        <span class="usage-stat">
-          <span class="usage-value">${fmt(s.totalChecks)}</span>
-          <span class="usage-label">checks</span>
-        </span>
-        <span class="usage-stat">
-          <span class="usage-value">${fmt(s.totalTokens)}</span>
-          <span class="usage-label">total tokens</span>
-        </span>
-      </div>
-      <div class="usage-detail">
-        ${fmt(s.totalPromptTokens)} prompt + ${fmt(s.totalCompletionTokens)} completion
-      </div>
-    `;
+    const usageRow = document.createElement("div");
+    usageRow.className = "usage-row";
+    usageRow.append(createUsageStat(fmt(s.totalChecks), "checks"), createUsageStat(fmt(s.totalTokens), "total tokens"));
+
+    const detail = document.createElement("div");
+    detail.className = "usage-detail";
+    detail.textContent = `${fmt(s.totalPromptTokens)} prompt + ${fmt(s.totalCompletionTokens)} completion`;
 
     const lastRow = document.createElement("div");
     lastRow.className = "usage-last";
     lastRow.textContent = `Last: ${last.model} (${fmt(last.total_tokens)} tokens)`;
-    usageStats.appendChild(lastRow);
+    usageStats.replaceChildren(usageRow, detail, lastRow);
     log.debug("Session usage loaded", s);
   } catch (err) {
     log.debug("Could not load session usage:", err.message);
     usageSection.hidden = true;
   }
+}
+
+function createUsageStat(value, label) {
+  const stat = document.createElement("span");
+  stat.className = "usage-stat";
+
+  const valueEl = document.createElement("span");
+  valueEl.className = "usage-value";
+  valueEl.textContent = value;
+
+  const labelEl = document.createElement("span");
+  labelEl.className = "usage-label";
+  labelEl.textContent = label;
+
+  stat.append(valueEl, labelEl);
+  return stat;
 }
 
 loadSessionUsage();
