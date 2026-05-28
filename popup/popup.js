@@ -545,8 +545,6 @@ async function populateProviders() {
       const isGeneric = provider.id === OPENAI_COMPATIBLE_ID;
       baseUrlSection.hidden = !isGeneric;
       if (isGeneric) {
-        const { baseUrl } = await getSettings();
-        baseUrlInput.value = baseUrl || "";
         baseUrlHint.textContent = "Models load after URL and API key are entered";
       }
       await populateModels(provider.id, null);
@@ -697,6 +695,9 @@ saveBtn.addEventListener("click", async () => {
     } catch (e) {
       log.warn("Save aborted — invalid API key:", e.message);
       showStatus(e.message, "error");
+      saveBtn.disabled = false;
+      saveBtn.removeAttribute("aria-busy");
+      updateMarkUnsaved();
       return;
     }
   }
