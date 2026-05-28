@@ -56,6 +56,9 @@ Correctly supports [Ollama](https://ollama.com) for local grammar checking. No A
 
 ```
 correctly/
+├── index.html             # Static landing page for the project
+├── landing.css            # Landing page styles
+├── landing.js             # Landing page enhancement script
 ├── manifest.json
 ├── background/
 │   ├── service-worker.js      # Message routing, badge, provider orchestration
@@ -134,4 +137,3 @@ Then add the class to `PROVIDER_CLASSES` in `provider-registry.js`.
 
 ## License
 ![License](https://www.shieldcn.dev/github/license/iamaamir/Correctly.svg?variant=ghost&size=sm&mode=light&theme=zinc)
-
