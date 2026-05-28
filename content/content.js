@@ -45,6 +45,7 @@
 
   const DEBOUNCE_MS = 1500;
   const MIN_TEXT_LENGTH = 10;
+  const IGNORE_NUDGE_THRESHOLD = 3;
 
   let debounceTimer = null;
   let activeElement = null;
@@ -53,6 +54,8 @@
   let applyingCorrection = false;
   let dismissedElement = null;
   let indicatorEl = null;
+  let tooltipOwnerElement = null;
+  let ignoreState = new WeakMap();
   let lastCheckedText = new WeakMap();
   let checkGeneration = 0;
 
@@ -246,30 +249,81 @@
 
     tooltipEl = document.createElement("div");
     tooltipEl.className = "correctly-tooltip";
-    tooltipEl.innerHTML = `
-      <div class="correctly-tooltip-inner">
-        <div class="correctly-tooltip-header">
-          <span class="correctly-logo">Correctly</span>
-          <button class="correctly-close" aria-label="Close">&times;</button>
-        </div>
-        <div class="correctly-body"></div>
-        <div class="correctly-actions">
-          <button class="correctly-accept">Accept All</button>
-          <button class="correctly-dismiss">Dismiss</button>
-        </div>
-      </div>
-    `;
+    tooltipEl.id = "correctly-suggestions";
+    tooltipEl.setAttribute("role", "dialog");
+    tooltipEl.setAttribute("aria-labelledby", "correctly-suggestions-title");
+    tooltipEl.setAttribute("aria-live", "polite");
+    tooltipEl.setAttribute("tabindex", "-1");
+
+    const inner = document.createElement("div");
+    inner.className = "correctly-tooltip-inner";
+
+    const header = document.createElement("div");
+    header.className = "correctly-tooltip-header";
+
+    const title = document.createElement("span");
+    title.className = "correctly-logo";
+    title.id = "correctly-suggestions-title";
+    title.textContent = "Correctly";
+
+    const count = document.createElement("span");
+    count.className = "correctly-suggestion-count";
+    count.id = "correctly-suggestion-count";
+
+    const close = document.createElement("button");
+    close.className = "correctly-close";
+    close.type = "button";
+    close.setAttribute("aria-label", "Close suggestions");
+    close.textContent = "\u00d7";
+
+    const body = document.createElement("div");
+    body.className = "correctly-body";
+    body.id = "correctly-suggestions-body";
+
+    const actions = document.createElement("div");
+    actions.className = "correctly-actions";
+
+    const accept = document.createElement("button");
+    accept.className = "correctly-accept";
+    accept.type = "button";
+    accept.textContent = "Apply all";
+
+    const dismiss = document.createElement("button");
+    dismiss.className = "correctly-dismiss";
+    dismiss.type = "button";
+    dismiss.textContent = "Ignore";
+
+    header.append(title, count, close);
+    actions.append(accept, dismiss);
+    inner.append(header, body, actions);
+    tooltipEl.appendChild(inner);
     document.body.appendChild(tooltipEl);
 
-    tooltipEl.querySelector(".correctly-close").addEventListener("click", hideTooltip);
-    tooltipEl.querySelector(".correctly-dismiss").addEventListener("click", () => {
-      log.info("User dismissed corrections — suppressing until next input");
-      dismissedElement = activeElement;
+    close.addEventListener("click", hideTooltip);
+    dismiss.addEventListener("click", () => {
+      log.info("User ignored corrections");
+      recordIgnore(activeElement);
       hideTooltip();
     });
-    tooltipEl.querySelector(".correctly-accept").addEventListener("click", acceptCorrections);
+    accept.addEventListener("click", acceptCorrections);
+    tooltipEl.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        hideTooltip();
+        activeElement?.focus?.();
+      }
+    });
+    document.addEventListener(
+      "keydown",
+      (e) => {
+        if (e.key === "Escape" && tooltipEl?.classList.contains("correctly-visible")) {
+          hideTooltip();
+        }
+      },
+      true,
+    );
 
-    tooltipEl.querySelector(".correctly-body").addEventListener("click", (e) => {
+    body.addEventListener("click", (e) => {
       const btn = e.target.closest(".correctly-accept-one");
       if (!btn) return;
       e.stopPropagation();
@@ -286,96 +340,113 @@
     const tooltip = createTooltip();
     const body = tooltip.querySelector(".correctly-body");
     const acceptButton = tooltip.querySelector(".correctly-accept");
+    const countLabel = tooltip.querySelector(".correctly-suggestion-count");
 
     const { changes, corrected, confidence } = correction;
     const currentText = getTextFromElement(element);
+    const issueCount = getCorrectionCount(correction, currentText);
 
-    const confidenceHtml = confidence
-      ? `
-      <p class="correctly-confidence">
-        Confidence: ${confidence}/10
-      </p>
-    `
-      : "";
-
-    let html = "";
-
+    countLabel.textContent = formatSuggestionCount(issueCount);
+    body.replaceChildren();
     if (changes.length === 0) {
       const hasFullTextCorrection = corrected && corrected !== currentText;
 
-      html = hasFullTextCorrection
-        ? `
-        <div class="correctly-change">
-          <div class="correctly-diff">
-            <span class="correctly-original">
-              ${escapeHtml(currentText)}
-            </span>
-            <span class="correctly-arrow">
-              &rarr;
-            </span>
-            <span class="correctly-replacement">
-              ${escapeHtml(corrected)}
-            </span>
-          </div>
-          ${confidenceHtml}
-        </div>
-      `
-        : `
-        <p class="correctly-no-errors">
-          No grammar issues found.
-        </p>
-      `;
+      if (hasFullTextCorrection) {
+        const change = document.createElement("div");
+        change.className = "correctly-change";
+        change.appendChild(createSuggestionText(currentText, corrected));
+        appendConfidence(change, confidence);
+        body.appendChild(change);
+      } else {
+        const noErrors = document.createElement("p");
+        noErrors.className = "correctly-no-errors";
+        noErrors.textContent = "No grammar issues found.";
+        body.appendChild(noErrors);
+      }
 
-      acceptButton.style.display = hasFullTextCorrection ? "" : "none";
+      acceptButton.hidden = !hasFullTextCorrection;
     } else {
-      html = changes
-        .map(
-          (change, index) => `
-          <div
-            class="correctly-change"
-            data-index="${index}"
-          >
-            <div class="correctly-change-row">
-              <div class="correctly-change-content">
-                <div class="correctly-diff">
-                  <span class="correctly-original">
-                    ${escapeHtml(change.original)}
-                  </span>
-                  <span class="correctly-arrow">
-                    &rarr;
-                  </span>
-                  <span class="correctly-replacement">
-                    ${escapeHtml(change.replacement)}
-                  </span>
-                </div>
-
-                <p class="correctly-explanation">
-                  ${escapeHtml(change.explanation)}
-                </p>
-              </div>
-
-              <button
-                class="correctly-accept-one"
-                data-index="${index}"
-                title="Accept this correction"
-              >
-                &#10003;
-              </button>
-            </div>
-          </div>
-        `,
-        )
-        .join("");
-
-      acceptButton.style.display = "";
+      body.append(...changes.map((change, index) => createChangeItem(change, index)));
+      acceptButton.hidden = false;
     }
 
-    body.innerHTML = html;
-
+    tooltipOwnerElement?.removeAttribute("aria-describedby");
+    tooltipOwnerElement = element;
+    element.setAttribute("aria-describedby", "correctly-suggestions-body");
     positionTooltip(tooltip, element);
     tooltip.classList.add("correctly-visible");
 
     log.info(`Tooltip shown with ${changes.length} correction(s)`);
+  }
+
+  function getCorrectionCount(correction, currentText = "") {
+    const changeCount = correction.changes?.length || 0;
+    if (changeCount > 0) return changeCount;
+    return correction.corrected && correction.corrected !== currentText ? 1 : 0;
+  }
+
+  function formatSuggestionCount(count) {
+    if (count === 0) return "No issues";
+    if (count === 1) return "1 suggestion";
+    return `${count} suggestions`;
+  }
+
+  function createChangeItem(change, index) {
+    const item = document.createElement("div");
+    item.className = "correctly-change";
+    item.dataset.index = String(index);
+
+    const row = document.createElement("div");
+    row.className = "correctly-change-row";
+
+    const content = document.createElement("div");
+    content.className = "correctly-change-content";
+    content.appendChild(createSuggestionText(change.original, change.replacement));
+
+    const explanation = document.createElement("p");
+    explanation.className = "correctly-explanation";
+    explanation.textContent = change.explanation;
+    content.appendChild(explanation);
+
+    const acceptOne = document.createElement("button");
+    acceptOne.className = "correctly-accept-one";
+    acceptOne.type = "button";
+    acceptOne.dataset.index = String(index);
+    acceptOne.setAttribute("aria-label", `Accept correction: replace ${change.original} with ${change.replacement}`);
+    acceptOne.textContent = "\u2713";
+
+    row.append(content, acceptOne);
+    item.appendChild(row);
+    return item;
+  }
+
+  function createSuggestionText(original, replacement) {
+    const suggestion = document.createElement("div");
+    suggestion.className = "correctly-suggestion-text";
+
+    const replacementEl = document.createElement("span");
+    replacementEl.className = "correctly-replacement";
+    replacementEl.textContent = replacement;
+
+    const originalLine = document.createElement("div");
+    originalLine.className = "correctly-original-line";
+    originalLine.append("Replace ");
+
+    const originalEl = document.createElement("span");
+    originalEl.className = "correctly-original";
+    originalEl.textContent = original;
+    originalLine.appendChild(originalEl);
+
+    suggestion.append(replacementEl, originalLine);
+    return suggestion;
+  }
+
+  function appendConfidence(parent, confidence) {
+    if (!confidence) return;
+    const confidenceEl = document.createElement("p");
+    confidenceEl.className = "correctly-confidence";
+    confidenceEl.textContent = `Confidence: ${confidence}/10`;
+    parent.appendChild(confidenceEl);
   }
   const TOOLTIP_GAP = 8;
   const VIEWPORT_PADDING = 10;
@@ -462,8 +533,42 @@
       tooltipEl.classList.remove("correctly-visible");
       log.debug("Tooltip hidden");
     }
+    tooltipOwnerElement?.removeAttribute("aria-describedby");
+    tooltipOwnerElement = null;
     currentCorrection = null;
     removeIndicator();
+  }
+
+  function getElementIgnoreState(element) {
+    if (!element) return { streak: 0, nudgeShown: false };
+    let state = ignoreState.get(element);
+    if (!state) {
+      state = { streak: 0, nudgeShown: false };
+      ignoreState.set(element, state);
+    }
+    return state;
+  }
+
+  function recordIgnore(element) {
+    if (!element) return;
+    const state = getElementIgnoreState(element);
+    state.streak += 1;
+    dismissedElement = element;
+    removeIndicator();
+    if (state.streak >= IGNORE_NUDGE_THRESHOLD) {
+      if (!state.nudgeShown) {
+        showIgnoreNudge(element);
+        state.nudgeShown = true;
+      }
+      log.info(`Repeated ignores detected on ${describeElement(element)}`);
+    }
+  }
+
+  function resetIgnoreState(element) {
+    if (!element) return;
+    const state = getElementIgnoreState(element);
+    state.streak = 0;
+    state.nudgeShown = false;
   }
 
   function acceptSingleCorrection(index) {
@@ -482,6 +587,7 @@
       applyingCorrection = false;
     }
     lastCheckedText.set(activeElement, updatedText);
+    resetIgnoreState(activeElement);
 
     currentCorrection.changes.splice(index, 1);
 
@@ -492,10 +598,7 @@
       log.info("All corrections accepted individually");
       hideTooltip();
     } else {
-      tooltipEl.querySelectorAll(".correctly-change").forEach((el, i) => {
-        el.dataset.index = i;
-        el.querySelector(".correctly-accept-one").dataset.index = i;
-      });
+      showTooltip(activeElement, currentCorrection);
     }
   }
 
@@ -517,6 +620,7 @@
         applyingCorrection = false;
       }
       lastCheckedText.set(activeElement, text);
+      resetIgnoreState(activeElement);
       log.info(`Applied ${currentCorrection.changes.length} correction(s) on ${describeElement(activeElement)}`);
     } else if (currentCorrection.corrected) {
       applyingCorrection = true;
@@ -526,6 +630,7 @@
         applyingCorrection = false;
       }
       lastCheckedText.set(activeElement, currentCorrection.corrected);
+      resetIgnoreState(activeElement);
       log.info(`Applied full text correction on ${describeElement(activeElement)}`);
     }
 
@@ -543,18 +648,14 @@
     }
   });
 
-  const escapeHtmlDiv = document.createElement("div");
-  function escapeHtml(text) {
-    escapeHtmlDiv.textContent = text;
-    return escapeHtmlDiv.innerHTML;
-  }
-
   function showIndicator(element, status = "checking") {
     removeIndicator();
     const indicator = document.createElement("div");
     indicator.className = "correctly-indicator";
-    indicator.innerHTML = `<span class="correctly-indicator-dot correctly-indicator-dot--${status}"></span>`;
-    indicator.title = "Correctly is checking...";
+    indicator.setAttribute("aria-hidden", "true");
+    const dot = document.createElement("span");
+    dot.className = `correctly-indicator-dot correctly-indicator-dot--${status}`;
+    indicator.appendChild(dot);
 
     const rect = element.getBoundingClientRect();
     const scrollX = window.scrollX;
@@ -586,6 +687,92 @@
     document.body.appendChild(indicator);
     indicatorEl = indicator;
     log.debug(`Indicator shown for ${describeElement(element)} at (${Math.round(left)}, ${Math.round(top)})`);
+  }
+
+  function showIgnoreNudge(element) {
+    removeNudges();
+    const nudge = document.createElement("div");
+    nudge.className = "correctly-nudge";
+    nudge.setAttribute("role", "status");
+    nudge.setAttribute("aria-live", "polite");
+
+    const message = document.createElement("div");
+    message.className = "correctly-nudge__message";
+    message.textContent =
+      "We noticed you keep ignoring suggestions here. If they are getting in the way, you can disable Correctly on this site.";
+
+    const actions = document.createElement("div");
+    actions.className = "correctly-nudge__actions";
+
+    const disableButton = document.createElement("button");
+    disableButton.className = "correctly-nudge__disable";
+    disableButton.type = "button";
+    disableButton.textContent = "Disable on this site";
+    disableButton.addEventListener("click", disableOnCurrentSite);
+
+    const dismissButton = document.createElement("button");
+    dismissButton.className = "correctly-nudge__dismiss";
+    dismissButton.type = "button";
+    dismissButton.textContent = "Dismiss";
+    dismissButton.addEventListener("click", () => {
+      resetIgnoreState(element);
+      removeNudges();
+    });
+
+    actions.append(disableButton, dismissButton);
+    nudge.append(message, actions);
+    document.body.appendChild(nudge);
+
+    const rect = element.getBoundingClientRect();
+    const top = Math.min(window.scrollY + window.innerHeight - 56, rect.bottom + window.scrollY + 12);
+    const left = Math.max(
+      window.scrollX + VIEWPORT_PADDING,
+      Math.min(rect.left + window.scrollX, window.scrollX + window.innerWidth - 330),
+    );
+    nudge.style.top = `${top}px`;
+    nudge.style.left = `${left}px`;
+  }
+
+  async function disableOnCurrentSite() {
+    const hostname = window.location.hostname;
+    if (!hostname) return;
+    const { disabledSites = [] } = await chrome.storage.local.get("disabledSites");
+    const sites = new Set(disabledSites);
+    sites.add(hostname);
+    await chrome.storage.local.set({ disabledSites: [...sites] });
+    removeNudges();
+    deactivate();
+    showDisabledNudge();
+    log.info(`Disabled on ${hostname} from content nudge`);
+  }
+
+  function showDisabledNudge() {
+    removeNudges();
+    const nudge = document.createElement("div");
+    nudge.className = "correctly-nudge correctly-nudge--compact";
+    nudge.setAttribute("role", "status");
+    nudge.setAttribute("aria-live", "polite");
+    nudge.textContent = "Correctly is disabled on this site. You can enable it again from the extension settings.";
+    document.body.appendChild(nudge);
+
+    const top = window.scrollY + VIEWPORT_PADDING;
+    const left = Math.max(
+      window.scrollX + VIEWPORT_PADDING,
+      Math.min(window.scrollX + window.innerWidth - 330, window.scrollX + window.innerWidth / 2 - 160),
+    );
+    nudge.style.top = `${top}px`;
+    nudge.style.left = `${left}px`;
+
+    setTimeout(() => {
+      nudge.classList.add("correctly-nudge--leaving");
+      setTimeout(() => nudge.remove(), 180);
+    }, 4200);
+  }
+
+  function removeNudges() {
+    document.querySelectorAll(".correctly-nudge").forEach((el) => {
+      el.remove();
+    });
   }
 
   function removeIndicator() {
@@ -636,14 +823,15 @@
 
       if (response.success) {
         lastCheckedText.set(element, text);
-        const count = response.data.changes?.length || 0;
+        const count = getCorrectionCount(response.data, text);
         log.info(`Response received — ${count} issue(s) found`);
         if (count > 0) {
           log.debug(
             "Corrections:",
-            response.data.changes.map((c) => `"${c.original}" → "${c.replacement}"`),
+            (response.data.changes || []).map((c) => `"${c.original}" → "${c.replacement}"`),
           );
         }
+        if (count === 0) return;
         showTooltip(element, response.data);
       } else {
         log.error("Grammar check failed:", response.error);
@@ -759,6 +947,7 @@
     }
     lastCheckedText = new WeakMap();
     dismissedElement = null;
+    ignoreState = new WeakMap();
     activeElement = null;
     log.info("Event listeners removed — Correctly is paused on this site");
   }
