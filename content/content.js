@@ -779,7 +779,9 @@
         ...actions.map((action) => {
           const button = document.createElement("button");
           button.className =
-            action.kind === "primary" ? "correctly-nudge__action correctly-nudge__action--primary" : "correctly-nudge__action";
+            action.kind === "primary"
+              ? "correctly-nudge__action correctly-nudge__action--primary"
+              : "correctly-nudge__action";
           button.type = "button";
           button.textContent = action.label;
           button.addEventListener("click", action.onClick);
