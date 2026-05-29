@@ -24,13 +24,14 @@ A minimalist Chrome extension that checks grammar, spelling, and punctuation usi
 
 ## Install
 
-1. Clone the repo:
+1. Download `correctly.zip` from the [latest release](https://github.com/iamaamir/Correctly/releases), then unzip it.
+   Or clone the repo:
    ```
    git clone https://github.com/iamaamir/Correctly.git
    ```
 2. Open `chrome://extensions` in Chrome
 3. Enable **Developer mode** (top right)
-4. Click **Load unpacked** and select the `correctly` folder
+4. Click **Load unpacked** and select the unzipped `correctly` folder or the cloned repo folder
 5. Click the extension icon, select your provider, enter an API key if required, and save
    - **OpenAI**: enter your OpenAI API key
    - **Chrome Free AI**: no API key needed — enable `chrome://flags/#optimization-guide-on-device-model` and `chrome://flags/#prompt-api-for-gemini-nano`, then select "Chrome Free AI" and click Download

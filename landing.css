@@ -705,9 +705,16 @@ h3 {
   font-weight: 750;
 }
 
-.install-steps code {
+.install-steps > li > code {
   display: block;
   max-width: 100%;
+}
+
+.install-steps a {
+  color: var(--text);
+  text-decoration-line: underline;
+  text-decoration-color: var(--green);
+  text-underline-offset: 4px;
 }
 
 .final-cta {
