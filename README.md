@@ -2,10 +2,8 @@
 
 A minimalist Chrome extension that checks grammar, spelling, and punctuation using AI — either your own API key or Chrome's built-in Gemini Nano.
 
-<!-- <img width="334" height="523" alt="image" src="https://github.com/user-attachments/assets/fd299824-941c-4c09-a1cb-351914602b92" /> -->
-<img width="334" height="583" alt="image" src="https://github.com/user-attachments/assets/6a8387ac-5a5f-4ff0-96ae-796d70b1a292" />
 
-<img width="358" height="556" alt="image" src="https://github.com/user-attachments/assets/4ff66285-56b7-4c94-bdf2-58f3bd0b7a00" />
+<img alt="image" src="./social-card.png" />
 
 ![Release](https://www.shieldcn.dev/github/release/iamaamir/Correctly.svg?size=sm&mode=light&theme=zinc)
 ![CI](https://www.shieldcn.dev/github/ci/iamaamir/Correctly.svg?variant=secondary&size=sm&mode=light&theme=zinc)
@@ -108,11 +106,6 @@ Correctly supports any service that offers an OpenAI-compatible API (e.g., [Groq
 3. Enter your API key
 4. Click **Fetch** to load available models, or type a model name manually
 5. Select a model, click **Save** — the extension verifies the connection before saving
-
-
-
-https://github.com/user-attachments/assets/f2f22ebd-cebb-4fe9-86b5-14df1a88ffd9
-
 
 
 
