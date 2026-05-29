@@ -6,7 +6,11 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
   release:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,4 +35,3 @@ jobs:
           name: v${{ steps.bump.outputs.version }}
           files: correctly.zip
           generate_release_notes: true
-
