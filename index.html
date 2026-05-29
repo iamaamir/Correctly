@@ -1,279 +1,328 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Correctly - Minimal AI Grammar Checker for Chrome</title>
-  <meta name="description" content="Correctly is an open-source, local-first AI grammar checker for Chrome. Run checks with local models, Chrome on-device AI, or your own API provider.">
-  <meta name="keywords" content="Correctly, Chrome grammar checker, AI grammar checker, privacy grammar extension, Gemini Nano grammar, Ollama grammar checker, OpenAI grammar checker">
-  <meta name="author" content="Correctly">
-  <meta name="robots" content="index,follow,max-image-preview:large">
-  <meta name="theme-color" content="#0b100d">
-  <meta name="color-scheme" content="dark light">
-  <link rel="canonical" href="https://iamaamir.github.io/Correctly/">
-  <link rel="icon" href="icons/icon128.png" sizes="128x128">
-  <link rel="apple-touch-icon" href="icons/icon128.png">
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="Correctly - Minimal AI Grammar Checker for Chrome">
-  <meta property="og:description" content="Open-source, local-first AI grammar checking for Chrome. Use local models, Chrome on-device AI, or your own provider key.">
-  <meta property="og:url" content="https://iamaamir.github.io/Correctly/">
-  <meta property="og:image" content="https://iamaamir.github.io/Correctly/social-card.png">
-  <meta property="og:image:width" content="1280">
-  <meta property="og:image:height" content="640">
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Correctly - Minimal AI Grammar Checker for Chrome">
-  <meta name="twitter:description" content="Open-source, local-first AI grammar checking for Chrome.">
-  <meta name="twitter:image" content="https://iamaamir.github.io/Correctly/social-card.png">
-  <link rel="preload" href="icons/icon128.png" as="image" fetchpriority="high">
-  <link rel="stylesheet" href="landing.css">
-  <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "SoftwareApplication",
-          "name": "Correctly",
-          "applicationCategory": "BrowserApplication",
-          "operatingSystem": "Chrome",
-          "description": "An open-source, local-first Chrome extension that checks grammar, spelling, and punctuation using AI.",
-          "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "USD"
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Correctly - Minimal AI Grammar Checker for Chrome</title>
+    <meta name="google-site-verification" content="4ucgydwOFLng9VfS1XhhDafMPfPxOuPUtH10wGC2q7M" />
+    <meta
+      name="description"
+      content="Correctly is an open-source, local-first AI grammar checker for Chrome. Run checks with local models, Chrome on-device AI, or your own API provider."
+    />
+    <meta
+      name="keywords"
+      content="Correctly, Chrome grammar checker, AI grammar checker, privacy grammar extension, Gemini Nano grammar, Ollama grammar checker, OpenAI grammar checker"
+    />
+    <meta name="author" content="Correctly" />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <meta name="theme-color" content="#0b100d" />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="canonical" href="https://iamaamir.github.io/Correctly/" />
+    <link rel="icon" href="icons/icon128.png" sizes="128x128" />
+    <link rel="apple-touch-icon" href="icons/icon128.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Correctly - Minimal AI Grammar Checker for Chrome" />
+    <meta
+      property="og:description"
+      content="Open-source, local-first AI grammar checking for Chrome. Use local models, Chrome on-device AI, or your own provider key."
+    />
+    <meta property="og:url" content="https://iamaamir.github.io/Correctly/" />
+    <meta property="og:image" content="https://iamaamir.github.io/Correctly/social-card.png" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Correctly - Minimal AI Grammar Checker for Chrome" />
+    <meta
+      name="twitter:description"
+      content="Open-source, local-first AI grammar checking for Chrome."
+    />
+    <meta name="twitter:image" content="https://iamaamir.github.io/Correctly/social-card.png" />
+    <link rel="preload" href="icons/icon128.png" as="image" fetchpriority="high" />
+    <link rel="stylesheet" href="landing.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "Correctly",
+            "applicationCategory": "BrowserApplication",
+            "operatingSystem": "Chrome",
+            "description": "An open-source, local-first Chrome extension that checks grammar, spelling, and punctuation using AI.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "softwareVersion": "0.4.0",
+            "url": "https://github.com/iamaamir/Correctly",
+            "license": "https://opensource.org/license/BSD-3-Clause",
+            "featureList": [
+              "Inline grammar correction suggestions",
+              "Open-source Chrome extension",
+              "Chrome Free AI support with Gemini Nano",
+              "OpenAI and OpenAI-compatible provider support",
+              "Ollama and LM Studio local model support",
+              "Local API key storage",
+              "Sensitive field exclusion"
+            ]
           },
-          "softwareVersion": "0.4.0",
-          "url": "https://github.com/iamaamir/Correctly",
-          "license": "https://opensource.org/license/BSD-3-Clause",
-          "featureList": [
-            "Inline grammar correction suggestions",
-            "Open-source Chrome extension",
-            "Chrome Free AI support with Gemini Nano",
-            "OpenAI and OpenAI-compatible provider support",
-            "Ollama and LM Studio local model support",
-            "Local API key storage",
-            "Sensitive field exclusion"
-          ]
-        },
-        {
-          "@type": "FAQPage",
-          "mainEntity": [
-            {
-              "@type": "Question",
-              "name": "Does Correctly work with local AI models?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Yes. Correctly supports Ollama and LM Studio, and it can also use Chrome Free AI with Gemini Nano when available in Chrome."
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Does Correctly work with local AI models?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Correctly supports Ollama and LM Studio, and it can also use Chrome Free AI with Gemini Nano when available in Chrome."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Where is my API key stored?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Correctly stores your API key locally in chrome.storage.local and sends text only to the AI provider you choose."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Which fields does Correctly avoid?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Correctly excludes sensitive and non-prose fields such as passwords, credit cards, numeric fields, disabled fields, readonly fields, and elements that opt out with data-correctly=\"false\"."
+                }
               }
-            },
-            {
-              "@type": "Question",
-              "name": "Where is my API key stored?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Correctly stores your API key locally in chrome.storage.local and sends text only to the AI provider you choose."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "Which fields does Correctly avoid?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Correctly excludes sensitive and non-prose fields such as passwords, credit cards, numeric fields, disabled fields, readonly fields, and elements that opt out with data-correctly=\"false\"."
-              }
-            }
-          ]
-        }
-      ]
-    }
-  </script>
-</head>
-<body>
-  <a class="skip-link" href="#main">Skip to content</a>
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
 
-  <header class="site-header" data-header>
-    <a class="brand" href="#top" aria-label="Correctly home">
-      <img src="icons/icon128.png" alt="" width="32" height="32" fetchpriority="high">
-      <span>Correctly</span>
-    </a>
-    <nav class="site-nav" aria-label="Primary navigation">
-      <a href="#features">Features</a>
-      <a href="#providers">Providers</a>
-      <a href="#privacy">Privacy</a>
-      <a href="#install">Install</a>
-    </nav>
-    <a class="header-cta" href="https://github.com/iamaamir/Correctly" rel="noopener">GitHub</a>
-  </header>
+    <header class="site-header" data-header>
+      <a class="brand" href="#top" aria-label="Correctly home">
+        <img src="icons/icon128.png" alt="" width="32" height="32" fetchpriority="high" />
+        <span>Correctly</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="#features">Features</a>
+        <a href="#providers">Providers</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#install">Install</a>
+      </nav>
+      <a class="header-cta" href="https://github.com/iamaamir/Correctly" rel="noopener">GitHub</a>
+    </header>
 
-  <main id="main">
-    <section class="hero" id="top" aria-labelledby="hero-title">
-      <div class="hero-copy">
-        <p class="eyebrow">Open source. Local first. AI powered.</p>
-        <h1 id="hero-title">Grammar checking run by your AI.</h1>
-        <p class="hero-lede">
-          Correctly is a Chrome extension that checks writing in-place using local models, Chrome on-device AI, or your own API key. No Correctly account. No Correctly cloud.
-        </p>
-        <div class="hero-actions" aria-label="Primary actions">
-          <a class="button button-primary" href="https://github.com/iamaamir/Correctly" rel="noopener">View source</a>
-          <a class="button button-secondary" href="#install">Install locally</a>
-        </div>
-        <ul class="hero-points" aria-label="Core principles">
-          <li>Open-source codebase</li>
-          <li>Local and on-device model support</li>
-          <li>Inline suggestions you control</li>
-        </ul>
-      </div>
-
-      <div class="hero-visual" aria-label="Correctly suggestion preview">
-        <div class="browser-frame">
-          <div class="browser-bar" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
+    <main id="main">
+      <section class="hero" id="top" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Open source. Local first. AI powered.</p>
+          <h1 id="hero-title">Grammar checking run by your AI.</h1>
+          <p class="hero-lede">
+            Correctly is a Chrome extension that checks writing in-place using local models, Chrome
+            on-device AI, or your own API key. No Correctly account. No Correctly cloud.
+          </p>
+          <div class="hero-actions" aria-label="Primary actions">
+            <a
+              class="button button-primary"
+              href="https://github.com/iamaamir/Correctly"
+              rel="noopener"
+              >View source</a
+            >
+            <a class="button button-secondary" href="#install">Install locally</a>
           </div>
-          <div class="editor-surface">
-            <p class="field-label">Writing field</p>
-            <p class="typed-copy">He go to school everyday, but he don't like the long bus ride.</p>
-            <div class="suggestion-popover">
-              <div class="suggestion-head">
-                <strong>Correctly</strong>
-                <span>2 suggestions</span>
-              </div>
-              <div class="suggestion-row">
-                <span class="accept-glyph" aria-hidden="true">✓</span>
-                <div>
-                  <p><s>go</s> <mark>goes</mark></p>
-                  <small>Subject-verb agreement: "He" requires "goes".</small>
+          <ul class="hero-points" aria-label="Core principles">
+            <li>Open-source codebase</li>
+            <li>Local and on-device model support</li>
+            <li>Inline suggestions you control</li>
+          </ul>
+        </div>
+
+        <div class="hero-visual" aria-label="Correctly suggestion preview">
+          <div class="browser-frame">
+            <div class="browser-bar" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="editor-surface">
+              <p class="field-label">Writing field</p>
+              <p class="typed-copy">
+                He go to school everyday, but he don't like the long bus ride.
+              </p>
+              <div class="suggestion-popover">
+                <div class="suggestion-head">
+                  <strong>Correctly</strong>
+                  <span>2 suggestions</span>
                 </div>
-              </div>
-              <div class="suggestion-row">
-                <span class="accept-glyph" aria-hidden="true">✓</span>
-                <div>
-                  <p><s>don't</s> <mark>doesn't</mark></p>
-                  <small>Use the singular auxiliary verb with "he".</small>
+                <div class="suggestion-row">
+                  <span class="accept-glyph" aria-hidden="true">✓</span>
+                  <div>
+                    <p><s>go</s> <mark>goes</mark></p>
+                    <small>Subject-verb agreement: "He" requires "goes".</small>
+                  </div>
                 </div>
-              </div>
-              <div class="suggestion-actions">
-                <span>Accept all</span>
-                <span>Dismiss</span>
+                <div class="suggestion-row">
+                  <span class="accept-glyph" aria-hidden="true">✓</span>
+                  <div>
+                    <p><s>don't</s> <mark>doesn't</mark></p>
+                    <small>Use the singular auxiliary verb with "he".</small>
+                  </div>
+                </div>
+                <div class="suggestion-actions">
+                  <span>Accept all</span>
+                  <span>Dismiss</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="section" id="features" aria-labelledby="features-title">
-      <div class="section-heading">
-        <p class="eyebrow">How it is built</p>
-        <h2 id="features-title">Open source, local first, AI powered.</h2>
-      </div>
-      <div class="feature-grid">
-        <article>
-          <span class="feature-index">01</span>
-          <h3>Inspect the source</h3>
-          <p>The extension is plain Manifest V3 code. You can read how text is selected, where keys are stored, and which provider receives a request.</p>
-        </article>
-        <article>
-          <span class="feature-index">02</span>
-          <h3>Run AI locally</h3>
-          <p>Use Ollama, LM Studio, or Chrome Free AI when you want grammar checks to stay on your machine.</p>
-        </article>
-        <article>
-          <span class="feature-index">03</span>
-          <h3>Keep control</h3>
-          <p>Suggestions appear in-page with explanations. Accept one, accept all, dismiss, or disable Correctly per site.</p>
-        </article>
-      </div>
-    </section>
+      <section class="section" id="features" aria-labelledby="features-title">
+        <div class="section-heading">
+          <p class="eyebrow">How it is built</p>
+          <h2 id="features-title">Open source, local first, AI powered.</h2>
+        </div>
+        <div class="feature-grid">
+          <article>
+            <span class="feature-index">01</span>
+            <h3>Inspect the source</h3>
+            <p>
+              The extension is plain Manifest V3 code. You can read how text is selected, where keys
+              are stored, and which provider receives a request.
+            </p>
+          </article>
+          <article>
+            <span class="feature-index">02</span>
+            <h3>Run AI locally</h3>
+            <p>
+              Use Ollama, LM Studio, or Chrome Free AI when you want grammar checks to stay on your
+              machine.
+            </p>
+          </article>
+          <article>
+            <span class="feature-index">03</span>
+            <h3>Keep control</h3>
+            <p>
+              Suggestions appear in-page with explanations. Accept one, accept all, dismiss, or
+              disable Correctly per site.
+            </p>
+          </article>
+        </div>
+      </section>
 
-    <section class="section provider-section" id="providers" aria-labelledby="providers-title">
-      <div class="section-heading">
-        <p class="eyebrow">Model choice</p>
-        <h2 id="providers-title">Run the model where it makes sense.</h2>
-        <p>Correctly does not force a hosted service. Use local AI by default, or bring an API provider when that fits your workflow.</p>
-      </div>
-      <div class="provider-matrix">
-        <article>
-          <h3>Chrome Free AI</h3>
-          <p>Runs with Chrome's built-in Gemini Nano when available. No API key, no provider round trip.</p>
-        </article>
-        <article>
-          <h3>OpenAI</h3>
-          <p>Bring your OpenAI API key and select the model you prefer from the popup.</p>
-        </article>
-        <article>
-          <h3>OpenAI Compatible</h3>
-          <p>Connect services such as Groq, OpenRouter, DeepSeek, or another compatible endpoint.</p>
-        </article>
-        <article>
-          <h3>Ollama</h3>
-          <p>Use local models through Ollama, with extension-side handling for the localhost path.</p>
-        </article>
-        <article>
-          <h3>LM Studio</h3>
-          <p>Point Correctly at LM Studio's local inference server and keep grammar checks on your machine.</p>
-        </article>
-      </div>
-    </section>
+      <section class="section provider-section" id="providers" aria-labelledby="providers-title">
+        <div class="section-heading">
+          <p class="eyebrow">Model choice</p>
+          <h2 id="providers-title">Run the model where it makes sense.</h2>
+          <p>
+            Correctly does not force a hosted service. Use local AI by default, or bring an API
+            provider when that fits your workflow.
+          </p>
+        </div>
+        <div class="provider-matrix">
+          <article>
+            <h3>Chrome Free AI</h3>
+            <p>
+              Runs with Chrome's built-in Gemini Nano when available. No API key, no provider round
+              trip.
+            </p>
+          </article>
+          <article>
+            <h3>OpenAI</h3>
+            <p>Bring your OpenAI API key and select the model you prefer from the popup.</p>
+          </article>
+          <article>
+            <h3>OpenAI Compatible</h3>
+            <p>
+              Connect services such as Groq, OpenRouter, DeepSeek, or another compatible endpoint.
+            </p>
+          </article>
+          <article>
+            <h3>Ollama</h3>
+            <p>
+              Use local models through Ollama, with extension-side handling for the localhost path.
+            </p>
+          </article>
+          <article>
+            <h3>LM Studio</h3>
+            <p>
+              Point Correctly at LM Studio's local inference server and keep grammar checks on your
+              machine.
+            </p>
+          </article>
+        </div>
+      </section>
 
-    <section class="section privacy-section" id="privacy" aria-labelledby="privacy-title">
-      <div class="section-heading">
-        <p class="eyebrow">Privacy posture</p>
-        <h2 id="privacy-title">No Correctly cloud sits in the middle.</h2>
+      <section class="section privacy-section" id="privacy" aria-labelledby="privacy-title">
+        <div class="section-heading">
+          <p class="eyebrow">Privacy posture</p>
+          <h2 id="privacy-title">No Correctly cloud sits in the middle.</h2>
+        </div>
+        <div class="privacy-layout">
+          <p>
+            Configuration stays in Chrome extension storage on your device. Text is processed
+            locally when you choose a local or on-device model, or sent directly to the API provider
+            you configure.
+          </p>
+          <ul>
+            <li>API keys are stored in <code>chrome.storage.local</code>.</li>
+            <li>Session token usage is kept in <code>chrome.storage.session</code>.</li>
+            <li>Sensitive field types are automatically excluded.</li>
+            <li>Sites can opt out with <code>data-correctly="false"</code>.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section install-section" id="install" aria-labelledby="install-title">
+        <div class="section-heading">
+          <p class="eyebrow">Install</p>
+          <h2 id="install-title">Load it as an unpacked Chrome extension.</h2>
+        </div>
+        <ol class="install-steps">
+          <li>
+            <span>Clone</span>
+            <code>git clone https://github.com/iamaamir/Correctly.git</code>
+          </li>
+          <li>
+            <span>Open Chrome extensions</span>
+            <code>chrome://extensions</code>
+          </li>
+          <li>
+            <span>Enable Developer mode</span>
+            <p>Use the toggle in the top-right corner of Chrome's extensions page.</p>
+          </li>
+          <li>
+            <span>Load unpacked</span>
+            <p>Select the Correctly folder, then choose your provider from the popup.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="final-cta" aria-labelledby="final-title">
+        <h2 id="final-title">Make everyday writing cleaner without changing where you write.</h2>
+        <a class="button button-primary" href="https://github.com/iamaamir/Correctly" rel="noopener"
+          >Get Correctly</a
+        >
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Correctly is open source under the BSD 3-Clause License.</p>
+      <div>
+        <a href="https://github.com/iamaamir/Correctly" rel="noopener">GitHub</a>
+        <a href="https://github.com/iamaamir/Correctly#privacy-and-security" rel="noopener"
+          >Privacy notes</a
+        >
+        <a href="#top" data-back-to-top>Back to top</a>
       </div>
-      <div class="privacy-layout">
-        <p>
-          Configuration stays in Chrome extension storage on your device. Text is processed locally when you choose a local or on-device model, or sent directly to the API provider you configure.
-        </p>
-        <ul>
-          <li>API keys are stored in <code>chrome.storage.local</code>.</li>
-          <li>Session token usage is kept in <code>chrome.storage.session</code>.</li>
-          <li>Sensitive field types are automatically excluded.</li>
-          <li>Sites can opt out with <code>data-correctly="false"</code>.</li>
-        </ul>
-      </div>
-    </section>
+    </footer>
 
-    <section class="section install-section" id="install" aria-labelledby="install-title">
-      <div class="section-heading">
-        <p class="eyebrow">Install</p>
-        <h2 id="install-title">Load it as an unpacked Chrome extension.</h2>
-      </div>
-      <ol class="install-steps">
-        <li>
-          <span>Clone</span>
-          <code>git clone https://github.com/iamaamir/Correctly.git</code>
-        </li>
-        <li>
-          <span>Open Chrome extensions</span>
-          <code>chrome://extensions</code>
-        </li>
-        <li>
-          <span>Enable Developer mode</span>
-          <p>Use the toggle in the top-right corner of Chrome's extensions page.</p>
-        </li>
-        <li>
-          <span>Load unpacked</span>
-          <p>Select the Correctly folder, then choose your provider from the popup.</p>
-        </li>
-      </ol>
-    </section>
-
-    <section class="final-cta" aria-labelledby="final-title">
-      <h2 id="final-title">Make everyday writing cleaner without changing where you write.</h2>
-      <a class="button button-primary" href="https://github.com/iamaamir/Correctly" rel="noopener">Get Correctly</a>
-    </section>
-  </main>
-
-  <footer class="site-footer">
-    <p>Correctly is open source under the BSD 3-Clause License.</p>
-    <div>
-      <a href="https://github.com/iamaamir/Correctly" rel="noopener">GitHub</a>
-      <a href="https://github.com/iamaamir/Correctly#privacy-and-security" rel="noopener">Privacy notes</a>
-      <a href="#top" data-back-to-top>Back to top</a>
-    </div>
-  </footer>
-
-  <script src="landing.js" defer></script>
-</body>
+    <script src="landing.js" defer></script>
+  </body>
 </html>
