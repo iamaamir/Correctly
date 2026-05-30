@@ -59,7 +59,7 @@ test("E3 response_format fallback retries without schema", async () => {
       "expected at least one structured output request with response_format",
     );
   } finally {
-    await cleanupContext(context, userDataDir);
+    await cleanupContext(context, userDataDir).catch(() => {});
     await new Promise((r) => fixture.server.close(r));
     await mock.close();
   }
