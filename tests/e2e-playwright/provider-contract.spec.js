@@ -1,8 +1,8 @@
 import { test } from "@playwright/test";
-import { HOST, cleanupContext, launchExtensionContext, startFixtureServer } from "./helpers.js";
-import { assert, assertCallCountAtLeast, assertAnyCall } from "../mocks/server/assertions.js";
 import { createMockOpenAI } from "../mocks/providers/mock-openai.js";
 import { seedOpenAICompatibleViaServiceWorker } from "../mocks/providers/setup.js";
+import { assert, assertAnyCall, assertCallCountAtLeast } from "../mocks/server/assertions.js";
+import { cleanupContext, HOST, launchExtensionContext, startFixtureServer } from "./helpers.js";
 
 test("E3 response_format fallback retries without schema", async () => {
   const fixture = await startFixtureServer();

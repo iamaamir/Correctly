@@ -19,16 +19,21 @@ const presets = {
   malformedJsonThenRecover: {
     models: [{ id: "mock-model-a" }],
     chatCompletions: [
-      { type: "success", body: { id: "x", model: "mock-model-a", choices: [{ message: { content: "not json" } }], usage: { total_tokens: 2 } } },
+      {
+        type: "success",
+        body: {
+          id: "x",
+          model: "mock-model-a",
+          choices: [{ message: { content: "not json" } }],
+          usage: { total_tokens: 2 },
+        },
+      },
       { type: "success" },
     ],
   },
   rateLimitThenSuccess: {
     models: [{ id: "mock-model-a" }],
-    chatCompletions: [
-      { type: "error", status: 429, body: { error: { message: "rate limit" } } },
-      { type: "success" },
-    ],
+    chatCompletions: [{ type: "error", status: 429, body: { error: { message: "rate limit" } } }, { type: "success" }],
   },
   timeoutThenSuccess: {
     models: [{ id: "mock-model-a" }],

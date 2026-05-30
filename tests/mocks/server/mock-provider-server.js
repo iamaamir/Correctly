@@ -33,23 +33,21 @@ export async function startMockProviderServer({ host = "127.0.0.1", scenario } =
         return;
       }
 
-      const payload =
-        current?.body ||
-        {
-          id: "chatcmpl-mock",
-          model: body.model || "mock-model-a",
-          choices: [
-            {
-              index: 0,
-              message: {
-                role: "assistant",
-                content: JSON.stringify({ corrected: "ok", changes: [], confidence: 10 }),
-              },
-              finish_reason: "stop",
+      const payload = current?.body || {
+        id: "chatcmpl-mock",
+        model: body.model || "mock-model-a",
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: "assistant",
+              content: JSON.stringify({ corrected: "ok", changes: [], confidence: 10 }),
             },
-          ],
-          usage: { prompt_tokens: 2, completion_tokens: 2, total_tokens: 4 },
-        };
+            finish_reason: "stop",
+          },
+        ],
+        usage: { prompt_tokens: 2, completion_tokens: 2, total_tokens: 4 },
+      };
 
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify(payload));
