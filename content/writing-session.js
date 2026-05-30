@@ -120,7 +120,7 @@
           this.showCheckErrorNudge(response.error, element);
         }
         this.log?.debug(`Check generation ${gen} completed in ${Math.round(performance.now() - startTime)}ms`);
-      } catch (error) {
+      } catch {
         if (gen !== this.checkGeneration) {
           this.log?.debug(`Check generation ${gen} stale — error dropped`);
           return;
