@@ -10,13 +10,16 @@
     "test:e2e:popup": "playwright test tests/e2e-playwright/popup-model-loading.spec.js",
     "test:e2e:all": "playwright test tests/e2e-playwright",
     "lint": "biome check .",
-    "lint:fix": "biome check . --fix"
+    "lint:fix": "biome check . --fix",
+    "build:release": "node scripts/build-release.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@vitest/ui": "4.1.7",
+    "esbuild": "0.27.0",
     "happy-dom": "20.9.0",
     "playwright": "^1.60.0",
+    "html-minifier-terser": "7.2.0",
     "vitest": "4.1.7"
   }
 }

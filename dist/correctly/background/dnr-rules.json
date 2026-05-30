@@ -1,1 +1,0 @@
-[{"id":1,"priority":1,"action":{"type":"modifyHeaders","requestHeaders":[{"header":"Origin","operation":"set","value":"http://localhost:11434"}]},"condition":{"urlFilter":"http://localhost:11434/*","resourceTypes":["xmlhttprequest","fetch"]}}]
