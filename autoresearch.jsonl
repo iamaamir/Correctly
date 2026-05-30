@@ -1,0 +1,1 @@
+{"type":"config","name":"Optimize release artifact zip size from .github/workflows/release.yml","metricName":"zip_bytes","metricUnit":"","bestDirection":"lower"}
