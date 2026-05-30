@@ -59,7 +59,7 @@ jobs:
           jq --arg v "$NEW_VERSION" '.version = $v' manifest.json > manifest.tmp
           mv manifest.tmp manifest.json
           mkdir -p dist/correctly
-          cp manifest.json dist/correctly/
+          jq -c . manifest.json > dist/correctly/manifest.json
           cp -r background content popup lib providers dist/correctly/
           mkdir -p dist/correctly/icons
           cp icons/icon16.png dist/correctly/icons/
