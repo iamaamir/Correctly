@@ -23,12 +23,7 @@ export async function startMockProviderServer({ host = "127.0.0.1", scenario } =
 
       const responses = scenario?.chatCompletions ?? [];
       const currentIndex = completionIndex++;
-      if (currentIndex >= responses.length) {
-        res.writeHead(500, { "content-type": "application/json" });
-        res.end(JSON.stringify({ error: "unexpected request — scenario responses exhausted" }));
-        return;
-      }
-      const current = responses[currentIndex];
+      const current = currentIndex < responses.length ? responses[currentIndex] : null;
 
       if (current?.delayMs) await new Promise((r) => setTimeout(r, current.delayMs));
 
