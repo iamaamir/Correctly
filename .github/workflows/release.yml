@@ -61,6 +61,7 @@ jobs:
           mkdir -p dist/correctly
           jq -c . manifest.json > dist/correctly/manifest.json
           cp -r background content popup lib providers dist/correctly/
+          jq -c . dist/correctly/background/dnr-rules.json > dist/correctly/background/dnr-rules.json.tmp && mv dist/correctly/background/dnr-rules.json.tmp dist/correctly/background/dnr-rules.json
           # conservative JS minify (syntax+whitespace only, no identifier mangling)
           find dist/correctly -type f -name '*.js' -print0 | xargs -0 -I{} npx --yes esbuild {} --minify --legal-comments=none --allow-overwrite --outfile={}
           find dist/correctly -type f -name '*.css' -print0 | xargs -0 -I{} npx --yes esbuild {} --minify --legal-comments=none --allow-overwrite --outfile={}
