@@ -18,10 +18,14 @@ test("popup async model loading + save", async () => {
     });
     const modelValues = await popup.$$eval("#model-select option", (opts) => opts.map((o) => o.value));
     assert(modelValues.includes("mock-model-a"), "mock-model-a not loaded");
-    await popup.waitForFunction(() => {
-      const el = document.getElementById("status-msg");
-      return el && !el.hidden && el.textContent === "Settings saved";
-    }, { timeout: 5000 });
+    await popup.waitForFunction(
+      () => {
+        const el = document.getElementById("status-msg");
+        return el && !el.hidden && el.textContent === "Settings saved";
+      },
+      undefined,
+      { timeout: 5000 },
+    );
     const saved = await sw.evaluate(async () => chrome.storage.local.get(["providerId", "model", "baseUrl"]));
     assert(saved.providerId === "openai-compatible", `unexpected providerId ${saved.providerId}`);
     assert(saved.model === "mock-model-a", `unexpected model ${saved.model}`);
