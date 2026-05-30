@@ -1,14 +1,4 @@
-/**
- * Centralized configuration for the Correctly extension.
- *
- * Content scripts cannot import ES modules, so content/content.js
- * maintains its own copy of the values it needs at the top of its IIFE.
- * If you change a value here, update content/content.js to match.
- */
-
-// ── Grammar check ──
-
-export const SYSTEM_PROMPT = `Fix grammar, spelling, and punctuation.
+export const SYSTEM_PROMPT=`Fix grammar, spelling, and punctuation.
 
 Requirements:
 - Produce grammatically correct and internally consistent text.
@@ -62,15 +52,13 @@ Before finalizing your response, verify:
 The JSON is strictly valid and properly formatted
 All corrections are grammatically necessary and not stylistic preferences
 The corrected text preserves the user's original voice, dialect, and intent
-`;
-
-export const SYSTEM_PROMPT_L2 = `Fix grammar, spelling, and punctuation.
+`,SYSTEM_PROMPT_L2=`Fix grammar, spelling, and punctuation.
 
 Think through the text step by step:
 1. Read the full text and understand what it's trying to say.
 2. Identify each grammar, spelling, or punctuation issue.
 3. For each issue, determine the correct replacement and explain why.
-4. Review your changes — is each one truly necessary, or is it a stylistic preference?
+4. Review your changes \u2014 is each one truly necessary, or is it a stylistic preference?
 
 After reasoning, output ONLY valid JSON with no additional text:
 
@@ -90,20 +78,8 @@ Rules:
 - One entry per edit.
 - Brief, specific explanations.
 - Return empty changes array + confidence 10 if no correction needed.
-- Preserve voice, slang, and style — only fix what's actually wrong.
+- Preserve voice, slang, and style \u2014 only fix what's actually wrong.
 - The confidence field is a number 1-10 indicating how sure you are.
-`;
+`,SYSTEM_PROMPT_L3=`Fix grammar, spelling, and punctuation in the following text. Return ONLY the corrected text \u2014 no JSON, no explanations, no formatting, no markdown, no code fences. Preserve the user's voice and style. Only change what needs fixing.
 
-export const SYSTEM_PROMPT_L3 = `Fix grammar, spelling, and punctuation in the following text. Return ONLY the corrected text — no JSON, no explanations, no formatting, no markdown, no code fences. Preserve the user's voice and style. Only change what needs fixing.
-
-Corrected text:`;
-
-export const AI_TEMPERATURE = 0.0;
-
-export const AI_MAX_TOKENS_MIN = 1024;
-
-// ── Badge timing (ms) ──
-
-export const BADGE_DURATION_ISSUES = 5000;
-export const BADGE_DURATION_OK = 2000;
-export const BADGE_DURATION_ERROR = 3000;
+Corrected text:`,AI_TEMPERATURE=0,AI_MAX_TOKENS_MIN=1024,BADGE_DURATION_ISSUES=5e3,BADGE_DURATION_OK=2e3,BADGE_DURATION_ERROR=3e3;
