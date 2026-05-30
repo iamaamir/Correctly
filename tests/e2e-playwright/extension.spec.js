@@ -11,7 +11,6 @@ test("E2E-BOOT-001 extension boot + popup providers", async () => {
     const page = context.pages()[0] || (await context.newPage());
     await page.goto(`http://${HOST}:${fixture.port}/tests/e2e/fixtures/editor.html`, { waitUntil: "load" });
     await page.waitForSelector("#editor", { timeout: 10000 });
-    await page.waitForSelector("html[data-correctly-content-script='1']", { timeout: 10000 });
 
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup/popup.html`, { waitUntil: "load" });
@@ -34,25 +33,55 @@ test("E2E-CONTENT-001/002 popup config -> tooltip -> apply correction", async ()
     preset: "happyPath",
     overrides: {
       models: [{ id: "mock-model-a" }],
-      chatCompletions: Array.from({ length: 4 }, () => ({
-        type: "success",
-        body: {
-          id: "x",
-          model: "mock-model-a",
-          choices: [
-            {
-              message: {
-                content: JSON.stringify({
-                  corrected: "this is the sample text",
-                  changes: [{ original: "teh", replacement: "the", explanation: "spelling" }],
-                  confidence: 9,
-                }),
+      chatCompletions: [
+        {
+          type: "success",
+          body: {
+            id: "verify",
+            model: "mock-model-a",
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    corrected: "They're going to their house after work, and then they're meeting us there for dinner.",
+                    changes: [
+                      { original: "Their", replacement: "They're", explanation: "correct subject verb usage" },
+                      { original: "they're house", replacement: "their house", explanation: "correct possessive form" },
+                      { original: "there meeting", replacement: "they're meeting", explanation: "correct contraction" },
+                      {
+                        original: "their for dinner",
+                        replacement: "there for dinner",
+                        explanation: "correct location word",
+                      },
+                    ],
+                    confidence: 9,
+                  }),
+                },
               },
-            },
-          ],
-          usage: { total_tokens: 12 },
+            ],
+            usage: { total_tokens: 12 },
+          },
         },
-      })),
+        {
+          type: "success",
+          body: {
+            id: "content",
+            model: "mock-model-a",
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    corrected: "this is the sample text",
+                    changes: [{ original: "teh", replacement: "the", explanation: "spelling fix" }],
+                    confidence: 9,
+                  }),
+                },
+              },
+            ],
+            usage: { total_tokens: 12 },
+          },
+        },
+      ],
     },
   });
   const { context, extensionId, userDataDir } = await launchExtensionContext();

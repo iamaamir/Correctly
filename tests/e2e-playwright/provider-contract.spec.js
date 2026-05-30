@@ -1,7 +1,7 @@
 import { test } from "@playwright/test";
 import { createMockOpenAI } from "../mocks/providers/mock-openai.js";
 import { seedOpenAICompatibleViaServiceWorker } from "../mocks/providers/setup.js";
-import { assert, assertAnyCall, assertCallCountAtLeast } from "../mocks/server/assertions.js";
+import { assert, assertCallCountAtLeast } from "../mocks/server/assertions.js";
 import { cleanupContext, HOST, launchExtensionContext, startFixtureServer } from "./helpers.js";
 
 test("E3 response_format fallback retries without schema", async () => {
@@ -53,11 +53,8 @@ test("E3 response_format fallback retries without schema", async () => {
     const tooltipText = await page.locator(".correctly-tooltip").innerText();
     assert(tooltipText.toLowerCase().includes("the"), "tooltip missing corrected token");
     assertCallCountAtLeast(mock.calls, 2, "chat/completions calls");
-    assertAnyCall(
-      mock.calls,
-      (c) => Boolean(c.body?.response_format),
-      "expected at least one structured output request with response_format",
-    );
+    assert(Boolean(mock.calls[0].body?.response_format), "first request should use response_format");
+    assert(!mock.calls[1].body?.response_format, "fallback request should omit response_format");
   } finally {
     await cleanupContext(context, userDataDir).catch(() => {});
     await new Promise((r) => fixture.server.close(r));
