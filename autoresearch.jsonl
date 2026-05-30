@@ -1,0 +1,1 @@
+{"type":"config","name":"Optimize unit test runtime while preserving correctness","metricName":"test_runtime","metricUnit":"s","bestDirection":"lower"}
