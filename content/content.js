@@ -48,17 +48,12 @@
   const IGNORE_NUDGE_THRESHOLD = 3;
   const ERROR_NUDGE_COOLDOWN_MS = 30000;
 
-  let debounceTimer = null;
   let activeElement = null;
   let tooltipEl = null;
   let currentCorrection = null;
-  let applyingCorrection = false;
-  let dismissedElement = null;
   let indicatorEl = null;
   let tooltipOwnerElement = null;
   let ignoreState = new WeakMap();
-  let lastCheckedText = new WeakMap();
-  let checkGeneration = 0;
   let lastErrorNudge = { message: "", timestamp: 0 };
 
   // Input types that contain prose and should be grammar-checked
@@ -561,7 +556,7 @@
     if (!element) return;
     const state = getElementIgnoreState(element);
     state.streak += 1;
-    dismissedElement = element;
+    writingSession.recordIgnore(element);
     removeIndicator();
     if (state.streak >= IGNORE_NUDGE_THRESHOLD) {
       if (!state.nudgeShown) {
@@ -588,13 +583,13 @@
 
     const currentText = getTextFromElement(activeElement);
     const updatedText = currentText.replace(change.original, change.replacement);
-    applyingCorrection = true;
+    writingSession.beginApply();
     try {
       setTextOnElement(activeElement, updatedText);
     } finally {
-      applyingCorrection = false;
+      writingSession.endApply();
     }
-    lastCheckedText.set(activeElement, updatedText);
+    writingSession.recordAppliedText(activeElement, updatedText);
     resetIgnoreState(activeElement);
 
     currentCorrection.changes.splice(index, 1);
@@ -621,23 +616,23 @@
       for (const change of currentCorrection.changes) {
         text = text.replace(change.original, change.replacement);
       }
-      applyingCorrection = true;
+      writingSession.beginApply();
       try {
         setTextOnElement(activeElement, text);
       } finally {
-        applyingCorrection = false;
+        writingSession.endApply();
       }
-      lastCheckedText.set(activeElement, text);
+      writingSession.recordAppliedText(activeElement, text);
       resetIgnoreState(activeElement);
       log.info(`Applied ${currentCorrection.changes.length} correction(s) on ${describeElement(activeElement)}`);
     } else if (currentCorrection.corrected) {
-      applyingCorrection = true;
+      writingSession.beginApply();
       try {
         setTextOnElement(activeElement, currentCorrection.corrected);
       } finally {
-        applyingCorrection = false;
+        writingSession.endApply();
       }
-      lastCheckedText.set(activeElement, currentCorrection.corrected);
+      writingSession.recordAppliedText(activeElement, currentCorrection.corrected);
       resetIgnoreState(activeElement);
       log.info(`Applied full text correction on ${describeElement(activeElement)}`);
     }
@@ -843,148 +838,41 @@
     }
   }
 
-  async function checkGrammar(element) {
-    if (dismissedElement === element) {
-      log.debug(`Check suppressed — user dismissed corrections on ${describeElement(element)}`);
-      return;
-    }
-
-    const text = getTextFromElement(element);
-    if (text.trim().length < MIN_TEXT_LENGTH) {
-      log.info(`Text too short (${text.trim().length}/${MIN_TEXT_LENGTH} chars) — skipping check`);
-      return;
-    }
-
-    if (lastCheckedText.get(element) === text) {
-      log.debug(`Text unchanged since last check on ${describeElement(element)} — skipping`);
-      return;
-    }
-
-    const gen = ++checkGeneration;
-    log.info(`Checking grammar on ${describeElement(element)} — ${text.length} chars (gen ${gen})`);
-    showIndicator(element);
-    const endTimer = log.time("check-roundtrip");
-
-    try {
-      log.info("Sending CHECK_GRAMMAR to background…");
-      const response = await chrome.runtime.sendMessage({
-        type: "CHECK_GRAMMAR",
-        text: text,
-      });
-
-      endTimer();
-
-      if (gen !== checkGeneration) {
-        log.debug(`Check gen ${gen} superseded by gen ${checkGeneration} — discarding stale response`);
-        return;
-      }
-
-      removeIndicator();
-
-      if (response.success) {
-        lastCheckedText.set(element, text);
-        const count = getCorrectionCount(response.data, text);
-        log.info(`Response received — ${count} issue(s) found`);
-        if (count > 0) {
-          log.debug(
-            "Corrections:",
-            (response.data.changes || []).map((c) => `"${c.original}" → "${c.replacement}"`),
-          );
-        }
-        if (count === 0) return;
-        showTooltip(element, response.data);
-      } else {
-        log.error("Grammar check failed:", response.error);
-        showCheckErrorNudge(response.error, element);
-      }
-    } catch (err) {
-      endTimer();
-
-      if (gen !== checkGeneration) {
-        log.debug(`Check gen ${gen} error discarded (superseded by gen ${checkGeneration})`);
-        return;
-      }
-
-      removeIndicator();
-      log.error("Message to background failed:", err.message);
-      showCheckErrorNudge(null, element);
-    }
+  const WritingSession = globalThis.CorrectlyWritingSession;
+  if (!WritingSession) {
+    log.error("WritingSession missing. Expected content/writing-session.js to load before content/content.js");
+    return;
   }
 
-  let lastLoggedElement = null;
+  async function sendCheck(text) {
+    return chrome.runtime.sendMessage({ type: "CHECK_GRAMMAR", text });
+  }
+
+  const writingSession = new WritingSession({
+    debounceMs: DEBOUNCE_MS,
+    minTextLength: MIN_TEXT_LENGTH,
+    resolveEditableHost,
+    shouldCheckElement,
+    getTextFromElement,
+    sendCheck,
+    showIndicator,
+    removeIndicator,
+    showTooltip,
+    showCheckErrorNudge,
+    isTooltipFocus: (relatedTarget) => Boolean(tooltipEl?.contains(relatedTarget)),
+    setActiveElement: (el) => {
+      activeElement = el;
+    },
+    getCorrectionCount,
+    log,
+  });
 
   function handleInput(event) {
-    if (applyingCorrection) {
-      log.debug("Ignoring input event from our own correction");
-      return;
-    }
-
-    const raw = event.target;
-    const el = resolveEditableHost(raw);
-
-    log.debug(
-      `Input event → target: ${describeElement(raw)}, resolved: ${describeElement(el)}, isContentEditable: ${el?.isContentEditable}`,
-    );
-
-    const decision = shouldCheckElement(el);
-
-    if (!decision.check) {
-      if (decision.reason !== "not an editable prose element" && decision.reason !== "null element") {
-        log.info(`Input on ${describeElement(el)} — skipped: ${decision.reason}`);
-      }
-      return;
-    }
-
-    if (el !== lastLoggedElement) {
-      log.info(`Typing detected on ${describeElement(el)} — ${decision.reason}`);
-      lastLoggedElement = el;
-    }
-
-    if (dismissedElement === el) {
-      log.debug("Dismissed element received new input — re-enabling checks");
-      dismissedElement = null;
-    }
-
-    activeElement = el;
-
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
-    log.debug(`Debounce started — will check in ${DEBOUNCE_MS}ms`);
-    debounceTimer = setTimeout(() => {
-      debounceTimer = null;
-      log.info(`Debounce complete — checking ${describeElement(el)}`);
-      checkGrammar(el);
-    }, DEBOUNCE_MS);
+    writingSession.handleInput(event);
   }
 
   function handleFocusOut(event) {
-    if (tooltipEl?.contains(event.relatedTarget)) {
-      log.debug("Focus moved to tooltip — ignoring focusout");
-      return;
-    }
-
-    const el = resolveEditableHost(event.target);
-    const decision = shouldCheckElement(el);
-    if (!decision.check) return;
-
-    log.debug(`Focus out on ${describeElement(el)}`);
-
-    if (debounceTimer) {
-      log.debug("Clearing pending debounce timer (focus left element)");
-      clearTimeout(debounceTimer);
-      debounceTimer = null;
-    }
-
-    const text = getTextFromElement(el);
-    if (text.trim().length < MIN_TEXT_LENGTH) {
-      log.debug(`Text too short on focus out (${text.trim().length} chars < ${MIN_TEXT_LENGTH}), skipping`);
-      return;
-    }
-
-    log.info(`Focus out — triggering check on ${describeElement(el)}`);
-    activeElement = el;
-    checkGrammar(el);
+    writingSession.handleFocusOut(event);
   }
 
   let siteActive = false;
@@ -1003,12 +891,7 @@
     document.removeEventListener("input", handleInput, true);
     document.removeEventListener("focusout", handleFocusOut, true);
     hideTooltip();
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-      debounceTimer = null;
-    }
-    lastCheckedText = new WeakMap();
-    dismissedElement = null;
+    writingSession.deactivate();
     ignoreState = new WeakMap();
     activeElement = null;
     log.info("Event listeners removed — Correctly is paused on this site");

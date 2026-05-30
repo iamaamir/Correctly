@@ -67,7 +67,8 @@ correctly/
 │       ├── settings.js        # Settings verification and status
 │       └── chrome-free-ai.js  # Chrome Free AI status and download
 ├── content/
-│   ├── content.js             # Input detection, tooltip, correction logic
+│   ├── writing-session.js     # Content-side typing lifecycle and stale check handling
+│   ├── content.js             # Input detection, tooltip, correction adapters
 │   └── content.css            # Tooltip and indicator styles
 ├── popup/
 │   ├── popup.html             # Settings UI

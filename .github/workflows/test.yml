@@ -27,5 +27,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run unit tests
         run: npm test
+
+      - name: Run E2E tests
+        env:
+          PW_HEADLESS: "0"
+          PW_EXTENSION_SW_TIMEOUT_MS: "90000"
+        run: xvfb-run -a npm run test:e2e
