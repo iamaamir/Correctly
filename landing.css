@@ -839,8 +839,7 @@ h3 {
 
 @media (max-width: 680px) {
   body {
-    background:
-      linear-gradient(180deg, oklch(17% 0.012 155), var(--bg) 520px);
+    background: linear-gradient(180deg, oklch(17% 0.012 155), var(--bg) 520px);
     background-size: auto;
     background-position: 0 0;
   }
