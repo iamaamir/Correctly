@@ -860,6 +860,7 @@
       activeElement = el;
     },
     getCorrectionCount,
+    log,
   });
 
   function handleInput(event) {
