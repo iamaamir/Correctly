@@ -22,6 +22,7 @@ function makeSession(overrides = {}) {
     isTooltipFocus: () => false,
     setActiveElement: vi.fn(),
     getCorrectionCount: () => 0,
+    log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
     ...overrides,
   });
 }
@@ -148,7 +149,10 @@ describe("WritingSession", () => {
     session.deactivate();
 
     await vi.advanceTimersByTimeAsync(200);
-    await session.checkGrammar(el);
+    expect(sendCheck).toHaveBeenCalledTimes(0);
+
+    session.handleInput({ target: el });
+    await vi.advanceTimersByTimeAsync(200);
 
     expect(sendCheck).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
