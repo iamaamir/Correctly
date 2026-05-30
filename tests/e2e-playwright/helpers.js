@@ -1,8 +1,8 @@
-import { chromium } from "playwright";
-import http from "node:http";
-import path from "node:path";
 import fs from "node:fs/promises";
+import http from "node:http";
 import os from "node:os";
+import path from "node:path";
+import { chromium } from "playwright";
 
 export const HOST = "127.0.0.1";
 const extensionPath = path.resolve(".");
@@ -38,7 +38,23 @@ export async function launchExtensionContext() {
     headless: process.env.PW_HEADLESS !== "0",
     args: [`--disable-extensions-except=${extensionPath}`, `--load-extension=${extensionPath}`],
   });
-  const sw = context.serviceWorkers()[0] || (await context.waitForEvent("serviceworker", { timeout: 15000 }));
+
+  const timeoutMs = Number(process.env.PW_EXTENSION_SW_TIMEOUT_MS || "60000");
+  const deadline = Date.now() + timeoutMs;
+  let sw = context.serviceWorkers()[0];
+
+  while (!sw && Date.now() < deadline) {
+    try {
+      sw = await context.waitForEvent("serviceworker", { timeout: 2000 });
+    } catch {
+      sw = context.serviceWorkers()[0];
+    }
+  }
+
+  if (!sw) {
+    throw new Error(`Extension service worker did not load within ${timeoutMs}ms`);
+  }
+
   const extensionId = new URL(sw.url()).host;
   return { context, sw, extensionId, userDataDir };
 }
