@@ -6,6 +6,6 @@ export default defineConfig({
     include: ["tests/**/*.test.js"],
     restoreMocks: false,
     clearMocks: true,
-    mockReset: true,
+    mockReset: false,
   },
 });
