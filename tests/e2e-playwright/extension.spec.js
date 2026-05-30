@@ -23,7 +23,7 @@ test("E2E-BOOT-001 extension boot + popup providers", async () => {
       assert(providerIds.includes(id), `missing provider option: ${id}`);
     }
   } finally {
-    await cleanupContext(context, userDataDir);
+    await cleanupContext(context, userDataDir).catch(() => {});
     await new Promise((r) => fixture.server.close(r));
   }
 });
@@ -91,7 +91,7 @@ test("E2E-CONTENT-001/002 popup config -> tooltip -> apply correction", async ()
       { timeout: 10000 },
     );
   } finally {
-    await cleanupContext(context, userDataDir);
+    await cleanupContext(context, userDataDir).catch(() => {});
     await new Promise((r) => fixture.server.close(r));
     await mock.close();
   }
