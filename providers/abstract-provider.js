@@ -222,9 +222,7 @@ export class AbstractProvider {
         // This avoids cascading on valid responses and reduces unnecessary API calls.
         if (i < 2 && validated.changes.length === 0 && validated.corrected !== text) {
           if (merged >= 60) {
-            log.debug(
-              `Level ${i + 1}: empty changes but merged confidence ${merged} >= 60 — accepting response`,
-            );
+            log.debug(`Level ${i + 1}: empty changes but merged confidence ${merged} >= 60 — accepting response`);
             // Accept: model succeeded, just can't provide detailed change breakdown
           } else {
             log.debug(`Level ${i + 1}: empty changes and merged confidence ${merged} < 60 — cascading`);
