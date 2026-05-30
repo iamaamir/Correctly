@@ -60,7 +60,9 @@ jobs:
           mv manifest.tmp manifest.json
           mkdir -p dist/correctly
           cp manifest.json LICENSE dist/correctly/
-          cp -r background content popup lib providers icons dist/correctly/
+          cp -r background content popup lib providers dist/correctly/
+          mkdir -p dist/correctly/icons
+          cp icons/icon16.png icons/icon48.png icons/icon128.png dist/correctly/icons/
           cd dist && zip -X -9 -r ../correctly.zip correctly && cd ..
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
