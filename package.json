@@ -5,11 +5,15 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "test:e2e": "node tests/e2e-playwright/extension.spec.js",
+    "test:e2e": "playwright test tests/e2e-playwright",
+    "test:e2e:provider": "playwright test tests/e2e-playwright/provider-contract.spec.js",
+    "test:e2e:popup": "playwright test tests/e2e-playwright/popup-model-loading.spec.js",
+    "test:e2e:all": "playwright test tests/e2e-playwright",
     "lint": "biome check .",
     "lint:fix": "biome check . --fix"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@vitest/ui": "4.1.7",
     "happy-dom": "20.9.0",
     "playwright": "^1.60.0",
