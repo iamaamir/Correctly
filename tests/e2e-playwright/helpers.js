@@ -7,10 +7,6 @@ import { chromium } from "playwright";
 export const HOST = "127.0.0.1";
 const extensionPath = path.resolve(".");
 
-export function assert(condition, message) {
-  if (!condition) throw new Error(message);
-}
-
 export async function startFixtureServer() {
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || "/", "http://127.0.0.1");
