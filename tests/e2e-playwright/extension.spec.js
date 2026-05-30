@@ -34,27 +34,25 @@ test("E2E-CONTENT-001/002 popup config -> tooltip -> apply correction", async ()
     preset: "happyPath",
     overrides: {
       models: [{ id: "mock-model-a" }],
-      chatCompletions: [
-        {
-          type: "success",
-          body: {
-            id: "x",
-            model: "mock-model-a",
-            choices: [
-              {
-                message: {
-                  content: JSON.stringify({
-                    corrected: "this is the sample text",
-                    changes: [{ original: "teh", replacement: "the", explanation: "spelling" }],
-                    confidence: 9,
-                  }),
-                },
+      chatCompletions: Array.from({ length: 4 }, () => ({
+        type: "success",
+        body: {
+          id: "x",
+          model: "mock-model-a",
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  corrected: "this is the sample text",
+                  changes: [{ original: "teh", replacement: "the", explanation: "spelling" }],
+                  confidence: 9,
+                }),
               },
-            ],
-            usage: { total_tokens: 12 },
-          },
+            },
+          ],
+          usage: { total_tokens: 12 },
         },
-      ],
+      })),
     },
   });
   const { context, extensionId, userDataDir } = await launchExtensionContext();
