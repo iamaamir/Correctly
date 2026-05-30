@@ -23,7 +23,12 @@ export async function startMockProviderServer({ host = "127.0.0.1", scenario } =
 
       const responses = scenario?.chatCompletions ?? [];
       const currentIndex = completionIndex++;
-      const current = currentIndex < responses.length ? responses[currentIndex] : null;
+      if (currentIndex >= responses.length) {
+        res.writeHead(500, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "unexpected request: scenario responses exhausted" }));
+        return;
+      }
+      const current = responses[currentIndex];
 
       if (current?.delayMs) await new Promise((r) => setTimeout(r, current.delayMs));
 
@@ -33,7 +38,8 @@ export async function startMockProviderServer({ host = "127.0.0.1", scenario } =
         return;
       }
 
-      const payload = current?.body || {
+      const userText = body.messages?.findLast?.((message) => message.role === "user")?.content || "";
+      const payload = current.body || {
         id: "chatcmpl-mock",
         model: body.model || "mock-model-a",
         choices: [
@@ -41,7 +47,7 @@ export async function startMockProviderServer({ host = "127.0.0.1", scenario } =
             index: 0,
             message: {
               role: "assistant",
-              content: JSON.stringify({ corrected: "ok", changes: [], confidence: 10 }),
+              content: JSON.stringify({ corrected: userText, changes: [], confidence: 10 }),
             },
             finish_reason: "stop",
           },

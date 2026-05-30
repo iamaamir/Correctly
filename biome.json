@@ -22,6 +22,6 @@
     "globals": ["chrome"]
   },
   "files": {
-    "includes": ["**", "!**/.github", "!**/_metadata"]
+    "includes": ["**", "!**/.github", "!**/_metadata", "!test-results", "!playwright-report", "!blob-report"]
   }
 }
