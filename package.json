@@ -5,12 +5,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
+    "test:e2e": "node tests/e2e-playwright/extension.spec.js",
     "lint": "biome check .",
     "lint:fix": "biome check . --fix"
   },
   "devDependencies": {
     "@vitest/ui": "4.1.7",
     "happy-dom": "20.9.0",
+    "playwright": "^1.60.0",
     "vitest": "4.1.7"
   }
 }
