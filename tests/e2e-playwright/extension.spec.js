@@ -1,8 +1,8 @@
 import { test } from "@playwright/test";
-import { assert } from "../mocks/server/assertions.js";
 import { createMockOpenAI } from "../mocks/providers/mock-openai.js";
 import { configureOpenAICompatibleViaPopup } from "../mocks/providers/setup.js";
-import { HOST, cleanupContext, launchExtensionContext, startFixtureServer } from "./helpers.js";
+import { assert } from "../mocks/server/assertions.js";
+import { cleanupContext, HOST, launchExtensionContext, startFixtureServer } from "./helpers.js";
 
 test("E2E-BOOT-001 extension boot + popup providers", async () => {
   const fixture = await startFixtureServer();
@@ -15,7 +15,9 @@ test("E2E-BOOT-001 extension boot + popup providers", async () => {
 
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup/popup.html`, { waitUntil: "load" });
-    await popup.waitForFunction(() => document.querySelectorAll("#provider-select option").length > 0, undefined, { timeout: 10000 });
+    await popup.waitForFunction(() => document.querySelectorAll("#provider-select option").length > 0, undefined, {
+      timeout: 10000,
+    });
     const providerIds = await popup.$$eval("#provider-select option", (opts) => opts.map((o) => o.value));
     for (const id of ["openai", "chrome-free-ai", "ollama", "lmstudio", "openai-compatible"]) {
       assert(providerIds.includes(id), `missing provider option: ${id}`);
@@ -32,14 +34,39 @@ test("E2E-CONTENT-001/002 popup config -> tooltip -> apply correction", async ()
     preset: "happyPath",
     overrides: {
       models: [{ id: "mock-model-a" }],
-      chatCompletions: [{ type: "success", body: { id: "x", model: "mock-model-a", choices: [{ message: { content: JSON.stringify({ corrected: "this is the sample text", changes: [{ original: "teh", replacement: "the", explanation: "spelling" }], confidence: 9 }) } }], usage: { total_tokens: 12 } } }],
+      chatCompletions: [
+        {
+          type: "success",
+          body: {
+            id: "x",
+            model: "mock-model-a",
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    corrected: "this is the sample text",
+                    changes: [{ original: "teh", replacement: "the", explanation: "spelling" }],
+                    confidence: 9,
+                  }),
+                },
+              },
+            ],
+            usage: { total_tokens: 12 },
+          },
+        },
+      ],
     },
   });
   const { context, extensionId, userDataDir } = await launchExtensionContext();
   try {
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup/popup.html`, { waitUntil: "load" });
-    await configureOpenAICompatibleViaPopup({ popup, baseUrl: mock.baseUrl, apiKey: "test-key", model: "mock-model-a" });
+    await configureOpenAICompatibleViaPopup({
+      popup,
+      baseUrl: mock.baseUrl,
+      apiKey: "test-key",
+      model: "mock-model-a",
+    });
 
     const page = await context.newPage();
     await page.goto(`http://${HOST}:${fixture.port}/tests/e2e/fixtures/editor.html`, { waitUntil: "load" });
@@ -49,7 +76,10 @@ test("E2E-CONTENT-001/002 popup config -> tooltip -> apply correction", async ()
     const tooltipText = await page.locator(".correctly-tooltip").innerText();
     assert(tooltipText.includes("the"), "missing replacement in tooltip");
 
-    const applyAllVisible = await page.locator(".correctly-accept").isVisible().catch(() => false);
+    const applyAllVisible = await page
+      .locator(".correctly-accept")
+      .isVisible()
+      .catch(() => false);
     if (applyAllVisible) {
       await page.click(".correctly-accept");
     } else {
