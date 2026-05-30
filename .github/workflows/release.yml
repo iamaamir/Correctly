@@ -63,6 +63,7 @@ jobs:
           cp -r background content popup lib providers dist/correctly/
           # conservative JS minify (syntax+whitespace only, no identifier mangling)
           find dist/correctly -type f -name '*.js' -print0 | xargs -0 -I{} npx --yes esbuild {} --minify-syntax --minify-whitespace --legal-comments=none --allow-overwrite --outfile={}
+          find dist/correctly -type f -name '*.css' -print0 | xargs -0 -I{} npx --yes esbuild {} --minify --legal-comments=none --allow-overwrite --outfile={}
           mkdir -p dist/correctly/icons
           cp icons/icon16.png dist/correctly/icons/
           cd dist/correctly && zip -X -9 -D -r ../../correctly.zip . && cd ../..
