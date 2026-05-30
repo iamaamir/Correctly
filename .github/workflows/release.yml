@@ -63,7 +63,7 @@ jobs:
           cp -r background content popup lib providers dist/correctly/
           mkdir -p dist/correctly/icons
           cp icons/icon16.png icons/icon48.png icons/icon128.png dist/correctly/icons/
-          cd dist && zip -X -9 -r ../correctly.zip correctly && cd ..
+          cd dist && zip -X -9 -D -r ../correctly.zip correctly && cd ..
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - uses: softprops/action-gh-release@v2
