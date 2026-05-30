@@ -1,6 +1,12 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.16/schema.json",
-  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
   "linter": {
     "enabled": true,
     "rules": {
@@ -22,6 +28,6 @@
     "globals": ["chrome"]
   },
   "files": {
-    "includes": ["**", "!**/.github", "!**/_metadata", "!test-results", "!playwright-report", "!blob-report"]
+    "includes": ["**", "!**/.github", "!**/_metadata", "!test-results", "!playwright-report", "!blob-report", "!**/dist"]
   }
 }
