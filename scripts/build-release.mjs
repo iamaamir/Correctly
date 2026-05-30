@@ -68,8 +68,5 @@ run("bash", [
   "-lc",
   "jq -c . dist/correctly/background/dnr-rules.json > dist/correctly/background/dnr-rules.json.tmp && mv dist/correctly/background/dnr-rules.json.tmp dist/correctly/background/dnr-rules.json",
 ]);
-run("bash", [
-  "-lc",
-  "find dist/correctly -type f -name '*.js' -print0 | xargs -0 -I{} node --check {}",
-]);
+run("bash", ["-lc", "find dist/correctly -type f -name '*.js' -print0 | xargs -0 -I{} node --check {}"]);
 run("bash", ["-lc", "cd dist/correctly && zip -X -9 -D -r ../../correctly.zip ."]);
