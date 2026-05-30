@@ -1,8 +1,8 @@
 import { test } from "@playwright/test";
-import { HOST, cleanupContext, launchExtensionContext } from "./helpers.js";
-import { assert } from "../mocks/server/assertions.js";
 import { createMockOpenAI } from "../mocks/providers/mock-openai.js";
 import { configureOpenAICompatibleViaPopup } from "../mocks/providers/setup.js";
+import { assert } from "../mocks/server/assertions.js";
+import { cleanupContext, launchExtensionContext } from "./helpers.js";
 
 test("popup async model loading + save", async () => {
   const mock = await createMockOpenAI({ preset: "happyPath" });
@@ -10,7 +10,12 @@ test("popup async model loading + save", async () => {
   try {
     const popup = await context.newPage();
     await popup.goto(`chrome-extension://${extensionId}/popup/popup.html`, { waitUntil: "load" });
-    await configureOpenAICompatibleViaPopup({ popup, baseUrl: mock.baseUrl, apiKey: "test-key", model: "mock-model-a" });
+    await configureOpenAICompatibleViaPopup({
+      popup,
+      baseUrl: mock.baseUrl,
+      apiKey: "test-key",
+      model: "mock-model-a",
+    });
     const modelValues = await popup.$$eval("#model-select option", (opts) => opts.map((o) => o.value));
     assert(modelValues.includes("mock-model-a"), "mock-model-a not loaded");
     await popup.waitForTimeout(1200);
