@@ -61,7 +61,7 @@ jobs:
           mkdir -p dist/correctly
           cp manifest.json LICENSE dist/correctly/
           cp -r background content popup lib providers icons dist/correctly/
-          cd dist && zip -r ../correctly.zip correctly && cd ..
+          cd dist && zip -X -9 -r ../correctly.zip correctly && cd ..
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - uses: softprops/action-gh-release@v2
