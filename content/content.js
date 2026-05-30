@@ -846,13 +846,52 @@
     return;
   }
 
+  function isTestMode() {
+    if (new URLSearchParams(window.location.search).get("correctly_test") === "1") return true;
+    return document.documentElement.getAttribute("data-correctly-test-mode") === "1";
+  }
+
+  async function sendCheck(text) {
+    const root = document.documentElement;
+    if (isTestMode()) {
+      const currentCount = Number(root.getAttribute("data-correctly-test-check-count") || "0");
+      root.setAttribute("data-correctly-test-check-count", String(currentCount + 1));
+      root.setAttribute("data-correctly-test-last-text", text);
+
+      const queueRaw = root.getAttribute("data-correctly-test-responses");
+      if (queueRaw) {
+        try {
+          const queue = JSON.parse(queueRaw);
+          const next = Array.isArray(queue) ? queue.shift() : null;
+          root.setAttribute("data-correctly-test-responses", JSON.stringify(queue || []));
+          if (next) {
+            const delayMs = Number(next.delayMs || 0);
+            if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
+            return next.response;
+          }
+        } catch {}
+      }
+
+      return {
+        success: true,
+        data: {
+          corrected: text,
+          changes: [],
+          confidence: 10,
+        },
+      };
+    }
+
+    return chrome.runtime.sendMessage({ type: "CHECK_GRAMMAR", text });
+  }
+
   const writingSession = new WritingSession({
     debounceMs: DEBOUNCE_MS,
     minTextLength: MIN_TEXT_LENGTH,
     resolveEditableHost,
     shouldCheckElement,
     getTextFromElement,
-    sendCheck: (text) => chrome.runtime.sendMessage({ type: "CHECK_GRAMMAR", text }),
+    sendCheck,
     showIndicator,
     removeIndicator,
     showTooltip,
@@ -897,6 +936,12 @@
 
   async function init() {
     log.info(`Initializing on ${window.location.href}`);
+
+    if (isTestMode()) {
+      activate();
+      log.info("Test mode active — bypassing status/config checks");
+      return;
+    }
 
     chrome.storage.onChanged.addListener(async (changes, areaName) => {
       if (areaName !== "local") return;
