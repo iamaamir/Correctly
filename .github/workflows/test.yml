@@ -34,4 +34,7 @@ jobs:
         run: npm test
 
       - name: Run E2E tests
-        run: npm run test:e2e
+        env:
+          PW_HEADLESS: "0"
+          PW_EXTENSION_SW_TIMEOUT_MS: "90000"
+        run: xvfb-run -a npm run test:e2e
