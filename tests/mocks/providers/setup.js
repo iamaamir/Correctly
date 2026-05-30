@@ -1,4 +1,9 @@
-export async function configureOpenAICompatibleViaPopup({ popup, baseUrl, apiKey = "test-key", model = "mock-model-a" }) {
+export async function configureOpenAICompatibleViaPopup({
+  popup,
+  baseUrl,
+  apiKey = "test-key",
+  model = "mock-model-a",
+}) {
   await popup.waitForSelector("#provider-select", { timeout: 10000 });
   await popup.selectOption("#provider-select", "openai-compatible");
   await popup.fill("#base-url", baseUrl);
@@ -12,7 +17,12 @@ export async function configureOpenAICompatibleViaPopup({ popup, baseUrl, apiKey
   await popup.click("#save-btn");
 }
 
-export async function seedOpenAICompatibleViaServiceWorker({ sw, baseUrl, apiKey = "test-key", model = "mock-model-a" }) {
+export async function seedOpenAICompatibleViaServiceWorker({
+  sw,
+  baseUrl,
+  apiKey = "test-key",
+  model = "mock-model-a",
+}) {
   await sw.evaluate(
     async (cfg) => {
       await chrome.storage.local.set({
