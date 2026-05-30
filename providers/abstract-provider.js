@@ -215,9 +215,21 @@ export class AbstractProvider {
         const merged = await mergeConfidence(modelConfidence, scored.score);
         onProgress?.({ status, confidence: merged });
 
+        // Handle empty changes response using score-based decision logic.
+        // Empty changes with different corrected text can indicate:
+        //   1. Model supports this level but couldn't extract detailed changes (score >= 60)
+        //   2. Model doesn't actually support this level (score < 60) — try next level
+        // This avoids cascading on valid responses and reduces unnecessary API calls.
         if (i < 2 && validated.changes.length === 0 && validated.corrected !== text) {
-          log.debug(`Level ${i + 1}: changes empty but corrected differs — cascading`);
-          continue;
+          if (merged >= 60) {
+            log.debug(
+              `Level ${i + 1}: empty changes but merged confidence ${merged} >= 60 — accepting response`,
+            );
+            // Accept: model succeeded, just can't provide detailed change breakdown
+          } else {
+            log.debug(`Level ${i + 1}: empty changes and merged confidence ${merged} < 60 — cascading`);
+            continue;
+          }
         }
 
         if (i >= 2 || merged >= 60) {
