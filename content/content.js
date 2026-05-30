@@ -1,4 +1,6 @@
 (async () => {
+  document.documentElement.setAttribute("data-correctly-content-script", "1");
+
   const LOG_PREFIX = "[Correctly][content]";
   const LOG_STYLES = {
     debug: "color: #888",
