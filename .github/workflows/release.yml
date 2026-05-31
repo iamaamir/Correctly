@@ -51,7 +51,7 @@ jobs:
           IFS='.' read -r major minor patch <<< "${BASE_VERSION}"
           NEW_VERSION="${major}.${minor}.$((patch + 1))"
 
-          if git ls-remote --exit-code --tags origin "refs/tags/v${NEW_VERSION}" >/dev/null 2>&1; then
+          if ! git ls-remote --exit-code --tags origin "refs/tags/v${NEW_VERSION}" >/dev/null 2>&1; then
             echo "Refusing to release: tag v${NEW_VERSION} already exists."
             exit 1
           fi
