@@ -10,10 +10,13 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", Ubuntu, "Helvetica Neue", Arial, sans-serif;
   width: 320px;
   background: #fafafa;
   color: #1a1a1a;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .container {
@@ -918,6 +921,12 @@ input:focus {
 }
 
 /* ── Reduced motion ── */
+
+@supports (-moz-appearance: none) {
+  body {
+    font-size-adjust: 0.5;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   #custom-model:not([hidden]),

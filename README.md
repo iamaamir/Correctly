@@ -1,6 +1,6 @@
 # Correctly
 
-A minimalist Chrome extension that checks grammar, spelling, and punctuation using AI — either your own API key or Chrome's built-in Gemini Nano.
+A minimalist browser extension that checks grammar, spelling, and punctuation using AI — either your own API key or Chrome's built-in Gemini Nano.
 
 
 <img alt="image" src="./social-card.png" />
@@ -22,14 +22,25 @@ A minimalist Chrome extension that checks grammar, spelling, and punctuation usi
 
 ## Install
 
-1. Download `correctly.zip` from the [latest release](https://github.com/iamaamir/Correctly/releases), then unzip it.
+1. Download target package from [latest release](https://github.com/iamaamir/Correctly/releases):
+   - `correctly-chrome.zip` for Chrome/Chromium
+   - `correctly-firefox.xpi` for Firefox
    Or clone the repo:
    ```
    git clone https://github.com/iamaamir/Correctly.git
    ```
-2. Open `chrome://extensions` in Chrome
-3. Enable **Developer mode** (top right)
-4. Click **Load unpacked** and select the unzipped `correctly` folder or the cloned repo folder
+2. For Chrome/Chromium:
+   - Open `chrome://extensions`
+   - Enable **Developer mode**
+   - Click **Load unpacked** and select unzipped folder
+
+   For Firefox (temporary/dev install):
+   - Open `about:debugging#/runtime/this-firefox`
+   - Click **Load Temporary Add-on...**
+   - Select `manifest.json` in source folder
+
+   For Firefox persistent install:
+   - Install AMO-signed `correctly-firefox.xpi`
 5. Click the extension icon, select your provider, enter an API key if required, and save
    - **OpenAI**: enter your OpenAI API key
    - **Chrome Free AI**: no API key needed — enable `chrome://flags/#optimization-guide-on-device-model` and `chrome://flags/#prompt-api-for-gemini-nano`, then select "Chrome Free AI" and click Download
@@ -58,7 +69,9 @@ correctly/
 ├── index.html             # Static landing page for the project
 ├── landing.css            # Landing page styles
 ├── landing.js             # Landing page enhancement script
-├── manifest.json
+├── manifest.base.json
+├── manifest.chrome.patch.json
+├── manifest.firefox.patch.json
 ├── background/
 │   ├── service-worker.js      # Message routing, badge, provider orchestration
 │   └── handlers/
@@ -112,7 +125,7 @@ Correctly supports any service that offers an OpenAI-compatible API (e.g., [Groq
 
 ## Privacy and Security
 
-- **Your API key is stored locally** in `chrome.storage.local` on your device. It is never sent to any server other than your chosen AI provider.
+- **Your API key is stored locally** in browser extension local storage on your device. It is never sent to any server other than your chosen AI provider.
 - **Chrome Free AI runs entirely on-device** — text is processed by Chrome's built-in Gemini Nano model. No data is ever sent over the network.
 - **For other providers** (e.g., OpenAI), text you type is sent to the chosen AI provider for grammar checking. Avoid typing sensitive information in fields where the extension is active, or use `data-correctly="false"` to opt out specific elements.
 - Password fields, credit card inputs, and other sensitive field types are automatically excluded.
@@ -129,6 +142,39 @@ Correctly supports any service that offers an OpenAI-compatible API (e.g., [Groq
   `_doCorrectGrammar(text)` and all required static metadata.
 
 Then add the class to `PROVIDER_CLASSES` in `provider-registry.js`.
+
+## Build release zips
+
+```bash
+npm run build:release:chrome
+npm run build:release:firefox
+npm run build:release
+```
+
+- `build:release:chrome` -> `correctly-chrome.zip`
+- `build:release:firefox` -> `correctly-firefox.xpi`
+- `build:release` builds both
+
+## Firefox signing (persistent install)
+
+Firefox removes temporary add-ons on restart. For persistent install, sign on AMO.
+
+1. Create AMO API credentials (JWT issuer/secret)
+2. Upload unsigned package (`correctly-firefox.xpi`) to AMO (listed or unlisted)
+3. Download signed `.xpi`
+4. Install signed `.xpi` in Firefox
+
+Tip: use unlisted AMO for private/internal distribution.
+
+### CI automation (GitHub Actions)
+
+Release workflow can auto-sign unlisted Firefox build via AMO.
+Set repository secrets:
+
+- `AMO_API_KEY`
+- `AMO_API_SECRET`
+
+Then run release workflow. It builds unsigned package, submits to AMO, downloads signed XPI, and attaches `correctly-firefox.xpi` to GitHub release.
 
 ## License
 ![License](https://www.shieldcn.dev/github/license/iamaamir/Correctly.svg?variant=ghost&size=sm&mode=light&theme=zinc)

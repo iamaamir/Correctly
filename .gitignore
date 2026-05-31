@@ -6,5 +6,9 @@ playwright-report/
 blob-report/
 dist/
 correctly.zip
+correctly-chrome.zip
+correctly-firefox.xpi
+correctly-firefox.zip
+web-ext-artifacts/
 _metadata/
 docs/

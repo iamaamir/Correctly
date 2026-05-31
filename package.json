@@ -11,7 +11,10 @@
     "test:e2e:all": "playwright test tests/e2e-playwright",
     "lint": "biome check .",
     "lint:fix": "biome check . --fix",
-    "build:release": "node scripts/build-release.mjs"
+    "build:clean": "rm -rf dist web-ext-artifacts correctly-chrome.zip correctly-firefox.xpi",
+    "build:release": "npm run build:release:chrome && npm run build:release:firefox",
+    "build:release:chrome": "node scripts/build-release.mjs --target=chrome",
+    "build:release:firefox": "node scripts/build-release.mjs --target=firefox"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
