@@ -59,7 +59,7 @@ describe("AbstractProvider response validation", () => {
     const provider = new TestProvider("", "test-model");
 
     expect(() => provider._validateResponse({ corrected: "Hello.", changes: [] }, "Hello.")).toThrow(
-      'Provider response missing "confidence" number from 1-10',
+      "Provider response invalid:",
     );
   });
 
@@ -77,7 +77,7 @@ describe("AbstractProvider response validation", () => {
     const provider = new TestProvider("", "test-model");
 
     expect(() => provider._validateResponse({ corrected: "Hello.", changes: [], confidence: 0 }, "Hello.")).toThrow(
-      'Provider response missing "confidence" number from 1-10',
+      "Provider response invalid:",
     );
   });
 });
@@ -235,5 +235,29 @@ describe("OpenAI-compatible response schema", () => {
       { useSchema: false, level3: false },
       { useSchema: false, level3: true },
     ]);
+  });
+
+  it("uses endpoint-specific model level cache keys", async () => {
+    vi.stubGlobal("chrome", createChromeStub());
+    const firstProvider = new TestOpenAICompatibleProvider("test-key", "same-model");
+    firstProvider.endpoint = "https://first.example/v1/chat/completions";
+    const secondProvider = new TestOpenAICompatibleProvider("test-key", "same-model");
+    secondProvider.endpoint = "https://second.example/v1/chat/completions";
+
+    await firstProvider._updateCacheOnSuccess(1, 2, "structured_output_unsupported");
+    await secondProvider._updateCacheOnSuccess(1, 1, "structured_output_supported");
+
+    expect(chrome.storage.local._store.get("modelLevelCache")).toEqual({
+      "test-openai-compatible:https://first.example/v1/chat/completions:same-model": {
+        level: 2,
+        checksAtLevel: 0,
+        reason: "structured_output_unsupported",
+      },
+      "test-openai-compatible:https://second.example/v1/chat/completions:same-model": {
+        level: 1,
+        checksAtLevel: 1,
+        reason: "structured_output_supported",
+      },
+    });
   });
 });
