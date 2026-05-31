@@ -24,6 +24,8 @@ jobs:
         run: |
           set -euo pipefail
 
+          git fetch --tags origin
+
           API_URL="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest"
           RESPONSE=$(curl -sS -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" -w "\n%{http_code}" "${API_URL}")
           BODY=$(printf '%s' "${RESPONSE}" | sed '$d')
@@ -51,7 +53,7 @@ jobs:
           IFS='.' read -r major minor patch <<< "${BASE_VERSION}"
           NEW_VERSION="${major}.${minor}.$((patch + 1))"
 
-          if ! git ls-remote --exit-code --tags origin "refs/tags/v${NEW_VERSION}" >/dev/null 2>&1; then
+          if git ls-remote --exit-code --tags origin "refs/tags/v${NEW_VERSION}" >/dev/null 2>&1; then
             echo "Refusing to release: tag v${NEW_VERSION} already exists."
             exit 1
           fi
