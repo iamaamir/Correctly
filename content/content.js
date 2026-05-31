@@ -616,8 +616,25 @@
       return;
     }
 
-    if (currentCorrection.changes.length > 0) {
-      let text = getTextFromElement(activeElement);
+    const currentText = getTextFromElement(activeElement);
+
+    if (currentCorrection.corrected && currentCorrection.corrected !== currentText) {
+      for (const change of currentCorrection.changes) {
+        if (change.original && !currentText.includes(change.original)) {
+          log.warn(`Visible change not found while applying full correction: "${change.original}"`);
+        }
+      }
+      applyingCorrection = true;
+      try {
+        setTextOnElement(activeElement, currentCorrection.corrected);
+      } finally {
+        applyingCorrection = false;
+      }
+      lastCheckedText.set(activeElement, currentCorrection.corrected);
+      resetIgnoreState(activeElement);
+      log.info(`Applied full text correction on ${describeElement(activeElement)}`);
+    } else if (currentCorrection.changes.length > 0) {
+      let text = currentText;
       for (const change of currentCorrection.changes) {
         text = text.replace(change.original, change.replacement);
       }
@@ -630,16 +647,6 @@
       lastCheckedText.set(activeElement, text);
       resetIgnoreState(activeElement);
       log.info(`Applied ${currentCorrection.changes.length} correction(s) on ${describeElement(activeElement)}`);
-    } else if (currentCorrection.corrected) {
-      applyingCorrection = true;
-      try {
-        setTextOnElement(activeElement, currentCorrection.corrected);
-      } finally {
-        applyingCorrection = false;
-      }
-      lastCheckedText.set(activeElement, currentCorrection.corrected);
-      resetIgnoreState(activeElement);
-      log.info(`Applied full text correction on ${describeElement(activeElement)}`);
     }
 
     hideTooltip();
