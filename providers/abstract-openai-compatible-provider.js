@@ -8,8 +8,6 @@ const RETRY_CONFIG = {
   maxDelayMs: 5000,
 };
 
-const NO_STRUCTURED_OUTPUT_KEYS = new Set();
-
 async function fetchWithRetry(url, options) {
   for (let i = 0; i <= RETRY_CONFIG.maxRetries; i++) {
     try {
@@ -149,8 +147,15 @@ export class AbstractOpenAICompatibleProvider extends AbstractProvider {
 
   async _doCorrectGrammar(text) {
     const log = createLogger(this.providerId);
-    const structuredOutputKey = this._getStructuredOutputCacheKey();
-    if (NO_STRUCTURED_OUTPUT_KEYS.has(structuredOutputKey)) {
+
+    // Check persistent cache: if reason implies schema won't work, skip it
+    const cacheData = await chrome.storage.local.get("modelLevelCache").catch(() => ({}));
+    const cache = cacheData.modelLevelCache || {};
+    const cachedEntry = cache[this._getModelLevelCacheKey()];
+    if (
+      cachedEntry?.reason === "level_1_no_schema_supported" ||
+      cachedEntry?.reason === "structured_output_unsupported"
+    ) {
       this._noStructuredOutput = true;
     }
 
@@ -177,10 +182,9 @@ export class AbstractOpenAICompatibleProvider extends AbstractProvider {
       if (err.message && (err.message.includes("response_format") || err.message.includes("json_schema"))) {
         log.warn("response_format rejected, retrying without it");
         this._noStructuredOutput = true;
-        NO_STRUCTURED_OUTPUT_KEYS.add(structuredOutputKey);
         try {
           const result = await attempt(false);
-          log.info("Fallback succeeded — marked as noStructuredOutput");
+          log.info("Fallback succeeded — using no-schema approach");
           return result;
         } catch (fallbackErr) {
           log.error("Fallback also failed:", fallbackErr.message);

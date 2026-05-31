@@ -37,14 +37,9 @@
  *     Must return same structure as getModels().
  */
 import { createLogger } from "../lib/logger.js";
-import {
-  classifyProviderFailure,
-  extractDisplayChanges,
-  mergeConfidence,
-  scoreAcceptedCorrection,
-  validateGrammarResponse,
-} from "../lib/score.js";
+import { classifyProviderFailure, mergeConfidence, scoreResponse, validateGrammarResponse } from "../lib/score.js";
 
+const L2_FAILURE_THRESHOLD = 3;
 const log = createLogger("provider");
 
 export class AbstractProvider {
@@ -206,6 +201,7 @@ export class AbstractProvider {
     log.debug(`Cascade starting at level ${startLevel}`);
     let cacheLevelHint = null;
     let cacheReason = null;
+    let level2CascadeFailed = false;
 
     for (let i = startLevel - 1; i < levels.length; i++) {
       const { fn, status } = levels[i];
@@ -217,36 +213,47 @@ export class AbstractProvider {
         result.responseTimeMs = Math.round(performance.now() - t0);
         const validated = this._validateResponse(result, text, i + 1);
 
-        // Stage 3: Response trust scoring — decide if the corrected text is safe
-        const acceptance = scoreAcceptedCorrection(validated, text, i + 1);
-        if (!acceptance.accepted && i < 2) {
-          log.debug(`Level ${i + 1}: acceptanceScore ${acceptance.acceptanceScore} < 60, cascading`);
+        // Stage 3 & 4: Score response + extract display-safe changes
+        const scored = await scoreResponse(validated, text, i + 1);
+        if (scored.score < 60 && i < 2) {
+          log.debug(`Level ${i + 1}: score ${scored.score} < 60, cascading`);
           continue;
         }
-        if (i >= 2 && !acceptance.accepted) {
-          log.debug(`Level 3: accepting plain-text fallback despite low acceptanceScore ${acceptance.acceptanceScore}`);
+        if (i >= 2 && scored.score < 60) {
+          log.debug(`Level 3: accepting plain-text fallback despite score ${scored.score}`);
         }
 
-        // Stage 4: Suggestion extraction — determine display-safe changes
-        const { displayChanges, hiddenChanges } = extractDisplayChanges(validated, text);
-        if (hiddenChanges.length > 0) {
-          log.debug(`Level ${i + 1}: hiding ${hiddenChanges.length} change(s) from display`);
-          validated.changes = displayChanges;
+        if (scored.suppressed.length > 0) {
+          log.debug(`Level ${i + 1}: hiding ${scored.suppressed.length} change(s) from display`);
+          validated.changes = scored.usable.map(({ _index, _entryScore, _issues, ...rest }) => rest);
         }
 
         // Stage 5: Merge confidence for the user-facing score
-        const displayConfidence = await mergeConfidence(validated.confidence, acceptance.acceptanceScore);
+        const displayConfidence = await mergeConfidence(validated.confidence, scored.score);
         onProgress?.({ status, confidence: displayConfidence });
 
         // Update cache on success
-        // - Capability-based cascade (structured_output_unsupported): downgrade cache
-        // - Score-based cascade (low acceptance): do NOT downgrade cache
-        if (i + 1 <= startLevel) {
-          await this._updateCacheOnSuccess(startLevel, i + 1, i + 1 === 1 ? "structured_output_supported" : undefined);
+        // - Level 1 with schema: structured_output_supported
+        // - Level 1 without schema: level_1_no_schema_supported
+        // - Level via capability cascade (e.g. structured_output_unsupported): use cacheReason
+        // - Level 3 plain-text fallback: plain_text_only
+        // - Score-based cascade: do NOT downgrade cache
+        if (i >= 2 && cacheLevelHint !== null) {
+          await this._updateCacheOnSuccess(startLevel, 3, "plain_text_only");
+        } else if (i + 1 <= startLevel) {
+          const reason = i + 1 === 1 && this._noStructuredOutput ? "level_1_no_schema_supported" : undefined;
+          await this._updateCacheOnSuccess(startLevel, i + 1, reason);
         } else if (cacheLevelHint !== null) {
           await this._updateCacheOnSuccess(startLevel, i + 1, cacheReason);
         } else {
           log.debug(`Level ${i + 1}: not downgrading cache without capability signal`);
+        }
+
+        // Record Level 2 JSON failure before returning L3 success
+        // (persisted on top of cache entry, preserving existing reason/level)
+        if (i >= 2 && level2CascadeFailed) {
+          await this._recordLevel2Failure();
+          level2CascadeFailed = false;
         }
 
         validated.confidence = i >= 2 ? Math.min(Math.max(displayConfidence, 45), 55) : displayConfidence;
@@ -267,9 +274,17 @@ export class AbstractProvider {
           cacheLevelHint = classification.cacheLevelHint;
           cacheReason = classification.cacheReason || classification.kind;
         }
+        // Track repeated Level 2 JSON failures — may mark prompt as unreliable
+        if (i === 1 && classification.kind === "json_not_followed") {
+          level2CascadeFailed = true;
+        }
       }
     }
 
+    // After exhausting all levels: record Level 2 failures if they occurred
+    if (level2CascadeFailed) {
+      await this._recordLevel2Failure();
+    }
     throw new Error("Grammar check failed after exhausting all cascade levels");
   }
 
@@ -363,9 +378,13 @@ export class AbstractProvider {
       const cache = data.modelLevelCache || {};
       const entry = cache[this._getModelLevelCacheKey()];
       if (!entry) return 1;
-      if (entry.level >= 3) {
-        log.debug(`Cache pinned at L3 — model does not support structured output`);
+      if (entry.level >= 3 || entry.reason === "json_prompt_unreliable" || entry.reason === "plain_text_only") {
+        log.debug(`Cache pinned at L3 — ${entry.reason || "level >= 3"}`);
         return 3;
+      }
+      if (entry.reason === "structured_output_unsupported") {
+        log.debug("Cache reason structured_output_unsupported — starting at L2 (no-schema)");
+        return 2;
       }
       if (entry.level > 1 && entry.checksAtLevel >= 10) {
         log.debug(`Cache auto-upgrade — L${entry.level} has ${entry.checksAtLevel} checks, trying L1`);
@@ -392,18 +411,20 @@ export class AbstractProvider {
       const key = this._getModelLevelCacheKey();
       const existing = cache[key];
       const nextReason = reason || existing?.reason || "structured_output_supported";
+      const level2Failures = existing?.level2Failures || 0;
 
       if (succeededLevel < prevStart) {
-        cache[key] = { level: succeededLevel, checksAtLevel: 0, reason: nextReason };
+        cache[key] = { level: succeededLevel, checksAtLevel: 0, reason: nextReason, level2Failures };
         log.debug(`Cache upgraded to level ${succeededLevel}`);
       } else if (succeededLevel > prevStart) {
-        cache[key] = { level: succeededLevel, checksAtLevel: 0, reason: nextReason };
+        cache[key] = { level: succeededLevel, checksAtLevel: 0, reason: nextReason, level2Failures };
         log.debug(`Cache downgraded to level ${succeededLevel}`);
       } else {
         cache[key] = {
           level: succeededLevel,
           checksAtLevel: (existing?.checksAtLevel || 0) + 1,
           reason: nextReason,
+          level2Failures,
         };
         log.debug(`Cache checksAtLevel incremented to ${cache[key].checksAtLevel} at level ${succeededLevel}`);
       }
@@ -411,6 +432,31 @@ export class AbstractProvider {
       await chrome.storage.local.set({ modelLevelCache: cache });
     } catch (err) {
       log.warn("Failed to update model level cache:", err.message);
+    }
+  }
+
+  /**
+   * Records a Level 2 JSON parse failure. After a threshold of repeated
+   * failures, marks the cache as json_prompt_unreliable to skip Level 2
+   * in future cascade attempts.
+   */
+  async _recordLevel2Failure() {
+    try {
+      const data = await chrome.storage.local.get("modelLevelCache");
+      const cache = data.modelLevelCache || {};
+      const key = this._getModelLevelCacheKey();
+      const existing = cache[key] || { level: 1, checksAtLevel: 0, reason: undefined };
+      const failures = (existing.level2Failures || 0) + 1;
+      log.debug(`Level 2 JSON failure #${failures} for ${key}`);
+      if (failures >= L2_FAILURE_THRESHOLD) {
+        cache[key] = { level: 3, checksAtLevel: 0, reason: "json_prompt_unreliable", level2Failures: failures };
+        log.debug("Level 2 repeated failures — cache set to json_prompt_unreliable");
+      } else {
+        cache[key] = { ...existing, level2Failures: failures };
+      }
+      await chrome.storage.local.set({ modelLevelCache: cache });
+    } catch (err) {
+      log.warn("Failed to record Level 2 failure:", err.message);
     }
   }
 
