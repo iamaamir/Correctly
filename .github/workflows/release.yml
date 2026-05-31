@@ -79,7 +79,6 @@ jobs:
           npx --yes web-ext sign \
             --source-dir dist/correctly \
             --channel=unlisted \
-            --id "${{ secrets.AMO_WEB_EXT_ID }}" \
             --api-key "${{ secrets.AMO_API_KEY }}" \
             --api-secret "${{ secrets.AMO_API_SECRET }}"
 
