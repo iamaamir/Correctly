@@ -60,13 +60,15 @@ jobs:
 
           npm ci
           npm run build:release:chrome -- --version="$NEW_VERSION"
-          npm run build:release:firefox -- --version="$NEW_VERSION"
+          npm run build:release:firefox -- --version="$NEW_VERSION" --web-ext-id="${AMO_WEB_EXT_ID}"
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        env:
+          AMO_WEB_EXT_ID: ${{ secrets.AMO_WEB_EXT_ID }}
 
       - name: Sign Firefox add-on on AMO (unlisted)
         uses: saphareas/sign-web-extension-action@master
         with:
-          web-ext-path: dist/correctly
+          entryPoint: dist/correctly
           web-ext-id: ${{ secrets.AMO_WEB_EXT_ID }}
           sign-listed: false
           amo-api-key: ${{ secrets.AMO_API_KEY }}
