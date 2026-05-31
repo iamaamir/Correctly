@@ -1,6 +1,11 @@
 name: Release
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. 0.4.7). Defaults to auto-bump from latest tag."
+        required: false
+        type: string
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -42,17 +47,21 @@ jobs:
             exit 1
           fi
 
-          if [[ -z "${LATEST_TAG}" ]]; then
-            BASE_VERSION="0.0.0"
-          elif [[ "${LATEST_TAG}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-            BASE_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+          if [[ -n "${{ inputs.version }}" ]]; then
+            NEW_VERSION="${{ inputs.version }}"
           else
-            echo "Unsupported release tag format: ${LATEST_TAG} (expected vX.Y.Z)"
-            exit 1
-          fi
+            if [[ -z "${LATEST_TAG}" ]]; then
+              BASE_VERSION="0.0.0"
+            elif [[ "${LATEST_TAG}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+              BASE_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+            else
+              echo "Unsupported release tag format: ${LATEST_TAG} (expected vX.Y.Z)"
+              exit 1
+            fi
 
-          IFS='.' read -r major minor patch <<< "${BASE_VERSION}"
-          NEW_VERSION="${major}.${minor}.$((patch + 1))"
+            IFS='.' read -r major minor patch <<< "${BASE_VERSION}"
+            NEW_VERSION="${major}.${minor}.$((patch + 1))"
+          fi
 
           if git ls-remote --exit-code --tags origin "refs/tags/v${NEW_VERSION}" >/dev/null 2>&1; then
             echo "Refusing to release: tag v${NEW_VERSION} already exists."
@@ -70,6 +79,7 @@ jobs:
           npx --yes web-ext sign \
             --source-dir dist/correctly \
             --channel=unlisted \
+            --id "${{ secrets.AMO_WEB_EXT_ID }}" \
             --api-key "${{ secrets.AMO_API_KEY }}" \
             --api-secret "${{ secrets.AMO_API_SECRET }}"
 
