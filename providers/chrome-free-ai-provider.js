@@ -23,7 +23,7 @@ const GRAMMAR_SCHEMA = {
     },
     confidence: { type: "number" },
   },
-  required: ["corrected", "changes"],
+  required: ["corrected", "changes", "confidence"],
   additionalProperties: false,
 };
 
@@ -212,7 +212,7 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       log.debug("Calling session.prompt for plain text");
       const result = await session.prompt(text);
       log.debug("Raw L3 response:", result);
-      return { corrected: result.trim(), changes: [] };
+      return { corrected: result.trim(), changes: [], confidence: 5 };
     } catch (e) {
       log.error("L3 grammar check failed:", e.message);
       throw new Error(`Chrome Free AI error: ${e.message}`);

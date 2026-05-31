@@ -8,6 +8,8 @@ const RETRY_CONFIG = {
   maxDelayMs: 5000,
 };
 
+const NO_STRUCTURED_OUTPUT_KEYS = new Set();
+
 async function fetchWithRetry(url, options) {
   for (let i = 0; i <= RETRY_CONFIG.maxRetries; i++) {
     try {
@@ -57,7 +59,7 @@ export const RESPONSE_SCHEMA = {
         },
         confidence: { type: "number" },
       },
-      required: ["corrected", "changes"],
+      required: ["corrected", "changes", "confidence"],
       additionalProperties: false,
     },
   },
@@ -147,12 +149,16 @@ export class AbstractOpenAICompatibleProvider extends AbstractProvider {
 
   async _doCorrectGrammar(text) {
     const log = createLogger(this.providerId);
+    const structuredOutputKey = this._getStructuredOutputCacheKey();
+    if (NO_STRUCTURED_OUTPUT_KEYS.has(structuredOutputKey)) {
+      this._noStructuredOutput = true;
+    }
 
     const attempt = async (useSchema) => {
       const { content, usage } = await this._callApi(text, SYSTEM_PROMPT, { useSchema });
       log.debug("Raw response content:", content);
       try {
-        const parsed = JSON.parse(content);
+        const parsed = useSchema ? JSON.parse(content) : this._parseJsonFromModelContent(content);
         log.info(`Parsed result — ${parsed.changes?.length || 0} corrections`);
         return { ...parsed, usage };
       } catch (_e) {
@@ -170,14 +176,15 @@ export class AbstractOpenAICompatibleProvider extends AbstractProvider {
     } catch (err) {
       if (err.message && (err.message.includes("response_format") || err.message.includes("json_schema"))) {
         log.warn("response_format rejected, retrying without it");
+        this._noStructuredOutput = true;
+        NO_STRUCTURED_OUTPUT_KEYS.add(structuredOutputKey);
         try {
           const result = await attempt(false);
-          this._noStructuredOutput = true;
           log.info("Fallback succeeded — marked as noStructuredOutput");
           return result;
         } catch (fallbackErr) {
           log.error("Fallback also failed:", fallbackErr.message);
-          throw err;
+          throw fallbackErr;
         }
       }
       throw err;
@@ -197,10 +204,22 @@ export class AbstractOpenAICompatibleProvider extends AbstractProvider {
     const { content } = await this._callApi(text, SYSTEM_PROMPT_L3, { useSchema: false });
     const corrected = content.trim();
     log.info(`L3 corrected text — ${corrected.length} chars`);
-    return { corrected, changes: [] };
+    return { corrected, changes: [], confidence: 5 };
   }
 
   _onApiError(_status, _err, _response) {
     return null;
+  }
+
+  _parseJsonFromModelContent(content) {
+    try {
+      return JSON.parse(content);
+    } catch {
+      return this._extractJsonFromText(content);
+    }
+  }
+
+  _getStructuredOutputCacheKey() {
+    return `${this.providerId}:${this.endpoint}:${this.model}`;
   }
 }
