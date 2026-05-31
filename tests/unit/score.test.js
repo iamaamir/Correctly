@@ -80,6 +80,50 @@ describe("scoreResponse", () => {
     expect(result.usable).toHaveLength(1);
     expect(result.score).toBeGreaterThanOrEqual(60);
   });
+
+  it("accepts capitalization fixes and suppresses insertion-only punctuation without cascading", async () => {
+    const result = await scoreResponse(
+      {
+        corrected: "He went to school yesterday.",
+        changes: [
+          { original: "he", replacement: "He", explanation: "Capitalize first word of sentence." },
+          { original: "go", replacement: "went", explanation: "Use past tense for yesterday." },
+          { original: "scool", replacement: "school", explanation: "Correct spelling." },
+          { original: "yestday", replacement: "yesterday", explanation: "Correct spelling." },
+          { original: "", replacement: ".", explanation: "Add period at end of sentence." },
+        ],
+      },
+      "he go to scool yestday",
+      1,
+    );
+
+    expect(result.score).toBeGreaterThanOrEqual(60);
+    expect(result.usable).toHaveLength(4);
+    expect(result.suppressed).toHaveLength(1);
+    expect(result.suppressed[0]._issues).toContain("insertion-only change");
+  });
+
+  it("accepts mostly grounded corrections when one misspelling edit is not perfectly reconstructable", async () => {
+    const result = await scoreResponse(
+      {
+        corrected: "So I didn't have any time to learn.",
+        changes: [
+          { original: "so", replacement: "So", explanation: "Capitalize first word of sentence." },
+          { original: "i", replacement: "I", explanation: "Pronoun I should be capitalized." },
+          { original: "didnt", replacement: "didn't", explanation: "Add apostrophe for contraction." },
+          { original: "had", replacement: "have", explanation: "Use base verb after didn't." },
+          { original: "tolarend", replacement: "learn", explanation: "Correct misspelled word." },
+          { original: "", replacement: ".", explanation: "Add terminal period." },
+        ],
+      },
+      "so i didnt had any time tolarend",
+      1,
+    );
+
+    expect(result.score).toBeGreaterThanOrEqual(60);
+    expect(result.usable).toHaveLength(5);
+    expect(result.usable[1]._issues).not.toContain("original phrase is ambiguous");
+  });
 });
 
 describe("mergeConfidence", () => {
