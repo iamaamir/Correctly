@@ -1,0 +1,1152 @@
+[
+  {
+    "id": "0001-1780237092311",
+    "original": "i think its a good idea to have the meeting on tuesday. however, i dont know if everyone will be avaliable.",
+    "level": 1,
+    "rawResponse": {
+      "corrected": "I think it's a good idea to have the meeting on Tuesday. However, I don't know if everyone will be available.",
+      "changes": [
+        {
+          "original": "its",
+          "replacement": "it's",
+          "explanation": "Contractions require an apostrophe."
+        },
+        {
+          "original": "avaliable",
+          "replacement": "available",
+          "explanation": "Spelling correction."
+        }
+      ],
+      "confidence": 10
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I think it's a good idea to have the meeting on Tuesday. However, I don't know if everyone will be available.",
+      "displayChanges": [
+        {
+          "original": "its",
+          "replacement": "it's"
+        },
+        {
+          "original": "avaliable",
+          "replacement": "available"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system correctly identified and corrected the spelling errors, contractions, and punctuation issues in the original text."
+  },
+  {
+    "id": "0002-1780237152802",
+    "original": "I seen him yesterday at the store, and he said he was going to call me back. But I haven't hearred from him yet.",
+    "level": 1,
+    "rawResponse": {
+      "corrected": "I saw him yesterday at the store, and he said he was going to call me back. But I haven't heard from him yet.",
+      "changes": [
+        {
+          "original": "seen",
+          "replacement": "saw",
+          "explanation": "Past participle needed for perfect tense; 'I have seen' vs. simple past 'I saw'."
+        },
+        {
+          "original": "hearred",
+          "replacement": "heard",
+          "explanation": "Common misspelling; 'heard' is the correct past tense of 'hear'."
+        }
+      ],
+      "confidence": 10
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I saw him yesterday at the store, and he said he was going to call me back. But I haven't heard from him yet.",
+      "displayChanges": [
+        {
+          "original": "seen",
+          "replacement": "saw"
+        },
+        {
+          "original": "hearred",
+          "replacement": "heard"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "All corrections were accurate and targeted, with no duplicate or overlapping changes. The corrected text matches the usable changes, indicating a high level of confidence in the correction."
+  },
+  {
+    "id": "0003-1780237181114",
+    "original": "I’d appreciate it if you could sent the file over as soon as possible. thanks!",
+    "level": 1,
+    "rawResponse": {
+      "corrected": "I'd appreciate it if you could send the file over as soon as possible. Thanks!",
+      "changes": [
+        {
+          "original": "I’d appreciate it if you could sent the file over as soon as possible. thanks!",
+          "replacement": "I'd appreciate it if you could send the file over as soon as possible. Thanks!",
+          "explanation": "Changed single quote to apostrophe for contraction; added missing period and exclamation point."
+        }
+      ],
+      "confidence": 9
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I'd appreciate it if you could send the file over as soon as possible. Thanks!",
+      "displayChanges": [
+        {
+          "original": "I’d appreciate it if you could sent the file over as soon as possible. thanks!",
+          "replacement": "I'd appreciate it if you could send the file over as soon as possible. Thanks!"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The model returned a whole-text edit instead of targeted changes, which may not accurately reflect the intended corrections."
+  },
+  {
+    "id": "0004-1780237196353",
+    "original": "I think that its best to schedule the meeting for next tuesday, as i have a conflict on monday.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think that it's best to schedule the meeting for next Tuesday, as I have a conflict on Monday.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think that it's best to schedule the meeting for next Tuesday, as I have a conflict on Monday.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the possessive/contraction error and did not provide a full-text correction with structured changes."
+  },
+  {
+    "id": "0005-1780237213417",
+    "original": "I was wondering if you could send me the report, its really important for my presentation tomorow.",
+    "level": 1,
+    "rawResponse": {
+      "corrected": "I was wondering if you could send me the report; it's really important for my presentation tomorrow.",
+      "changes": [
+        {
+          "original": "report",
+          "replacement": "report;",
+          "explanation": "Added a semicolon to separate the independent clauses for better clarity."
+        },
+        {
+          "original": "its",
+          "replacement": "it's",
+          "explanation": "Corrected the contraction for 'it is'."
+        },
+        {
+          "original": "presentation tomorow",
+          "replacement": "presentation tomorrow",
+          "explanation": "Corrected the misspelled word 'tomorow'."
+        }
+      ],
+      "confidence": 10
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I was wondering if you could send me the report; it's really important for my presentation tomorrow.",
+      "displayChanges": [
+        {
+          "original": "report",
+          "replacement": "report;"
+        },
+        {
+          "original": "its",
+          "replacement": "it's"
+        },
+        {
+          "original": "presentation tomorow",
+          "replacement": "presentation tomorrow"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "Correctly identified and corrected all errors, including punctuation, spelling, and tense issues."
+  },
+  {
+    "id": "0006-1780237227143",
+    "original": "I'm really exited to here back from you soonest.",
+    "level": 1,
+    "rawResponse": {
+      "corrected": "I'm really excited to hear back from you soonest.",
+      "changes": [
+        {
+          "original": "here",
+          "replacement": "hear",
+          "explanation": "Corrected the verb form to match the subject 'you'."
+        }
+      ],
+      "confidence": 9
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I'm really excited to hear back from you soonest.",
+      "displayChanges": [
+        {
+          "original": "here",
+          "replacement": "hear"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system correctly identified the error and provided a clear explanation of the correction. However, it did not catch the slight inconsistency between the corrected text and the changes array."
+  },
+  {
+    "id": "0007-1780237240710",
+    "original": "I’m really exited to here back from you soon, lets schedule a call next week!",
+    "level": 2,
+    "rawResponse": {
+      "corrected": "I'm really excited to hear back from you soon, let's schedule a call next week!",
+      "changes": [
+        {
+          "original": "I’m",
+          "replacement": "I'm",
+          "explanation": "Missing apostrophe in contraction."
+        },
+        {
+          "original": "really exited",
+          "replacement": "really excited",
+          "explanation": "Misspelled 'excited'."
+        },
+        {
+          "original": "here back",
+          "replacement": "hear back",
+          "explanation": "Incorrect word order; should be 'hear' instead of 'here'."
+        },
+        {
+          "original": "lets schedule",
+          "replacement": "let's schedule",
+          "explanation": "Missing apostrophe in contraction."
+        }
+      ],
+      "confidence": 9
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I'm really excited to hear back from you soon, let's schedule a call next week!",
+      "displayChanges": [
+        {
+          "original": "I’m",
+          "replacement": "I'm"
+        },
+        {
+          "original": "really exited",
+          "replacement": "really excited"
+        },
+        {
+          "original": "here back",
+          "replacement": "hear back"
+        },
+        {
+          "original": "lets schedule",
+          "replacement": "let's schedule"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system correctly identified and corrected the errors in the input text, including missing apostrophes, misspelled words, and incorrect word order."
+  },
+  {
+    "id": "0008-1780237255589",
+    "original": "I think the meeting should of been rescheduled to next tuesday.",
+    "level": 1,
+    "rawResponse": {
+      "corrected": "I think the meeting should have been rescheduled to next Tuesday.",
+      "changes": [
+        {
+          "original": "should of",
+          "replacement": "should have",
+          "explanation": "Corrected the contraction 'should of' to the proper form 'should have'."
+        }
+      ],
+      "confidence": 10
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I think the meeting should have been rescheduled to next Tuesday.",
+      "displayChanges": [
+        {
+          "original": "should of",
+          "replacement": "should have"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system correctly identified the error, provided a clear explanation of the correction, and preserved the original meaning."
+  },
+  {
+    "id": "0009-1780237266345",
+    "original": "I think its really important that we finalise the report by friday.",
+    "level": 1,
+    "rawResponse": {
+      "corrected": "I think it's really important that we finalize the report by Friday.",
+      "changes": [
+        {
+          "original": "its",
+          "replacement": "it's",
+          "explanation": "Contractions: 'it is' should be contracted as 'it's'."
+        },
+        {
+          "original": "finalise",
+          "replacement": "finalize",
+          "explanation": "Spelling: American English prefers 'finalize' over British English 'finalise'."
+        },
+        {
+          "original": "friday",
+          "replacement": "Friday",
+          "explanation": "Capitalization: Days of the week should be capitalized."
+        }
+      ],
+      "confidence": 10
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I think it's really important that we finalize the report by Friday.",
+      "displayChanges": [
+        {
+          "original": "its",
+          "replacement": "it's"
+        },
+        {
+          "original": "finalise",
+          "replacement": "finalize"
+        },
+        {
+          "original": "friday",
+          "replacement": "Friday"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "All changes were targeted and corrected the original text without altering its tone."
+  },
+  {
+    "id": "0010-1780237280008",
+    "original": "I need to confirm the meeting with John, hes not responded to my last email yet. Also can you check if the presentation is ready for tomorrow?",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I need to confirm the meeting with John; he hasn't responded to my last email yet. Also, can you check if the presentation is ready for tomorrow?",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I need to confirm the meeting with John; he hasn't responded to my last email yet. Also, can you check if the presentation is ready for tomorrow?",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the comma usage after the introductory phrase and did not replace 'hes' with 'he'."
+  },
+  {
+    "id": "0011-1780237295502",
+    "original": "I think its a really good idea, but could we maybe look at the budget first?",
+    "level": 2,
+    "rawResponse": {
+      "corrected": "I think it's a really good idea, but could we maybe look at the budget first?",
+      "changes": [
+        {
+          "original": "its",
+          "replacement": "it's",
+          "explanation": "'It's' is the correct contraction for 'it is', while 'its' would imply possession."
+        }
+      ],
+      "confidence": 9
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I think it's a really good idea, but could we maybe look at the budget first?",
+      "displayChanges": [
+        {
+          "original": "its",
+          "replacement": "it's"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system correctly identified the common contraction mistake and provided a clear explanation. The corrected text matches the intended meaning, and the changes are targeted."
+  },
+  {
+    "id": "0012-1780237307753",
+    "original": "I was really excited to hear back from you regarding the project, but I still haven't received anything. Is there something going on?",
+    "level": 1,
+    "rawResponse": {
+      "corrected": "I was really excited to hear back from you regarding the project, but I still haven't received anything. Is there something going on?",
+      "changes": [],
+      "confidence": 10
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I was really excited to hear back from you regarding the project, but I still haven't received anything. Is there something going on?",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The corrected text matches the source, and no changes were made."
+  },
+  {
+    "id": "0013-1780237320955",
+    "original": "I'm really exited to hear back from you about the project, lets schedule a quick meeting sometime next week. it would be really good.",
+    "level": 2,
+    "rawResponse": {
+      "corrected": "I'm really excited to hear back from you about the project. Let's schedule a quick meeting sometime next week—it would be great.",
+      "changes": [
+        {
+          "original": "I'm really exited",
+          "replacement": "I'm really excited",
+          "explanation": "Corrected the misspelling of 'excited'."
+        },
+        {
+          "original": "lets schedule",
+          "replacement": "Let's schedule",
+          "explanation": "Added an apostrophe to form the contraction of 'let us'."
+        },
+        {
+          "original": "it would be really good",
+          "replacement": "it would be great",
+          "explanation": "Changed 'really good' to 'great' for a more concise expression."
+        }
+      ],
+      "confidence": 8
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I'm really excited to hear back from you about the project. Let's schedule a quick meeting sometime next week—it would be great.",
+      "displayChanges": [
+        {
+          "original": "I'm really exited",
+          "replacement": "I'm really excited"
+        },
+        {
+          "original": "lets schedule",
+          "replacement": "Let's schedule"
+        },
+        {
+          "original": "it would be really good",
+          "replacement": "it would be great"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The corrected text differs slightly from the changes (0.87), indicating a potential issue with consistency."
+  },
+  {
+    "id": "0014-1780237340539",
+    "original": "I think its important to note that the report, which was submitted late yesterday, needs reviewed again.",
+    "level": 1,
+    "rawResponse": {
+      "corrected": "I think it's important to note that the report, which was submitted late yesterday, needs to be reviewed again.",
+      "changes": [
+        {
+          "original": "its",
+          "replacement": "it's",
+          "explanation": "Contractions: 'it is' should be contracted as 'it's'."
+        },
+        {
+          "original": "needs reviewed",
+          "replacement": "needs to be reviewed",
+          "explanation": "Verb tense: 'reviewed' should be followed by the infinitive 'to be' for correct usage."
+        }
+      ],
+      "confidence": 10
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I think it's important to note that the report, which was submitted late yesterday, needs to be reviewed again.",
+      "displayChanges": [
+        {
+          "original": "its",
+          "replacement": "it's"
+        },
+        {
+          "original": "needs reviewed",
+          "replacement": "needs to be reviewed"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system correctly identified and corrected the errors in grammar, spelling, and verb tense. The changes were targeted and consistent with the intended meaning."
+  },
+  {
+    "id": "0015-1780237354015",
+    "original": "I think it would be realy helpful if you could check my work by tuesday. Thanks!",
+    "level": 1,
+    "rawResponse": {
+      "corrected": "I think it would be really helpful if you could check my work by Tuesday.",
+      "changes": [
+        {
+          "original": "realy",
+          "replacement": "really",
+          "explanation": "Corrected common misspelling of 'real'."
+        },
+        {
+          "original": "tuesday",
+          "replacement": "Tuesday",
+          "explanation": "Capitalized proper noun 'Tuesday'."
+        }
+      ],
+      "confidence": 9
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I think it would be really helpful if you could check my work by Tuesday.",
+      "displayChanges": [
+        {
+          "original": "realy",
+          "replacement": "really"
+        },
+        {
+          "original": "tuesday",
+          "replacement": "Tuesday"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "Corrected common misspelling of 'real' and capitalized proper noun 'Tuesday', but the corrected text differs slightly from the changes (0.94)."
+  },
+  {
+    "id": "0016-1780237365148",
+    "original": "I appreciate your prompt response, however I am still awaiting confirmation from my supervisor. Please let me know if there are an updates.",
+    "level": 2,
+    "rawResponse": {
+      "corrected": "I appreciate your prompt response, however I am still awaiting confirmation from my supervisor. Please let me know if there are any updates.",
+      "changes": [
+        {
+          "original": "confirmation",
+          "replacement": "any updates",
+          "explanation": "The word 'confirmation' is incorrect in this context. The sentence should request an update or information about the status of the confirmation."
+        }
+      ],
+      "confidence": 8
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I appreciate your prompt response, however I am still awaiting confirmation from my supervisor. Please let me know if there are any updates.",
+      "displayChanges": [
+        {
+          "original": "confirmation",
+          "replacement": "any updates"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system correctly identified the error in 'confirmation' and replaced it with 'any updates'. The corrected text is consistent with the changes made, and the cascade level is within a safe range."
+  },
+  {
+    "id": "0017-1780237378095",
+    "original": "I think its really important to make shure the report is finalized by friday.",
+    "level": 1,
+    "rawResponse": {
+      "corrected": "I think it's really important to make sure the report is finalized by Friday.",
+      "changes": [
+        {
+          "original": "its",
+          "replacement": "it's",
+          "explanation": "Contractions: 'it is' should be contracted as 'it's'."
+        },
+        {
+          "original": "make shure",
+          "replacement": "make sure",
+          "explanation": "Spelling correction: 'shure' should be spelled as 'sure'."
+        },
+        {
+          "original": "friday",
+          "replacement": "Friday",
+          "explanation": "Capitalization: Days of the week should be capitalized."
+        }
+      ],
+      "confidence": 10
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I think it's really important to make sure the report is finalized by Friday.",
+      "displayChanges": [
+        {
+          "original": "its",
+          "replacement": "it's"
+        },
+        {
+          "original": "make shure",
+          "replacement": "make sure"
+        },
+        {
+          "original": "friday",
+          "replacement": "Friday"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "All changes were targeted and corrected the original text, with no duplicate or overlapping changes."
+  },
+  {
+    "id": "0018-1780237390024",
+    "original": "I was really exited to hear about your proposal, but i think we need to discuss it further before finalizing anything. Its got some potential, but also a few kinks.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I was really excited to hear about your proposal, but I think we need to discuss it further before finalizing anything. It's got some potential, but also a few kinks.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I was really excited to hear about your proposal, but I think we need to discuss it further before finalizing anything. It's got some potential, but also a few kinks.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "Empty response without structured changes"
+  },
+  {
+    "id": "0019-1780237408838",
+    "original": "I hope to recieve your reply soonest. Let me know if you need anything else, thanks!",
+    "level": 1,
+    "rawResponse": {
+      "corrected": "I hope to receive your reply soonest. Let me know if you need anything else, thanks!",
+      "changes": [
+        {
+          "original": "recieve",
+          "replacement": "receive",
+          "explanation": "Correct spelling of 'receive'."
+        }
+      ],
+      "confidence": 10
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "I hope to receive your reply soonest. Let me know if you need anything else, thanks!",
+      "displayChanges": [
+        {
+          "original": "recieve",
+          "replacement": "receive"
+        }
+      ],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system correctly identified the spelling error and suggested a correction. The changes array contains only one change, which is correct and targeted."
+  },
+  {
+    "id": "0020-1780237421158",
+    "original": "I was really exited to hear about the project, but i’m not sure if I have time currently.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I was really excited to hear about the project, but I'm not sure if I have time currently.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I was really excited to hear about the project, but I'm not sure if I have time currently.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the spelling error in 'exited' and did not provide any suggestions for improvement."
+  },
+  {
+    "id": "0021-1780237437281",
+    "original": "I think its important that we circle back on this item next week, if possible. Let me know your thoughts.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think it's important that we circle back on this item next week, if possible. Let me know your thoughts.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think it's important that we circle back on this item next week, if possible. Let me know your thoughts.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "Expected a full-text correction with structured changes, but received an empty response."
+  },
+  {
+    "id": "0022-1780237448458",
+    "original": "I'm really excited about the project, its gonna be a great success i think.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I'm really excited about the project; it's going to be a great success, I think.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I'm really excited about the project; it's going to be a great success, I think.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the sentence and did not provide any visible suggestions."
+  },
+  {
+    "id": "0023-1780237459409",
+    "original": "I was really exited to hear about the project, but I think we need too clarify some things before moving forward. Its important that everyones on the same page.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I was really excited to hear about the project, but I think we need to clarify some things before moving forward. It's important that everyone is on the same page.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I was really excited to hear about the project, but I think we need to clarify some things before moving forward. It's important that everyone is on the same page.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the subject-verb agreement error ('everyones' vs 'everyone is') and did not provide any suggestions for improvement."
+  },
+  {
+    "id": "0024-1780237474126",
+    "original": "I was realy exited to hear back from you about the project, but i haven’t seen anything yet.  Could you let me know when it might be ready?",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I was really excited to hear back from you about the project, but I haven't seen anything yet. Could you let me know when it might be ready?",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I was really excited to hear back from you about the project, but I haven't seen anything yet. Could you let me know when it might be ready?",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the spelling error 'realy' to 'really', resulting in an empty response."
+  },
+  {
+    "id": "0025-1780237486400",
+    "original": "I think we should of schedule a meeting next week to discuss the new project, its really important.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think we should schedule a meeting next week to discuss the new project; it's really important.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think we should schedule a meeting next week to discuss the new project; it's really important.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the error and provided an empty response."
+  },
+  {
+    "id": "0026-1780237496055",
+    "original": "I seen him yesterday and he said that the project is due next week. However, I haven't started it yet so i’m a little worried.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I saw him yesterday and he said that the project is due next week. However, I haven't started it yet so I'm a little worried.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I saw him yesterday and he said that the project is due next week. However, I haven't started it yet so I'm a little worried.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "Expected a full-text correction with structured changes, but only the corrected string was provided."
+  },
+  {
+    "id": "0027-1780237506793",
+    "original": "I think its important to note that the project will be delayed due to unforeseen circumstances. I'll update everyone with more details as soon as possable.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think it's important to note that the project will be delayed due to unforeseen circumstances. I'll update everyone with more details as soon as possible.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think it's important to note that the project will be delayed due to unforeseen circumstances. I'll update everyone with more details as soon as possible.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the informal language 'possable' vs 'possible', which may not require correction depending on the context."
+  },
+  {
+    "id": "0028-1780237519603",
+    "original": "I wanted to reach out regarding the project, its going well so far but i'm facing a slight challenge with integrating the new API. Can we schedule a quick call to discuss it?",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I wanted to reach out regarding the project; it's going well so far, but I'm facing a slight challenge with integrating the new API. Can we schedule a quick call to discuss it?",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I wanted to reach out regarding the project; it's going well so far, but I'm facing a slight challenge with integrating the new API. Can we schedule a quick call to discuss it?",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The corrected text still contains a comma splice ('it's going well so far but...') and the response time is relatively high (664ms)."
+  },
+  {
+    "id": "0029-1780237536187",
+    "original": "i think its a good idea but maybe we should double check the numbers before sending it out to all the team members.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think it's a good idea, but maybe we should double-check the numbers before sending it out to all the team members.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think it's a good idea, but maybe we should double-check the numbers before sending it out to all the team members.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "Expected a non-empty changes array, but it was empty."
+  },
+  {
+    "id": "0030-1780237546885",
+    "original": "I think its a really great idea, but we need to make sure everyone is on board before moving forward. Also, could you please sent me the document?",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think it's a really great idea, but we need to make sure everyone is on board before moving forward. Also, could you please send me the document?",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think it's a really great idea, but we need to make sure everyone is on board before moving forward. Also, could you please send me the document?",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "empty response and high cascade level penalized the score"
+  },
+  {
+    "id": "0031-1780237559359",
+    "original": "I think the report is good, but like, maybe a few more details would be helpfull?",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think the report is good, but maybe a few more details would be helpful.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think the report is good, but maybe a few more details would be helpful.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The AI failed to correct the informal language ('like, maybe') and omitted the comma before 'but', despite detecting spelling errors. This suggests a lack of understanding of formal writing conventions."
+  },
+  {
+    "id": "0032-1780237572268",
+    "original": "i think it would be grate if you could look into this issue. its been going on for a while now and is really impacting our workflow.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think it would be great if you could look into this issue. It's been going on for a while now and is really impacting our workflow.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think it would be great if you could look into this issue. It's been going on for a while now and is really impacting our workflow.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the spelling error 'grate' and did not provide any suggestions."
+  },
+  {
+    "id": "0033-1780237583786",
+    "original": "I was thinking about the project, and i feel like we should revisit the timeline. Its kinda tight right now.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I was thinking about the project, and I feel like we should revisit the timeline. It's kind of tight right now.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I was thinking about the project, and I feel like we should revisit the timeline. It's kind of tight right now.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the standalone 'i' error and did not provide any suggestions for improvement."
+  },
+  {
+    "id": "0034-1780237596256",
+    "original": "I seen him leave earlier, and he said it was urgent. I'll call you back later.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I saw him leave earlier, and he said it was urgent. I'll call you back later.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I saw him leave earlier, and he said it was urgent. I'll call you back later.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the 'seen' error in the original text, resulting in an incorrect corrected string."
+  },
+  {
+    "id": "0035-1780237606258",
+    "original": "I was wondering if you could sent me the report before friday. Its really needed for my presentation.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I was wondering if you could send me the report before Friday. It's really needed for my presentation.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I was wondering if you could send me the report before Friday. It's really needed for my presentation.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the informal tone and missing period at the end of the sentence."
+  },
+  {
+    "id": "0036-1780237616891",
+    "original": "i think we should of scheduled the meeting for tuesday, not monday. its more in line with everyone's availability.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think we should have scheduled the meeting for Tuesday, not Monday. It's more in line with everyone's availability.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think we should have scheduled the meeting for Tuesday, not Monday. It's more in line with everyone's availability.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The model failed to correct the verb tense error and did not provide any visible suggestions."
+  },
+  {
+    "id": "0037-1780237627819",
+    "original": "I think its a good idea to finalize the report by friday.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think it's a good idea to finalize the report by Friday.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think it's a good idea to finalize the report by Friday.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "Empty response without structured changes"
+  },
+  {
+    "id": "0038-1780237635988",
+    "original": "I am writting to enquire about the possibility of a refund, as my order arrived damaged. Its quite upsetting.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I am writing to inquire about the possibility of a refund, as my order arrived damaged. It's quite upsetting.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I am writing to inquire about the possibility of a refund, as my order arrived damaged. It's quite upsetting.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "Expected a full-text correction with structured changes, but received an empty response."
+  },
+  {
+    "id": "0039-1780237647678",
+    "original": "I'm writting this to inform you about the ongoing project, its progressing well so far. However, we do need your approval before moving to phase two.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I'm writing this to inform you about the ongoing project, its progressing well so far. However, we do need your approval before moving to phase two.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I'm writing this to inform you about the ongoing project, its progressing well so far. However, we do need your approval before moving to phase two.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the comma splice error and did not provide any suggestions for improvement."
+  },
+  {
+    "id": "0040-1780237661808",
+    "original": "I think we need to go over the proposal again. Its not really clear on what actions are needed next, and I'm worried about the deadline.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think we need to go over the proposal again. It's not really clear on what actions are needed next, and I'm worried about the deadline.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think we need to go over the proposal again. It's not really clear on what actions are needed next, and I'm worried about the deadline.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "Expected a non-empty changes array, but it was empty."
+  },
+  {
+    "id": "0041-1780237673036",
+    "original": "I feel like this report is not quite done yet, its missing a few key details and I need to go back over it. Please let me know if you have any questions.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I feel like this report is not quite done yet; it's missing a few key details, and I need to go back over it. Please let me know if you have any questions.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I feel like this report is not quite done yet; it's missing a few key details, and I need to go back over it. Please let me know if you have any questions.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the sentence correctly, and also did not provide any visible suggestions."
+  },
+  {
+    "id": "0042-1780237686366",
+    "original": "I think its a good idea, but are you sure about the timeline? We need to finalize it soon.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think it's a good idea, but are you sure about the timeline? We need to finalize it soon.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think it's a good idea, but are you sure about the timeline? We need to finalize it soon.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "Penalty for empty response and cascade level is too high, but corrected consistency penalty is 0."
+  },
+  {
+    "id": "0043-1780237696360",
+    "original": "I think their going to need more time to complete the project. Its looking like a difficult task.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think they're going to need more time to complete the project. It's looking like a difficult task.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think they're going to need more time to complete the project. It's looking like a difficult task.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the informal writing habit of using 'its' instead of 'it's', and also didn't provide any visible suggestions for improvement."
+  },
+  {
+    "id": "0044-1780237709319",
+    "original": "I think its really important that we follow up on thier request ASAP. Let me know if you have any question's.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think it's really important that we follow up on their request ASAP. Let me know if you have any questions.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think it's really important that we follow up on their request ASAP. Let me know if you have any questions.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the informal communication errors, such as 'thier' vs. 'their', and did not provide any visible suggestions."
+  },
+  {
+    "id": "0045-1780237722263",
+    "original": "I was realy looking forward to the meeting, but I didn’t got a chance to present my findings. Its really frustating.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I was really looking forward to the meeting, but I didn't get a chance to present my findings. It's really frustrating.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I was really looking forward to the meeting, but I didn't get a chance to present my findings. It's really frustrating.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the sentence structure and did not provide any meaningful suggestions."
+  },
+  {
+    "id": "0046-1780237735921",
+    "original": "I think that we should of schedule a meeting for next week. Its crucial to finalize the project timeline.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think that we should schedule a meeting for next week. It's crucial to finalize the project timeline.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think that we should schedule a meeting for next week. It's crucial to finalize the project timeline.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the error and did not provide any meaningful suggestions."
+  },
+  {
+    "id": "0047-1780237747329",
+    "original": "I think its really important that we finalize the report by friday, okay?",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think it's really important that we finalize the report by Friday, okay?",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think it's really important that we finalize the report by Friday, okay?",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the informal closing ('okay?') and did not provide any suggestions for improvement."
+  },
+  {
+    "id": "0048-1780237757597",
+    "original": "I have been working on the report, and I think it’s mostly done. However their are a few sections that still need more work, specially the financial projections.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I have been working on the report, and I think it's mostly done. However, there are a few sections that still need more work, especially the financial projections.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I have been working on the report, and I think it's mostly done. However, there are a few sections that still need more work, especially the financial projections.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "Expected a non-empty changes array or more detailed feedback on the correction process."
+  },
+  {
+    "id": "0049-1780237771683",
+    "original": "I think its a good idea but are you shore?",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I think it's a good idea, but are you sure?",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I think it's a good idea, but are you sure?",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "The system failed to correct the grammar error and also returned an empty response."
+  },
+  {
+    "id": "0050-1780237781746",
+    "original": "I was wondering if you could please look ovver the proposal i sent you yesterday. Let me know your thoughts as soon as possable.",
+    "level": 3,
+    "rawResponse": {
+      "corrected": "I was wondering if you could please look over the proposal I sent you yesterday. Let me know your thoughts as soon as possible.",
+      "changes": [],
+      "confidence": 6
+    },
+    "expected": {
+      "accept": false,
+      "corrected": "I was wondering if you could please look over the proposal I sent you yesterday. Let me know your thoughts as soon as possible.",
+      "displayChanges": [],
+      "hiddenChangeCount": 0
+    },
+    "notes": "Expected a more comprehensive correction, including changes to the text and a higher confidence score."
+  }
+]

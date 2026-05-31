@@ -1,0 +1,24 @@
+{
+  "runName": "lmstudio-granite-test-drive",
+  "caseCount": 20,
+  "outputDir": "blackbox/runs",
+  "seed": "grammar edge cases for email, chat, forms, and workplace notes",
+  "generator": {
+    "baseUrl": "http://localhost:1234/v1",
+    "apiKey": "lm-studio",
+    "model": "google/gemma-3-12b",
+    "temperature": 0.8
+  },
+  "fixer": {
+    "providerId": "lmstudio",
+    "apiKey": "",
+    "model": "granite-4.0-h-tiny-mlx",
+    "baseUrl": ""
+  },
+  "judge": {
+    "baseUrl": "http://localhost:1234/v1",
+    "apiKey": "lm-studio",
+    "model": "llama-3.2-3b-instruct",
+    "temperature": 0.1
+  }
+}
