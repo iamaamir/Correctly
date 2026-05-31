@@ -1,0 +1,15 @@
+{
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "correctly@mak.local",
+      "data_collection_permissions": {
+        "required": ["none"],
+        "optional": ["technicalAndInteraction"]
+      }
+    }
+  },
+  "background": {
+    "scripts": ["background/service-worker.js"],
+    "type": "module"
+  }
+}

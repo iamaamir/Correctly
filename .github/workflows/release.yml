@@ -57,12 +57,36 @@ jobs:
           fi
 
           npm ci
-          npm run build:release -- --version="$NEW_VERSION"
+          npm run build:release:chrome -- --version="$NEW_VERSION"
+          npm run build:release:firefox -- --version="$NEW_VERSION"
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Sign Firefox add-on on AMO (unlisted)
+        uses: saphareas/sign-web-extension-action@master
+        with:
+          web-ext-path: dist/correctly
+          web-ext-id: ${{ secrets.AMO_WEB_EXT_ID }}
+          sign-listed: false
+          amo-api-key: ${{ secrets.AMO_API_KEY }}
+          amo-api-secret: ${{ secrets.AMO_API_SECRET }}
+
+      - name: Normalize signed Firefox artifact name
+        run: |
+          set -euo pipefail
+
+          SIGNED_XPI=$(find . -maxdepth 3 -type f -name '*.xpi' | grep -v node_modules | head -n1)
+          if [[ -z "${SIGNED_XPI}" ]]; then
+            echo "Signed XPI not found"
+            exit 1
+          fi
+
+          cp "${SIGNED_XPI}" correctly-firefox.xpi
 
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.bump.outputs.version }}
           name: v${{ steps.bump.outputs.version }}
-          files: correctly.zip
+          files: |
+            correctly-chrome.zip
+            correctly-firefox.xpi
           generate_release_notes: true
