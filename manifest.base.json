@@ -3,11 +3,6 @@
   "name": "Correctly",
   "version": "0.4.0",
   "description": "A minimalist AI-powered grammar checker. Bring your own API key.",
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "correctly@mak.local"
-    }
-  },
   "host_permissions": ["http://localhost:11434/*"],
   "permissions": ["storage", "activeTab", "tabs", "declarativeNetRequest"],
   "declarative_net_request": {
