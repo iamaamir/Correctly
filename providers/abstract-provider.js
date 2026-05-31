@@ -187,7 +187,7 @@ export class AbstractProvider {
 
     if (!text || text.trim().length === 0) {
       log.debug("Empty text — short-circuiting with no changes");
-      return { corrected: text, changes: [] };
+      return { corrected: text, changes: [], confidence: 10 };
     }
 
     const levels = [
@@ -198,6 +198,7 @@ export class AbstractProvider {
 
     const startLevel = await this._getStartLevel();
     log.debug(`Cascade starting at level ${startLevel}`);
+    let shouldDowngradeCache = true;
 
     for (let i = startLevel - 1; i < levels.length; i++) {
       const { fn, status } = levels[i];
@@ -211,8 +212,7 @@ export class AbstractProvider {
 
         // Score the response with our own checks, then merge with model's self-reported confidence
         const scored = await scoreResponse(validated, text, i + 1);
-        const modelConfidence = typeof validated.confidence === "number" ? validated.confidence : 5;
-        const merged = await mergeConfidence(modelConfidence, scored.score);
+        const merged = await mergeConfidence(validated.confidence, scored.score);
         onProgress?.({ status, confidence: merged });
 
         // Handle empty changes response using score-based decision logic.
@@ -226,12 +226,17 @@ export class AbstractProvider {
             // Accept: model succeeded, just can't provide detailed change breakdown
           } else {
             log.debug(`Level ${i + 1}: empty changes and merged confidence ${merged} < 60 — cascading`);
+            shouldDowngradeCache = false;
             continue;
           }
         }
 
         if (i >= 2 || merged >= 60) {
-          await this._updateCacheOnSuccess(startLevel, i + 1);
+          if (i + 1 <= startLevel || shouldDowngradeCache) {
+            await this._updateCacheOnSuccess(startLevel, i + 1);
+          } else {
+            log.debug(`Level ${i + 1}: not downgrading cache after score-based cascade`);
+          }
           if (scored.suppressed.length > 0) {
             log.debug(
               `Level ${i + 1}: suppressing ${scored.suppressed.length} low-confidence change(s) before display`,
@@ -250,6 +255,7 @@ export class AbstractProvider {
         }
 
         log.debug(`Level ${i + 1}: merged confidence ${merged} < 60, cascading`);
+        shouldDowngradeCache = false;
       } catch (err) {
         if (!this._isCascadeableError(err)) throw err;
         log.debug(`Level ${i + 1} cascadeable error: ${err.message}`);
@@ -330,13 +336,11 @@ export class AbstractProvider {
 
   /**
    * Checks whether the confidence score is high enough to accept this level's
-   * result. If confidence is absent (null/undefined), it is treated as
-   * acceptable — this allows Level 3 (which has no confidence) to always pass.
+   * result.
    * @param {number|null|undefined} confidence
    * @returns {boolean}
    */
   _isConfidenceAcceptable(confidence) {
-    if (confidence === null || confidence === undefined) return true;
     return confidence >= 6;
   }
 
@@ -485,6 +489,16 @@ export class AbstractProvider {
     if (!Array.isArray(result.changes)) {
       log.error('Response validation failed — missing "changes" array', result);
       throw new Error('Provider response missing "changes" array');
+    }
+
+    if (
+      typeof result.confidence !== "number" ||
+      !Number.isFinite(result.confidence) ||
+      result.confidence < 1 ||
+      result.confidence > 10
+    ) {
+      log.error('Response validation failed — missing or invalid "confidence" number', result);
+      throw new Error('Provider response missing "confidence" number from 1-10');
     }
 
     for (let i = 0; i < result.changes.length; i++) {
