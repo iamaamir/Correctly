@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { classifyProviderFailure, mergeConfidence, scoreResponse, validateGrammarResponse } from "../../lib/score.js";
+import {
+  classifyProviderFailure,
+  extractDisplayChanges,
+  mergeConfidence,
+  scoreAcceptedCorrection,
+  scoreResponse,
+  validateGrammarResponse,
+} from "../../lib/score.js";
 
 describe("validateGrammarResponse", () => {
   it("accepts valid Level 1 response with confidence", () => {
@@ -84,6 +91,119 @@ describe("validateGrammarResponse", () => {
   it("rejects non-numeric confidence at Level 1", () => {
     const result = validateGrammarResponse({ corrected: "Hello.", changes: [], confidence: "high" }, { level: 1 });
     expect(result.ok).toBe(false);
+  });
+});
+
+describe("extractDisplayChanges", () => {
+  it("returns empty arrays for null/undefined parsed", () => {
+    const result = extractDisplayChanges(null, "hello");
+    expect(result.displayChanges).toEqual([]);
+    expect(result.hiddenChanges).toEqual([]);
+  });
+
+  it("keeps grounded changes in displayChanges", () => {
+    const result = extractDisplayChanges(
+      {
+        corrected: "Hello world.",
+        changes: [
+          { original: "hello", replacement: "Hello", explanation: "Capitalize first word." },
+          { original: "world", replacement: "Earth", explanation: "Use proper noun." },
+        ],
+      },
+      "hello world",
+    );
+    expect(result.displayChanges).toHaveLength(2);
+    expect(result.hiddenChanges).toHaveLength(0);
+  });
+
+  it("hides changes whose original is not found in source", () => {
+    const result = extractDisplayChanges(
+      {
+        corrected: "Hello world.",
+        changes: [{ original: "nonexistent", replacement: "something", explanation: "fix typo" }],
+      },
+      "Hello world",
+    );
+    expect(result.displayChanges).toHaveLength(0);
+    expect(result.hiddenChanges).toHaveLength(1);
+    expect(result.hiddenChanges[0].reason).toContain("original not found in source text");
+  });
+
+  it("hides insertion-only punctuation changes as benign", () => {
+    const result = extractDisplayChanges(
+      {
+        corrected: "Hello world.",
+        changes: [
+          { original: "hello", replacement: "Hello", explanation: "Capitalize." },
+          { original: "", replacement: ".", explanation: "Add period." },
+        ],
+      },
+      "hello world",
+    );
+    expect(result.displayChanges).toHaveLength(1);
+    expect(result.hiddenChanges).toHaveLength(1);
+    expect(result.hiddenChanges[0].reason).toContain("insertion-only punctuation");
+  });
+
+  it("hides equal original/replacement changes", () => {
+    const result = extractDisplayChanges(
+      {
+        corrected: "Hello world.",
+        changes: [
+          { original: "hello", replacement: "Hello", explanation: "Capitalize." },
+          { original: "world", replacement: "world", explanation: "no change" },
+        ],
+      },
+      "hello world",
+    );
+    expect(result.displayChanges).toHaveLength(1);
+    expect(result.hiddenChanges).toHaveLength(1);
+    expect(result.hiddenChanges[0].reason).toContain("original equals replacement");
+  });
+});
+
+describe("scoreAcceptedCorrection", () => {
+  it("returns accepted=true for valid grounded corrections", () => {
+    const result = scoreAcceptedCorrection(
+      {
+        corrected: "Hello world.",
+        changes: [{ original: "hello", replacement: "Hello", explanation: "Capitalize first word." }],
+      },
+      "hello world",
+      1,
+    );
+    expect(result.accepted).toBe(true);
+    expect(result.acceptanceScore).toBeGreaterThanOrEqual(60);
+  });
+
+  it("returns accepted=false for empty changes with different corrected at Level 1", () => {
+    const result = scoreAcceptedCorrection({ corrected: "Hello there world", changes: [] }, "Hello world", 1);
+    expect(result.accepted).toBe(false);
+    expect(result.acceptanceScore).toBeLessThan(60);
+  });
+
+  it("accepts empty changes with same corrected at Level 3", () => {
+    const result = scoreAcceptedCorrection({ corrected: "Hello world", changes: [] }, "Hello world", 3);
+    expect(result.accepted).toBe(true);
+    expect(result.acceptanceScore).toBe(80);
+  });
+
+  it("rejects non-object parsed", () => {
+    const result = scoreAcceptedCorrection(null, "hello", 1);
+    expect(result.accepted).toBe(false);
+    expect(result.acceptanceScore).toBe(0);
+  });
+
+  it("level 3 empty changes with different corrected text scores low but is accepted by cascade", async () => {
+    const result = await scoreResponse({ corrected: "Hello there world", changes: [] }, "Hello world", 3);
+    expect(result.score).toBe(55);
+    expect(result.tier).toBe("low");
+  });
+
+  it("returns reasons array with pass/fail entries", () => {
+    const result = scoreAcceptedCorrection({ corrected: "Hello.", changes: [] }, "hello", 1);
+    expect(result.reasons.length).toBeGreaterThan(0);
+    expect(result.reasons.some((r) => r.pass === false)).toBe(true);
   });
 });
 

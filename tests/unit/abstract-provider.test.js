@@ -91,6 +91,7 @@ describe("OpenAI-compatible response schema", () => {
   });
 
   it("extracts fenced JSON when structured output is unsupported", async () => {
+    vi.stubGlobal("chrome", createChromeStub());
     const provider = new TestOpenAICompatibleProvider("test-key", "test-model");
     const calls = [];
 
@@ -127,7 +128,8 @@ describe("OpenAI-compatible response schema", () => {
     expect(provider._noStructuredOutput).toBe(true);
   });
 
-  it("reuses no-schema parsing once structured output has been rejected", async () => {
+  it("reuses no-schema parsing from persistent cache once structured output has been rejected", async () => {
+    vi.stubGlobal("chrome", createChromeStub());
     const provider = new TestOpenAICompatibleProvider("test-key", "no-schema-cache-model");
     provider._callApi = async (_text, _systemPrompt, { useSchema }) => {
       if (useSchema) throw new Error("This model does not support response_format json_schema");
@@ -141,6 +143,18 @@ describe("OpenAI-compatible response schema", () => {
     await expect(provider._doCorrectGrammar("Hello world")).resolves.toMatchObject({
       corrected: "Hello world.",
       confidence: 10,
+    });
+
+    // Simulate cache persisting after SW reload by setting the cache entry
+    await chrome.storage.local.set({
+      modelLevelCache: {
+        "test-openai-compatible::no-schema-cache-model": {
+          level: 1,
+          checksAtLevel: 1,
+          level2Failures: 0,
+          reason: "level_1_no_schema_supported",
+        },
+      },
     });
 
     const nextProvider = new TestOpenAICompatibleProvider("test-key", "no-schema-cache-model");
@@ -251,11 +265,13 @@ describe("OpenAI-compatible response schema", () => {
       "test-openai-compatible:https://first.example/v1/chat/completions:same-model": {
         level: 2,
         checksAtLevel: 0,
+        level2Failures: 0,
         reason: "structured_output_unsupported",
       },
       "test-openai-compatible:https://second.example/v1/chat/completions:same-model": {
         level: 1,
         checksAtLevel: 1,
+        level2Failures: 0,
         reason: "structured_output_supported",
       },
     });
