@@ -50,7 +50,9 @@ label {
 
 select,
 input[type="password"],
-input[type="text"] {
+input[type="text"],
+#base-url,
+#custom-model {
   width: 100%;
   padding: 10px 12px;
   border: 1.5px solid #ddd;
@@ -696,7 +698,9 @@ input:focus {
 
   select,
   input[type="password"],
-  input[type="text"] {
+  input[type="text"],
+  #base-url,
+  #custom-model {
     background: #2a2a2a;
     border-color: #444;
     color: #d4d4d4;
@@ -931,6 +935,8 @@ input:focus {
   select,
   input[type="password"],
   input[type="text"],
+  #base-url,
+  #custom-model,
   #toggle-visibility,
   .btn-primary,
   .btn-secondary,
