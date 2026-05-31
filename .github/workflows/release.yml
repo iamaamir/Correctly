@@ -70,18 +70,30 @@ jobs:
           amo-api-key: ${{ secrets.AMO_API_KEY }}
           amo-api-secret: ${{ secrets.AMO_API_SECRET }}
 
-      - name: Update manifest.version and push to main
+      - name: Open version bump PR
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
-          jq --arg v "${{ steps.bump.outputs.version }}" '.version = $v' manifest.base.json > manifest.base.json.tmp
+          VERSION="${{ steps.bump.outputs.version }}"
+          BRANCH="chore/bump-v${VERSION}"
+
+          jq --arg v "${VERSION}" '.version = $v' manifest.base.json > manifest.base.json.tmp
           mv manifest.base.json.tmp manifest.base.json
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${BRANCH}"
           git add manifest.base.json
-          git commit -m "chore: bump version to ${{ steps.bump.outputs.version }}"
-          git push
+          git commit -m "chore: bump version to ${VERSION}"
+          git push origin "${BRANCH}"
+
+          gh pr create \
+            --base main \
+            --head "${BRANCH}" \
+            --title "chore: bump version to ${VERSION}" \
+            --body "Automated version bump from release workflow."
 
       - name: Normalize signed Firefox artifact name
         run: |
