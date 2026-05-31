@@ -59,7 +59,7 @@ export const RESPONSE_SCHEMA = {
         },
         confidence: { type: "number" },
       },
-      required: ["corrected", "changes"],
+      required: ["corrected", "changes", "confidence"],
       additionalProperties: false,
     },
   },
