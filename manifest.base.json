@@ -1,10 +1,17 @@
 {
   "manifest_version": 3,
   "name": "Correctly",
-  "version": "0.4.0",
+  "version": "0.4.6",
   "description": "A minimalist AI-powered grammar checker. Bring your own API key.",
-  "host_permissions": ["http://localhost:11434/*"],
-  "permissions": ["storage", "activeTab", "tabs", "declarativeNetRequest"],
+  "host_permissions": [
+    "http://localhost:11434/*"
+  ],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "declarativeNetRequest"
+  ],
   "declarative_net_request": {
     "rule_resources": [
       {
@@ -36,9 +43,16 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content/writing-session.js", "content/content.js"],
-      "css": ["content/content.css"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content/writing-session.js",
+        "content/content.js"
+      ],
+      "css": [
+        "content/content.css"
+      ],
       "all_frames": true
     }
   ]
