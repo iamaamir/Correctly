@@ -64,13 +64,14 @@ jobs:
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Sign Firefox add-on on AMO (unlisted)
-        uses: saphareas/sign-web-extension-action@master
-        with:
-          web-ext-path: dist/correctly
-          web-ext-id: ${{ secrets.AMO_WEB_EXT_ID }}
-          sign-listed: false
-          amo-api-key: ${{ secrets.AMO_API_KEY }}
-          amo-api-secret: ${{ secrets.AMO_API_SECRET }}
+        run: |
+          set -euo pipefail
+          npx --yes web-ext sign \
+            --source-dir dist/correctly \
+            --channel=unlisted \
+            --id "${{ secrets.AMO_WEB_EXT_ID }}" \
+            --api-key "${{ secrets.AMO_API_KEY }}" \
+            --api-secret "${{ secrets.AMO_API_SECRET }}"
 
       - name: Open version bump PR
         env:
