@@ -74,9 +74,15 @@ jobs:
           npm run build:release:firefox -- --version="$NEW_VERSION"
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
+      - name: Verify built manifest version
+        run: |
+          echo "Manifest version: $(jq -r '.version // "MISSING"' dist/correctly/manifest.json)"
+          echo "Extension ID: $(jq -r '.browser_specific_settings.gecko.id // "MISSING"' dist/correctly/manifest.json)"
+
       - name: Sign Firefox add-on on AMO (unlisted)
         run: |
           set -euo pipefail
+          rm -f dist/correctly/.amo-upload-uuid dist/correctly/.web-extension-id
           npx --yes web-ext sign \
             --source-dir dist/correctly \
             --channel=unlisted \
