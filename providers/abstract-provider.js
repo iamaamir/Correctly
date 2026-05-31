@@ -37,7 +37,13 @@
  *     Must return same structure as getModels().
  */
 import { createLogger } from "../lib/logger.js";
-import { mergeConfidence, scoreResponse } from "../lib/score.js";
+import {
+  classifyProviderFailure,
+  extractDisplayChanges,
+  mergeConfidence,
+  scoreAcceptedCorrection,
+  validateGrammarResponse,
+} from "../lib/score.js";
 
 const log = createLogger("provider");
 
@@ -198,7 +204,8 @@ export class AbstractProvider {
 
     const startLevel = await this._getStartLevel();
     log.debug(`Cascade starting at level ${startLevel}`);
-    let shouldDowngradeCache = true;
+    let cacheLevelHint = null;
+    let cacheReason = null;
 
     for (let i = startLevel - 1; i < levels.length; i++) {
       const { fn, status } = levels[i];
@@ -208,57 +215,58 @@ export class AbstractProvider {
         const t0 = performance.now();
         const result = await fn();
         result.responseTimeMs = Math.round(performance.now() - t0);
-        const validated = this._validateResponse(result, text);
+        const validated = this._validateResponse(result, text, i + 1);
 
-        // Score the response with our own checks, then merge with model's self-reported confidence
-        const scored = await scoreResponse(validated, text, i + 1);
-        const merged = await mergeConfidence(validated.confidence, scored.score);
-        onProgress?.({ status, confidence: merged });
-
-        // Handle empty changes response using score-based decision logic.
-        // Empty changes with different corrected text can indicate:
-        //   1. Model supports this level but couldn't extract detailed changes (score >= 60)
-        //   2. Model doesn't actually support this level (score < 60) — try next level
-        // This avoids cascading on valid responses and reduces unnecessary API calls.
-        if (i < 2 && validated.changes.length === 0 && validated.corrected !== text) {
-          if (merged >= 60) {
-            log.debug(`Level ${i + 1}: empty changes but merged confidence ${merged} >= 60 — accepting response`);
-            // Accept: model succeeded, just can't provide detailed change breakdown
-          } else {
-            log.debug(`Level ${i + 1}: empty changes and merged confidence ${merged} < 60 — cascading`);
-            shouldDowngradeCache = false;
-            continue;
-          }
+        // Stage 3: Response trust scoring — decide if the corrected text is safe
+        const acceptance = scoreAcceptedCorrection(validated, text, i + 1);
+        if (!acceptance.accepted && i < 2) {
+          log.debug(`Level ${i + 1}: acceptanceScore ${acceptance.acceptanceScore} < 60, cascading`);
+          continue;
+        }
+        if (i >= 2 && !acceptance.accepted) {
+          log.debug(`Level 3: accepting plain-text fallback despite low acceptanceScore ${acceptance.acceptanceScore}`);
         }
 
-        if (i >= 2 || merged >= 60) {
-          if (i + 1 <= startLevel || shouldDowngradeCache) {
-            await this._updateCacheOnSuccess(startLevel, i + 1);
-          } else {
-            log.debug(`Level ${i + 1}: not downgrading cache after score-based cascade`);
-          }
-          if (scored.suppressed.length > 0) {
-            log.debug(
-              `Level ${i + 1}: suppressing ${scored.suppressed.length} low-confidence change(s) before display`,
-            );
-            validated.changes = scored.usable.map(({ _index, _entryScore, _issues, ...change }) => change);
-          }
-          validated.confidence = i >= 2 ? Math.min(Math.max(merged, 45), 55) : merged;
-          validated.cascadeLevel = i + 1;
-          onProgress?.({
-            status: "done",
-            confidence: validated.confidence,
-            level: validated.cascadeLevel,
-            responseTimeMs: validated.responseTimeMs,
-          });
-          return validated;
+        // Stage 4: Suggestion extraction — determine display-safe changes
+        const { displayChanges, hiddenChanges } = extractDisplayChanges(validated, text);
+        if (hiddenChanges.length > 0) {
+          log.debug(`Level ${i + 1}: hiding ${hiddenChanges.length} change(s) from display`);
+          validated.changes = displayChanges;
         }
 
-        log.debug(`Level ${i + 1}: merged confidence ${merged} < 60, cascading`);
-        shouldDowngradeCache = false;
+        // Stage 5: Merge confidence for the user-facing score
+        const displayConfidence = await mergeConfidence(validated.confidence, acceptance.acceptanceScore);
+        onProgress?.({ status, confidence: displayConfidence });
+
+        // Update cache on success
+        // - Capability-based cascade (structured_output_unsupported): downgrade cache
+        // - Score-based cascade (low acceptance): do NOT downgrade cache
+        if (i + 1 <= startLevel) {
+          await this._updateCacheOnSuccess(startLevel, i + 1, i + 1 === 1 ? "structured_output_supported" : undefined);
+        } else if (cacheLevelHint !== null) {
+          await this._updateCacheOnSuccess(startLevel, i + 1, cacheReason);
+        } else {
+          log.debug(`Level ${i + 1}: not downgrading cache without capability signal`);
+        }
+
+        validated.confidence = i >= 2 ? Math.min(Math.max(displayConfidence, 45), 55) : displayConfidence;
+        validated.cascadeLevel = i + 1;
+        onProgress?.({
+          status: "done",
+          confidence: validated.confidence,
+          level: validated.cascadeLevel,
+          responseTimeMs: validated.responseTimeMs,
+        });
+        return validated;
       } catch (err) {
         if (!this._isCascadeableError(err)) throw err;
-        log.debug(`Level ${i + 1} cascadeable error: ${err.message}`);
+        const classification = classifyProviderFailure(err);
+        log.debug(`Level ${i + 1} cascadeable error: ${err.message} (kind: ${classification.kind})`);
+        // Track capability failures for cache downgrade
+        if (classification.cacheLevelHint !== null) {
+          cacheLevelHint = classification.cacheLevelHint;
+          cacheReason = classification.cacheReason || classification.kind;
+        }
       }
     }
 
@@ -325,13 +333,11 @@ export class AbstractProvider {
    * @returns {boolean}
    */
   _isCascadeableError(err) {
-    const msg = err.message || "";
-    return (
-      msg.includes("Failed to parse") ||
-      msg.includes("Provider returned invalid response") ||
-      msg.includes("Provider response missing") ||
-      msg.includes("Empty response from")
-    );
+    const classification = classifyProviderFailure(err);
+    if (classification.kind === "network_or_auth_failure" || classification.kind === "rate_limit") {
+      return false;
+    }
+    return classification.cascadeable;
   }
 
   /**
@@ -355,7 +361,7 @@ export class AbstractProvider {
     try {
       const data = await chrome.storage.local.get("modelLevelCache");
       const cache = data.modelLevelCache || {};
-      const entry = cache[`${this.providerId}:${this.model}`];
+      const entry = cache[this._getModelLevelCacheKey()];
       if (!entry) return 1;
       if (entry.level >= 3) {
         log.debug(`Cache pinned at L3 — model does not support structured output`);
@@ -379,23 +385,25 @@ export class AbstractProvider {
    * @param {number} prevStart — the level we started at
    * @param {number} succeededLevel — the level that succeeded (1-indexed)
    */
-  async _updateCacheOnSuccess(prevStart, succeededLevel) {
+  async _updateCacheOnSuccess(prevStart, succeededLevel, reason) {
     try {
       const data = await chrome.storage.local.get("modelLevelCache");
       const cache = data.modelLevelCache || {};
-      const key = `${this.providerId}:${this.model}`;
+      const key = this._getModelLevelCacheKey();
       const existing = cache[key];
+      const nextReason = reason || existing?.reason || "structured_output_supported";
 
       if (succeededLevel < prevStart) {
-        cache[key] = { level: succeededLevel, checksAtLevel: 0 };
+        cache[key] = { level: succeededLevel, checksAtLevel: 0, reason: nextReason };
         log.debug(`Cache upgraded to level ${succeededLevel}`);
       } else if (succeededLevel > prevStart) {
-        cache[key] = { level: succeededLevel, checksAtLevel: 0 };
+        cache[key] = { level: succeededLevel, checksAtLevel: 0, reason: nextReason };
         log.debug(`Cache downgraded to level ${succeededLevel}`);
       } else {
         cache[key] = {
           level: succeededLevel,
           checksAtLevel: (existing?.checksAtLevel || 0) + 1,
+          reason: nextReason,
         };
         log.debug(`Cache checksAtLevel incremented to ${cache[key].checksAtLevel} at level ${succeededLevel}`);
       }
@@ -431,6 +439,10 @@ export class AbstractProvider {
       }
     }
     throw new Error("Failed to parse grammar correction response");
+  }
+
+  _getModelLevelCacheKey() {
+    return `${this.providerId}:${this.model}`;
   }
 
   // ──────────────────────────────────────────────
@@ -475,30 +487,17 @@ export class AbstractProvider {
     }
   }
 
-  _validateResponse(result, _originalText) {
+  _validateResponse(result, _originalText, _level) {
+    const level = _level || 1;
     if (!result || typeof result !== "object") {
       log.error("Response validation failed — not an object", result);
       throw new Error("Provider returned invalid response — expected an object");
     }
 
-    if (typeof result.corrected !== "string") {
-      log.error('Response validation failed — missing "corrected" string', result);
-      throw new Error('Provider response missing "corrected" string');
-    }
-
-    if (!Array.isArray(result.changes)) {
-      log.error('Response validation failed — missing "changes" array', result);
-      throw new Error('Provider response missing "changes" array');
-    }
-
-    if (
-      typeof result.confidence !== "number" ||
-      !Number.isFinite(result.confidence) ||
-      result.confidence < 1 ||
-      result.confidence > 10
-    ) {
-      log.error('Response validation failed — missing or invalid "confidence" number', result);
-      throw new Error('Provider response missing "confidence" number from 1-10');
+    const contract = validateGrammarResponse(result, { level });
+    if (!contract.ok) {
+      log.error(`Response validation failed — ${contract.reason}`, result);
+      throw new Error(`Provider response invalid: ${contract.reason}`);
     }
 
     for (let i = 0; i < result.changes.length; i++) {

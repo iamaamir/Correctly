@@ -71,11 +71,15 @@ describe("AbstractProvider cascade", () => {
     expect(provider.levels.level2).not.toHaveBeenCalled();
     expect(provider.levels.level3).not.toHaveBeenCalled();
     expect(chrome.storage.local._store.get("modelLevelCache")).toEqual({
-      "cascade-test:cascade-model": { level: 1, checksAtLevel: 1 },
+      "cascade-test:cascade-model": {
+        level: 1,
+        checksAtLevel: 1,
+        reason: "structured_output_supported",
+      },
     });
   });
 
-  it("cascades from level 1 to level 2 on invalid structured response", async () => {
+  it("cascades from level 1 to level 2 on invalid structured response without downgrading cache", async () => {
     const provider = new CascadeProvider({
       level1: vi.fn(async () => ({ changes: [], confidence: 10 })),
       level2: vi.fn(async () => ({
@@ -91,9 +95,7 @@ describe("AbstractProvider cascade", () => {
     expect(provider.levels.level1).toHaveBeenCalledOnce();
     expect(provider.levels.level2).toHaveBeenCalledOnce();
     expect(provider.levels.level3).not.toHaveBeenCalled();
-    expect(chrome.storage.local._store.get("modelLevelCache")).toEqual({
-      "cascade-test:cascade-model": { level: 2, checksAtLevel: 0 },
-    });
+    expect(chrome.storage.local._store.get("modelLevelCache")).toBeUndefined();
   });
 
   it("cascades through level 2 and accepts level 3 plain-text fallback shape", async () => {
@@ -114,9 +116,7 @@ describe("AbstractProvider cascade", () => {
     expect(provider.levels.level1).toHaveBeenCalledOnce();
     expect(provider.levels.level2).toHaveBeenCalledOnce();
     expect(provider.levels.level3).toHaveBeenCalledOnce();
-    expect(chrome.storage.local._store.get("modelLevelCache")).toEqual({
-      "cascade-test:cascade-model": { level: 3, checksAtLevel: 0 },
-    });
+    expect(chrome.storage.local._store.get("modelLevelCache")).toBeUndefined();
   });
 
   it("starts at the cached cascade level", async () => {
@@ -152,6 +152,59 @@ describe("AbstractProvider cascade", () => {
     expect(provider.levels.level1).toHaveBeenCalledOnce();
     expect(provider.levels.level2).not.toHaveBeenCalled();
     expect(provider.levels.level3).not.toHaveBeenCalled();
+  });
+
+  it("does not cascade unknown provider errors", async () => {
+    const provider = new CascadeProvider({
+      level1: vi.fn(async () => {
+        throw new Error("Unexpected provider bug");
+      }),
+    });
+
+    await expect(provider.correctGrammar("Hello world")).rejects.toThrow("Unexpected provider bug");
+    expect(provider.levels.level1).toHaveBeenCalledOnce();
+    expect(provider.levels.level2).not.toHaveBeenCalled();
+    expect(provider.levels.level3).not.toHaveBeenCalled();
+  });
+
+  it("does not cascade 429 rate-limit errors", async () => {
+    const provider = new CascadeProvider({
+      level1: vi.fn(async () => {
+        throw new Error("Provider API error: 429");
+      }),
+    });
+
+    await expect(provider.correctGrammar("Hello world")).rejects.toThrow("Provider API error: 429");
+    expect(provider.levels.level1).toHaveBeenCalledOnce();
+    expect(provider.levels.level2).not.toHaveBeenCalled();
+    expect(provider.levels.level3).not.toHaveBeenCalled();
+  });
+
+  it("downgrades cache only when a capability hint is present", async () => {
+    const err = new Error("Fallback JSON parse failed after schema rejection");
+    err.cacheLevelHint = 2;
+    err.cacheReason = "structured_output_unsupported";
+    const provider = new CascadeProvider({
+      level1: vi.fn(async () => {
+        throw err;
+      }),
+      level2: vi.fn(async () => ({
+        corrected: "Hello earth",
+        changes: [{ original: "world", replacement: "earth", explanation: "Use the intended noun." }],
+        confidence: 10,
+      })),
+    });
+
+    const result = await provider.correctGrammar("Hello world");
+
+    expect(result.cascadeLevel).toBe(2);
+    expect(chrome.storage.local._store.get("modelLevelCache")).toEqual({
+      "cascade-test:cascade-model": {
+        level: 2,
+        checksAtLevel: 0,
+        reason: "structured_output_unsupported",
+      },
+    });
   });
 
   it("does not downgrade cache when cascading because a response scored too low", async () => {

@@ -184,6 +184,8 @@ export class AbstractOpenAICompatibleProvider extends AbstractProvider {
           return result;
         } catch (fallbackErr) {
           log.error("Fallback also failed:", fallbackErr.message);
+          fallbackErr.cacheLevelHint = 2;
+          fallbackErr.cacheReason = "structured_output_unsupported";
           throw fallbackErr;
         }
       }
@@ -220,6 +222,10 @@ export class AbstractOpenAICompatibleProvider extends AbstractProvider {
   }
 
   _getStructuredOutputCacheKey() {
+    return `${this.providerId}:${this.endpoint}:${this.model}`;
+  }
+
+  _getModelLevelCacheKey() {
     return `${this.providerId}:${this.endpoint}:${this.model}`;
   }
 }
