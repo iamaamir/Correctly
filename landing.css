@@ -758,6 +758,7 @@ h3 {
   background: oklch(17% 0.01 155);
   padding: clamp(16px, 2vw, 24px);
   view-transition-name: tab-panel;
+  display: grid;
 }
 
 ::view-transition-group(tab-panel) {
@@ -770,6 +771,14 @@ h3 {
 ::view-transition-new(tab-panel) {
   animation-name: tab-in;
 }
+
+::view-transition-old(tab-panel),
+::view-transition-new(tab-panel) {
+  height: 100%;
+  object-fit: none; /* don't stretch the snapshot */
+  clip-path: inset(0);
+}
+
 @keyframes tab-out {
   to {
     opacity: 0;
@@ -784,12 +793,15 @@ h3 {
 }
 
 .tab-panel {
-  display: none;
+  display: flex;
+  align-items: center;
+  grid-area: 1 / 1;
+  visibility: hidden;
 }
 
 #tab-chrome:checked ~ .tab-panels #panel-chrome,
 #tab-firefox:checked ~ .tab-panels #panel-firefox {
-  display: block;
+  visibility: visible;
 }
 
 @media (max-width: 620px) {
