@@ -15,7 +15,6 @@ const revealGroups = [
   ".feature-grid article",
   ".provider-matrix article",
   ".privacy-layout",
-  ".install-steps li",
   ".final-cta",
 ];
 
