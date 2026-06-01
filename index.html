@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Correctly - Minimal AI Grammar Checker for Chrome</title>
+    <title>Correctly - Minimal AI Grammar Checker for Chrome &amp; Firefox</title>
     <meta name="google-site-verification" content="4ucgydwOFLng9VfS1XhhDafMPfPxOuPUtH10wGC2q7M" />
     <meta
       name="description"
-      content="Correctly is an open-source, local-first AI grammar checker for Chrome. Run checks with local models, Chrome on-device AI, or your own API provider."
+      content="Correctly is an open-source, local-first AI grammar checker for Chrome and Firefox. Run checks with local models, on-device AI, or your own API provider."
     />
     <meta
       name="keywords"
-      content="Correctly, Chrome grammar checker, AI grammar checker, privacy grammar extension, Gemini Nano grammar, Ollama grammar checker, OpenAI grammar checker"
+      content="Correctly, Chrome grammar checker, Firefox grammar checker, AI grammar checker, privacy grammar extension, Gemini Nano grammar, Ollama grammar checker, OpenAI grammar checker"
     />
     <meta name="author" content="Correctly" />
     <meta name="robots" content="index,follow,max-image-preview:large" />
@@ -21,20 +21,26 @@
     <link rel="icon" href="icons/icon128.png" sizes="128x128" />
     <link rel="apple-touch-icon" href="icons/icon128.png" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Correctly - Minimal AI Grammar Checker for Chrome" />
+    <meta
+      property="og:title"
+      content="Correctly - Minimal AI Grammar Checker for Chrome &amp; Firefox"
+    />
     <meta
       property="og:description"
-      content="Open-source, local-first AI grammar checking for Chrome. Use local models, Chrome on-device AI, or your own provider key."
+      content="Open-source, local-first AI grammar checker for Chrome and Firefox. Use local models, on-device AI, or your own provider key."
     />
     <meta property="og:url" content="https://iamaamir.github.io/Correctly/" />
     <meta property="og:image" content="https://iamaamir.github.io/Correctly/social-card.png" />
     <meta property="og:image:width" content="1280" />
     <meta property="og:image:height" content="640" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Correctly - Minimal AI Grammar Checker for Chrome" />
+    <meta
+      name="twitter:title"
+      content="Correctly - Minimal AI Grammar Checker for Chrome &amp; Firefox"
+    />
     <meta
       name="twitter:description"
-      content="Open-source, local-first AI grammar checking for Chrome."
+      content="Open-source, local-first AI grammar checker for Chrome and Firefox."
     />
     <meta name="twitter:image" content="https://iamaamir.github.io/Correctly/social-card.png" />
     <!-- Google Tag Manager -->
@@ -61,7 +67,7 @@
             "@type": "SoftwareApplication",
             "name": "Correctly",
             "applicationCategory": "BrowserApplication",
-            "operatingSystem": "Chrome",
+            "operatingSystem": "Chrome, Firefox",
             "description": "An open-source, local-first Chrome extension that checks grammar, spelling, and punctuation using AI.",
             "offers": {
               "@type": "Offer",
@@ -78,6 +84,7 @@
               "OpenAI and OpenAI-compatible provider support",
               "Ollama and LM Studio local model support",
               "Local API key storage",
+              "Firefox support",
               "Sensitive field exclusion"
             ]
           },
@@ -148,8 +155,9 @@
           <p class="eyebrow">Open source. Local first. AI powered.</p>
           <h1 id="hero-title">Grammar checking run by your AI.</h1>
           <p class="hero-lede">
-            Correctly is a Chrome extension that checks writing in-place using local models, Chrome
-            on-device AI, or your own API key. No Correctly account. No Correctly cloud.
+            Correctly is a browser extension for Chrome and Firefox that checks writing in-place
+            using local models, on-device AI, or your own API key. No Correctly account. No
+            Correctly cloud.
           </p>
           <div class="hero-actions" aria-label="Primary actions">
             <a
@@ -307,36 +315,83 @@
       <section class="section install-section" id="install" aria-labelledby="install-title">
         <div class="section-heading">
           <p class="eyebrow">Install</p>
-          <h2 id="install-title">Load it as an unpacked Chrome extension.</h2>
+          <h2 id="install-title">Load it on Chrome or Firefox.</h2>
         </div>
-        <ol class="install-steps">
-          <li>
-            <span>Download or clone</span>
-            <p>
-              Get
-              <a href="https://github.com/iamaamir/Correctly/releases" rel="noopener"
-                >correctly.zip</a
-              >
-              from releases and unzip it, or clone the repo.
-            </p>
-            <code>git clone https://github.com/iamaamir/Correctly.git</code>
-          </li>
-          <li>
-            <span>Open Chrome extensions</span>
-            <code>chrome://extensions</code>
-          </li>
-          <li>
-            <span>Enable Developer mode</span>
-            <p>Use the toggle in the top-right corner of Chrome's extensions page.</p>
-          </li>
-          <li>
-            <span>Load unpacked</span>
-            <p>
-              Select the unzipped <code>correctly</code> folder or the cloned repo, then choose your
-              provider.
-            </p>
-          </li>
-        </ol>
+
+        <div class="install-tabs" role="tablist">
+          <input type="radio" name="install-tab" id="tab-chrome" value="chrome" checked />
+          <input type="radio" name="install-tab" id="tab-firefox" value="firefox" />
+          <div class="tab-bar">
+            <label
+              for="tab-chrome"
+              role="tab"
+              aria-controls="panel-chrome"
+              aria-selected="true"
+              tabindex="0"
+              >Chrome <span class="tab-browser-note">Edge, Brave, Opera …</span></label
+            >
+            <label
+              for="tab-firefox"
+              role="tab"
+              aria-controls="panel-firefox"
+              aria-selected="false"
+              tabindex="-1"
+              >Firefox</label
+            >
+          </div>
+          <div class="tab-panels">
+            <div class="tab-panel" id="panel-chrome" role="tabpanel" aria-labelledby="tab-chrome">
+              <ol class="install-steps">
+                <li>
+                  <span>Download or clone</span>
+                  <p>
+                    Get
+                    <a href="https://github.com/iamaamir/Correctly/releases" rel="noopener"
+                      >correctly-chrome.zip</a
+                    >
+                    from releases and unzip it, or clone the repo.
+                  </p>
+                  <code>git clone https://github.com/iamaamir/Correctly.git</code>
+                </li>
+                <li>
+                  <span>Open Chrome extensions</span>
+                  <code>chrome://extensions</code>
+                </li>
+                <li>
+                  <span>Enable Developer mode</span>
+                  <p>Use the toggle in the top-right corner of Chrome's extensions page.</p>
+                </li>
+                <li>
+                  <span>Load unpacked</span>
+                  <p>
+                    Select the unzipped <code>correctly</code> folder, then choose your provider.
+                  </p>
+                </li>
+              </ol>
+            </div>
+            <div class="tab-panel" id="panel-firefox" role="tabpanel" aria-labelledby="tab-firefox">
+              <ol class="install-steps">
+                <li>
+                  <span>Download and install</span>
+                  <p>
+                    Get
+                    <a href="https://github.com/iamaamir/Correctly/releases" rel="noopener"
+                      >correctly-firefox.xpi</a
+                    >
+                    from releases and drop in firefox
+                  </p>
+                </li>
+                <li>
+                  <span>Or build from source</span>
+                  <code
+                    >git clone https://github.com/iamaamir/Correctly.git && cd Correctly && npm i &&
+                    npm run build:release:firefox</code
+                  >
+                </li>
+              </ol>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="final-cta" aria-labelledby="final-title">

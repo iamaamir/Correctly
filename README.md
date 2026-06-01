@@ -155,26 +155,32 @@ npm run build:release
 - `build:release:firefox` -> `correctly-firefox.xpi`
 - `build:release` builds both
 
-## Firefox signing (persistent install)
+## Firefox support
 
-Firefox removes temporary add-ons on restart. For persistent install, sign on AMO.
+Correctly works in Firefox (Manifest V3) and any browser that supports
+`chrome.*` extension APIs (Edge, Brave, Opera, etc.). The extension uses Event Pages (`background.scripts`) and
+`browser_specific_settings` for Firefox compatibility.
 
-1. Create AMO API credentials (JWT issuer/secret)
-2. Upload unsigned package (`correctly-firefox.xpi`) to AMO (listed or unlisted)
-3. Download signed `.xpi`
-4. Install signed `.xpi` in Firefox
+### Install on Firefox
 
-Tip: use unlisted AMO for private/internal distribution.
+**Persistent install** (recommended) — download the AMO-signed
+`correctly-firefox.xpi` from the
+[latest release](https://github.com/iamaamir/Correctly/releases) and open it with
+Firefox. The extension is pre-signed — no developer account needed.
 
-### CI automation (GitHub Actions)
+**Temporary dev install** — open `about:debugging#/runtime/this-firefox`, click
+**Load Temporary Add-on…**, and select `manifest.json` in the source folder.
 
-Release workflow can auto-sign unlisted Firefox build via AMO.
+### CI signing (GitHub Actions)
+
+The release workflow signs the Firefox build automatically via AMO (unlisted).
 Set repository secrets:
 
 - `AMO_API_KEY`
 - `AMO_API_SECRET`
 
-Then run release workflow. It builds unsigned package, submits to AMO, downloads signed XPI, and attaches `correctly-firefox.xpi` to GitHub release.
+Then run the workflow. It submits the unsigned XPI to AMO, waits for signing,
+downloads the signed `.xpi`, and attaches it to the GitHub release.
 
 ## License
 ![License](https://www.shieldcn.dev/github/license/iamaamir/Correctly.svg?variant=ghost&size=sm&mode=light&theme=zinc)
