@@ -25,29 +25,30 @@ A minimalist browser extension that checks grammar, spelling, and punctuation us
 1. Download target package from [latest release](https://github.com/iamaamir/Correctly/releases):
    - `correctly-chrome.zip` for Chrome/Chromium
    - `correctly-firefox.xpi` for Firefox
-   Or clone the repo:
-   ```
-   git clone https://github.com/iamaamir/Correctly.git
-   ```
+   
 2. For Chrome/Chromium:
    - Open `chrome://extensions`
    - Enable **Developer mode**
    - Click **Load unpacked** and select unzipped folder
 
-   For Firefox (temporary/dev install):
-   - Open `about:debugging#/runtime/this-firefox`
-   - Click **Load Temporary Add-on...**
-   - Select `manifest.json` in source folder
-
-   For Firefox persistent install:
-   - Install AMO-signed `correctly-firefox.xpi`
-5. Click the extension icon, select your provider, enter an API key if required, and save
-   - **OpenAI**: enter your OpenAI API key
-   - **Chrome Free AI**: no API key needed — enable `chrome://flags/#optimization-guide-on-device-model` and `chrome://flags/#prompt-api-for-gemini-nano`, then select "Chrome Free AI" and click Download
-   - you can visit `chrome://on-device-internals/` to check the status or tune your model
+3. For Firefox :
+   - Drop the `correctly-firefox.xpi` in firefox
+  
+## Using Providers:
+  
    - **Ollama**: see [Using Ollama](#using-ollama) below
    - **LM Studio**: see [Using LM Studio](#using-lm-studio) below
-   - **OpenAI Compatible**: enter the base URL and API key for any OpenAI-compatible service, then click **Fetch** to load available models
+   - **OpenAI Compatible**: see [Using OpenAI Compatible](#using-openai-compatible) below
+  
+  
+## Build locally
+
+- `npm run build:release:chrome` -> `correctly-chrome.zip`
+- `npm run build:release:firefox` -> `correctly-firefox.xpi`
+- `npm run build:release` builds both
+
+
+
 
 ## Using Ollama
 
@@ -61,6 +62,47 @@ Correctly supports [Ollama](https://ollama.com) for local grammar checking. No A
    OLLAMA_ORIGINS=* ollama serve
    ```
 4. In the extension popup, select **Ollama**, choose a model, and save. An API key is only needed if your Ollama instance requires authentication.
+
+   
+## Using LM Studio
+
+Correctly supports [LM Studio](https://lmstudio.ai) for local grammar checking. No API key is needed.
+
+1. Open LM Studio, load a model, and start the local inference server (default port 1234)
+2. Make sure **Local CORS** is turned off in LM Studio's settings
+3. In the extension popup, select **LM Studio**, choose a model, and save
+
+## Using OpenAI Compatible
+
+Correctly supports any service that offers an OpenAI-compatible API (e.g., [Groq](https://groq.com), [OpenRouter](https://openrouter.ai), [DeepSeek](https://deepseek.com)). You provide the base URL and API key.
+
+1. In the extension popup, select **OpenAI Compatible**
+2. Enter the full base URL (e.g., `https://api.groq.com/openai/v1`)
+3. Enter your API key
+4. Select a model, click **Save** — the extension verifies the connection and ready to serve
+
+## Want to add a new Provider?
+
+- **OpenAI-compatible API** (e.g., Ollama, LM Studio): extend `AbstractOpenAICompatibleProvider`
+  — `_doCorrectGrammar()` and response parsing are already implemented. Just provide
+  static metadata and set `this.endpoint` in the constructor.
+- **Generic OpenAI-compatible** (any service with a base URL + API key): no new class needed
+  — use `GenericOpenAIProvider` which is already registered. Users configure the base URL
+  and API key in the popup.
+- **Other providers**: extend `AbstractProvider` directly and implement
+  `_doCorrectGrammar(text)` and all required static metadata.
+
+Then add the class to `PROVIDER_CLASSES` in `provider-registry.js`.
+
+
+
+## Privacy and Security
+
+- **Your API key is stored locally** in browser extension local storage on your device. It is never sent to any server other than your chosen AI provider.
+- **Chrome Free AI runs entirely on-device** — text is processed by Chrome's built-in Gemini Nano model. No data is ever sent over the network.
+- **For other providers** (e.g., OpenAI), text you type is sent to the chosen AI provider for grammar checking. Avoid typing sensitive information in fields where the extension is active, or use `data-correctly="false"` to opt out specific elements.
+- Password fields, credit card inputs, and other sensitive field types are automatically excluded.
+
 
 ## Project Structure
 
@@ -103,84 +145,6 @@ correctly/
     └── settings.js            # Settings persistence and caching
 ```
 
-## Using LM Studio
-
-Correctly supports [LM Studio](https://lmstudio.ai) for local grammar checking. No API key is needed.
-
-1. Open LM Studio, load a model, and start the local inference server (default port 1234)
-2. Make sure **Local CORS** is turned off in LM Studio's settings
-3. In the extension popup, select **LM Studio**, choose a model, and save
-
-## Using OpenAI Compatible
-
-Correctly supports any service that offers an OpenAI-compatible API (e.g., [Groq](https://groq.com), [OpenRouter](https://openrouter.ai), [DeepSeek](https://deepseek.com)). You provide the base URL and API key.
-
-1. In the extension popup, select **OpenAI Compatible**
-2. Enter the full base URL (e.g., `https://api.groq.com/openai/v1`)
-3. Enter your API key
-4. Click **Fetch** to load available models, or type a model name manually
-5. Select a model, click **Save** — the extension verifies the connection before saving
-
-
-
-## Privacy and Security
-
-- **Your API key is stored locally** in browser extension local storage on your device. It is never sent to any server other than your chosen AI provider.
-- **Chrome Free AI runs entirely on-device** — text is processed by Chrome's built-in Gemini Nano model. No data is ever sent over the network.
-- **For other providers** (e.g., OpenAI), text you type is sent to the chosen AI provider for grammar checking. Avoid typing sensitive information in fields where the extension is active, or use `data-correctly="false"` to opt out specific elements.
-- Password fields, credit card inputs, and other sensitive field types are automatically excluded.
-
-## Want to add a new Provider?
-
-- **OpenAI-compatible API** (e.g., Ollama, LM Studio): extend `AbstractOpenAICompatibleProvider`
-  — `_doCorrectGrammar()` and response parsing are already implemented. Just provide
-  static metadata and set `this.endpoint` in the constructor.
-- **Generic OpenAI-compatible** (any service with a base URL + API key): no new class needed
-  — use `GenericOpenAIProvider` which is already registered. Users configure the base URL
-  and API key in the popup.
-- **Other providers**: extend `AbstractProvider` directly and implement
-  `_doCorrectGrammar(text)` and all required static metadata.
-
-Then add the class to `PROVIDER_CLASSES` in `provider-registry.js`.
-
-## Build release zips
-
-```bash
-npm run build:release:chrome
-npm run build:release:firefox
-npm run build:release
-```
-
-- `build:release:chrome` -> `correctly-chrome.zip`
-- `build:release:firefox` -> `correctly-firefox.xpi`
-- `build:release` builds both
-
-## Firefox support
-
-Correctly works in Firefox (Manifest V3) and any browser that supports
-`chrome.*` extension APIs (Edge, Brave, Opera, etc.). The extension uses Event Pages (`background.scripts`) and
-`browser_specific_settings` for Firefox compatibility.
-
-### Install on Firefox
-
-**Persistent install** (recommended) — download the AMO-signed
-`correctly-firefox.xpi` from the
-[latest release](https://github.com/iamaamir/Correctly/releases) and open it with
-Firefox. The extension is pre-signed — no developer account needed.
-
-**Temporary dev install** — open `about:debugging#/runtime/this-firefox`, click
-**Load Temporary Add-on…**, and select `manifest.json` in the source folder.
-
-### CI signing (GitHub Actions)
-
-The release workflow signs the Firefox build automatically via AMO (unlisted).
-Set repository secrets:
-
-- `AMO_API_KEY`
-- `AMO_API_SECRET`
-
-Then run the workflow. It submits the unsigned XPI to AMO, waits for signing,
-downloads the signed `.xpi`, and attaches it to the GitHub release.
 
 ## License
 ![License](https://www.shieldcn.dev/github/license/iamaamir/Correctly.svg?variant=ghost&size=sm&mode=light&theme=zinc)
