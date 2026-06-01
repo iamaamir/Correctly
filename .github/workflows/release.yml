@@ -106,7 +106,7 @@ jobs:
           git checkout -b "${BRANCH}"
           git add manifest.base.json
           git commit -m "chore: bump version to ${VERSION}"
-          git push origin "${BRANCH}"
+          git push origin "${BRANCH}" --force
 
           gh pr create \
             --base main \
