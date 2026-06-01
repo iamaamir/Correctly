@@ -92,43 +92,24 @@ backToTop?.addEventListener("click", (event) => {
   const tabs = document.querySelector(".install-tabs");
   if (!tabs) return;
 
-  const panels = tabs.querySelector(".tab-panels");
   const labels = tabs.querySelectorAll(".tab-bar label");
-  const radios = tabs.querySelectorAll('[name="install-tab"]');
 
   function selectTab(id) {
     const radio = document.getElementById(id);
     if (!radio || radio.checked) return;
 
-    updateTabAria(id);
-    const oldHeight = panels.offsetHeight;
-    radio.checked = true;
-
-    if (reduceMotion.matches) return;
-
-    panels.style.height = oldHeight + "px";
-    panels.offsetHeight;
-    const newHeight = panels.scrollHeight;
-    if (oldHeight === newHeight) {
-      panels.style.height = "";
-      return;
-    }
-    panels.style.height = newHeight + "px";
-
-    const onFinish = () => {
-      panels.style.height = "";
-      panels.removeEventListener("transitionend", onFinish);
-      panels.removeEventListener("transitioncancel", onFinish);
-    };
-    panels.addEventListener("transitionend", onFinish);
-    panels.addEventListener("transitioncancel", onFinish);
-  }
-
-  function updateTabAria(activeId) {
     for (const label of labels) {
-      const isActive = label.getAttribute("for") === activeId;
+      const isActive = label.getAttribute("for") === id;
       label.setAttribute("aria-selected", isActive ? "true" : "false");
       label.setAttribute("tabindex", isActive ? "0" : "-1");
+    }
+
+    if (document.startViewTransition && !reduceMotion.matches) {
+      document.startViewTransition(() => {
+        radio.checked = true;
+      });
+    } else {
+      radio.checked = true;
     }
   }
 
