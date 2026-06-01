@@ -743,7 +743,7 @@ h3 {
 .tab-browser-note {
   font-weight: 400;
   color: var(--faint);
-  font-size: 0.82rem;
+  font-size: 0.75rem;
 }
 
 #tab-chrome:checked ~ .tab-bar label[for="tab-chrome"] .tab-browser-note,
@@ -755,9 +755,32 @@ h3 {
   border: 1px solid var(--line);
   border-block-start: none;
   border-radius: 0 0 var(--radius) var(--radius);
-  background: oklch(14% 0.01 155 / 0.9);
+  background: oklch(17% 0.01 155);
   padding: clamp(16px, 2vw, 24px);
   view-transition-name: tab-panel;
+}
+
+::view-transition-group(tab-panel) {
+  animation-timing-function: cubic-bezier(0.68, -0.6, 0.32, 1.6);
+  animation-duration: 0.6s;
+}
+::view-transition-old(tab-panel) {
+  animation-name: tab-out;
+}
+::view-transition-new(tab-panel) {
+  animation-name: tab-in;
+}
+@keyframes tab-out {
+  to {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+}
+@keyframes tab-in {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
 }
 
 .tab-panel {
@@ -955,7 +978,7 @@ h3 {
   ::view-transition-group(tab-panel),
   ::view-transition-old(tab-panel),
   ::view-transition-new(tab-panel) {
-    animation: none !important;
+    animation: none;
   }
 
   .motion-ready [data-reveal],
