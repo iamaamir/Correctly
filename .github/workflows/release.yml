@@ -17,7 +17,7 @@ jobs:
   test:
     uses: ./.github/workflows/test.yml
 
-  build:
+  derive-version:
     # needs: test
     runs-on: ubuntu-latest
     outputs:
@@ -72,14 +72,38 @@ jobs:
 
           echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
 
-      - name: Build targets
+  build-chrome:
+    needs: derive-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build Chrome extension
         run: |
           set -euo pipefail
-
-          VERSION="${{ steps.bump.outputs.version }}"
-          echo "Building version: ${VERSION}"
+          VERSION="${{ needs.derive-version.outputs.version }}"
+          echo "Building Chrome version: ${VERSION}"
           npm ci
           npm run build:release:chrome -- --version="${VERSION}"
+
+      - name: Upload Chrome zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-zip
+          path: correctly-chrome.zip
+
+  build-firefox:
+    needs: derive-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build Firefox extension
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.derive-version.outputs.version }}"
+          echo "Building Firefox version: ${VERSION}"
+          npm ci
           npm run build:release:firefox -- --version="${VERSION}"
 
       - name: Upload Firefox source directory
@@ -88,14 +112,8 @@ jobs:
           name: dist-firefox
           path: dist/correctly/
 
-      - name: Upload Chrome zip
-        uses: actions/upload-artifact@v4
-        with:
-          name: chrome-zip
-          path: correctly-chrome.zip
-
   bump-version:
-    needs: build
+    needs: derive-version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -106,7 +124,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          VERSION="${{ needs.build.outputs.version }}"
+          VERSION="${{ needs.derive-version.outputs.version }}"
           BRANCH="chore/bump-v${VERSION}"
 
           jq --arg v "${VERSION}" '.version = $v' manifest.base.json > manifest.base.json.tmp
@@ -126,7 +144,7 @@ jobs:
             --body "Automated version bump from release workflow."
 
   sign:
-    needs: build
+    needs: build-firefox
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -136,11 +154,6 @@ jobs:
         with:
           name: dist-firefox
           path: dist/correctly/
-
-      - name: Download Chrome zip
-        uses: actions/download-artifact@v4
-        with:
-          name: chrome-zip
 
       - name: Verify built manifest version
         run: |
@@ -169,10 +182,30 @@ jobs:
 
           cp "${SIGNED_XPI}" correctly-firefox.xpi
 
+      - name: Upload signed XPI
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-xpi
+          path: correctly-firefox.xpi
+
+  release:
+    needs: [derive-version, build-chrome, sign]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Chrome zip
+        uses: actions/download-artifact@v4
+        with:
+          name: chrome-zip
+
+      - name: Download signed XPI
+        uses: actions/download-artifact@v4
+        with:
+          name: signed-xpi
+
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ needs.build.outputs.version }}
-          name: v${{ needs.build.outputs.version }}
+          tag_name: v${{ needs.derive-version.outputs.version }}
+          name: v${{ needs.derive-version.outputs.version }}
           files: |
             correctly-chrome.zip
             correctly-firefox.xpi

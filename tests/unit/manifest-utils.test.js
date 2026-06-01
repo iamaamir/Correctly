@@ -28,9 +28,7 @@ describe("manifest utils", () => {
     const manifest = loadManifestForTarget("firefox");
     expect(manifest.background.scripts).toEqual(["background/service-worker.js"]);
     expect(manifest.browser_specific_settings.gecko.id).toBe("correctly@mak.in");
-    expect(manifest.browser_specific_settings.gecko.data_collection_permissions.required).toEqual([
-      "none",
-    ]);
+    expect(manifest.browser_specific_settings.gecko.data_collection_permissions.required).toEqual(["none"]);
     expect(manifest.browser_specific_settings.gecko.data_collection_permissions.optional).toEqual([
       "technicalAndInteraction",
     ]);
