@@ -17,87 +17,11 @@ jobs:
   test:
     uses: ./.github/workflows/test.yml
 
-  bump-version:
+  build:
     # needs: test
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Derive version from latest release and package
-        id: bump
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          git fetch --tags origin
-
-          API_URL="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest"
-          RESPONSE=$(curl -sS -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" -w "\n%{http_code}" "${API_URL}")
-          BODY=$(printf '%s' "${RESPONSE}" | sed '$d')
-          STATUS=$(printf '%s' "${RESPONSE}" | tail -n1)
-
-          if [[ "${STATUS}" == "200" ]]; then
-            LATEST_TAG=$(printf '%s' "${BODY}" | jq -r '.tag_name // empty')
-          elif [[ "${STATUS}" == "404" ]]; then
-            LATEST_TAG=""
-          else
-            echo "Failed to query latest release (HTTP ${STATUS})."
-            printf '%s\n' "${BODY}"
-            exit 1
-          fi
-
-          if [[ -n "${{ inputs.version }}" ]]; then
-            NEW_VERSION="${{ inputs.version }}"
-          else
-            if [[ -z "${LATEST_TAG}" ]]; then
-              BASE_VERSION="0.0.0"
-            elif [[ "${LATEST_TAG}" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-              BASE_VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
-            else
-              echo "Unsupported release tag format: ${LATEST_TAG} (expected vX.Y.Z)"
-              exit 1
-            fi
-
-            IFS='.' read -r major minor patch <<< "${BASE_VERSION}"
-            NEW_VERSION="${major}.${minor}.$((patch + 1))"
-          fi
-
-          if git ls-remote --exit-code --tags origin "refs/tags/v${NEW_VERSION}" >/dev/null 2>&1; then
-            echo "Refusing to release: tag v${NEW_VERSION} already exists."
-            exit 1
-          fi
-
-          echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
-
-      - name: Open version bump PR
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          VERSION="${{ steps.bump.outputs.version }}"
-          BRANCH="chore/bump-v${VERSION}"
-
-          jq --arg v "${VERSION}" '.version = $v' manifest.base.json > manifest.base.json.tmp
-          mv manifest.base.json.tmp manifest.base.json
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b "${BRANCH}"
-          git add manifest.base.json
-          git commit -m "chore: bump version to ${VERSION}"
-          git push origin "${BRANCH}" --force
-
-          gh pr create \
-            --base main \
-            --head "${BRANCH}" \
-            --title "chore: bump version to ${VERSION}" \
-            --body "Automated version bump from release workflow."
-
-  release:
-    # needs: test
-    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
     steps:
       - uses: actions/checkout@v5
 
@@ -158,6 +82,66 @@ jobs:
           npm run build:release:chrome -- --version="${VERSION}"
           npm run build:release:firefox -- --version="${VERSION}"
 
+      - name: Upload Firefox source directory
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-firefox
+          path: dist/correctly/
+
+      - name: Upload Chrome zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-zip
+          path: correctly-chrome.zip
+
+  bump-version:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Open version bump PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ needs.build.outputs.version }}"
+          BRANCH="chore/bump-v${VERSION}"
+
+          jq --arg v "${VERSION}" '.version = $v' manifest.base.json > manifest.base.json.tmp
+          mv manifest.base.json.tmp manifest.base.json
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${BRANCH}"
+          git add manifest.base.json
+          git commit -m "chore: bump version to ${VERSION}"
+          git push origin "${BRANCH}" --force
+
+          gh pr create \
+            --base main \
+            --head "${BRANCH}" \
+            --title "chore: bump version to ${VERSION}" \
+            --body "Automated version bump from release workflow."
+
+  sign:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download Firefox source directory
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-firefox
+          path: dist/correctly/
+
+      - name: Download Chrome zip
+        uses: actions/download-artifact@v4
+        with:
+          name: chrome-zip
+
       - name: Verify built manifest version
         run: |
           echo "Manifest version: $(jq -r '.version // "MISSING"' dist/correctly/manifest.json)"
@@ -187,8 +171,8 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.bump.outputs.version }}
-          name: v${{ steps.bump.outputs.version }}
+          tag_name: v${{ needs.build.outputs.version }}
+          name: v${{ needs.build.outputs.version }}
           files: |
             correctly-chrome.zip
             correctly-firefox.xpi
