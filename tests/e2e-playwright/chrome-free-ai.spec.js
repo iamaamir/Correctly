@@ -75,9 +75,7 @@ async function injectMockLanguageModel(sw, opts = {}) {
           }
           return JSON.stringify({
             corrected: "this is the correct text",
-            changes: [
-              { original: "teh", replacement: "the", explanation: "spelling fix" },
-            ],
+            changes: [{ original: "teh", replacement: "the", explanation: "spelling fix" }],
             confidence: 9,
           });
         }

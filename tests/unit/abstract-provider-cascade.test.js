@@ -359,9 +359,7 @@ describe("cascade signal propagation", () => {
     const provider = new CascadeProvider();
     const ac = new AbortController();
     ac.abort();
-    await expect(
-      provider.correctGrammar("Hello world", { signal: ac.signal }),
-    ).rejects.toThrow();
+    await expect(provider.correctGrammar("Hello world", { signal: ac.signal })).rejects.toThrow();
     expect(provider.levels.level1).not.toHaveBeenCalled();
   });
 

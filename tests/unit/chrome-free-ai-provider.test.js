@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChromeFreeAIProvider } from "../../providers/chrome-free-ai-provider.js";
 import {
-  installMockLanguageModel,
-  resetMockState,
   getMockSessions,
+  installMockLanguageModel,
   MockLanguageModel,
+  resetMockState,
 } from "../mocks/language-model.js";
 
 const DEFAULT_AVAILABILITY = MockLanguageModel.availability;
@@ -144,10 +144,7 @@ describe("_getBaseSession", () => {
 
   it("deduplicates concurrent calls for the same level", async () => {
     const provider = createProvider();
-    const [a, b] = await Promise.all([
-      provider._getBaseSession(1, {}),
-      provider._getBaseSession(1, {}),
-    ]);
+    const [a, b] = await Promise.all([provider._getBaseSession(1, {}), provider._getBaseSession(1, {})]);
     expect(a).toBe(b);
     expect(provider._getSessionMetrics().createCount).toBe(1);
   });
@@ -157,9 +154,7 @@ describe("_getBaseSession", () => {
     const ac = new AbortController();
     const spy = vi.spyOn(MockLanguageModel, "create");
     await provider._getBaseSession(1, { signal: ac.signal });
-    expect(spy).toHaveBeenCalledWith(
-      expect.objectContaining({ signal: ac.signal }),
-    );
+    expect(spy).toHaveBeenCalledWith(expect.objectContaining({ signal: ac.signal }));
   });
 
   it("rethrows error when LanguageModel.create fails", async () => {
@@ -304,10 +299,7 @@ describe("_runWithSession", () => {
     vi.spyOn(base, "clone").mockResolvedValue(clone);
 
     await provider._runWithSession("hello world", 1, { signal: ac.signal });
-    expect(spy).toHaveBeenCalledWith(
-      "hello world",
-      expect.objectContaining({ signal: ac.signal }),
-    );
+    expect(spy).toHaveBeenCalledWith("hello world", expect.objectContaining({ signal: ac.signal }));
   });
 
   it("uses correct system prompt for each level", async () => {
@@ -342,33 +334,25 @@ describe("_doCorrectGrammar", () => {
     const provider = createProvider();
     const ac = new AbortController();
     ac.abort();
-    await expect(
-      provider._doCorrectGrammar("hello world", { signal: ac.signal }),
-    ).rejects.toThrow(Error);
+    await expect(provider._doCorrectGrammar("hello world", { signal: ac.signal })).rejects.toThrow(Error);
   });
 
   it("rejects when model is not available", async () => {
     const provider = createProvider();
     MockLanguageModel.availability = vi.fn().mockResolvedValue("unavailable");
-    await expect(provider._doCorrectGrammar("hello world")).rejects.toThrow(
-      "Chrome Free AI not available",
-    );
+    await expect(provider._doCorrectGrammar("hello world")).rejects.toThrow("Chrome Free AI not available");
   });
 
   it("rejects when model is downloadable (not yet downloaded)", async () => {
     const provider = createProvider();
     MockLanguageModel.availability = vi.fn().mockResolvedValue("downloadable");
-    await expect(provider._doCorrectGrammar("hello world")).rejects.toThrow(
-      "not downloaded",
-    );
+    await expect(provider._doCorrectGrammar("hello world")).rejects.toThrow("not downloaded");
   });
 
   it("rejects when model is still downloading", async () => {
     const provider = createProvider();
     MockLanguageModel.availability = vi.fn().mockResolvedValue("downloading");
-    await expect(provider._doCorrectGrammar("hello world")).rejects.toThrow(
-      "still downloading",
-    );
+    await expect(provider._doCorrectGrammar("hello world")).rejects.toThrow("still downloading");
   });
 
   it("wraps unexpected error with Chrome Free AI error prefix", async () => {
@@ -395,18 +379,14 @@ describe("_doCorrectGrammarLevel2", () => {
   it("rejects when not available", async () => {
     const provider = createProvider();
     MockLanguageModel.availability = vi.fn().mockResolvedValue("unavailable");
-    await expect(provider._doCorrectGrammarLevel2("hello world")).rejects.toThrow(
-      "Chrome Free AI not available",
-    );
+    await expect(provider._doCorrectGrammarLevel2("hello world")).rejects.toThrow("Chrome Free AI not available");
   });
 
   it("rejects with AbortError for pre-aborted signal", async () => {
     const provider = createProvider();
     const ac = new AbortController();
     ac.abort();
-    await expect(
-      provider._doCorrectGrammarLevel2("hello world", { signal: ac.signal }),
-    ).rejects.toThrow(Error);
+    await expect(provider._doCorrectGrammarLevel2("hello world", { signal: ac.signal })).rejects.toThrow(Error);
   });
 });
 
@@ -422,17 +402,13 @@ describe("_doCorrectGrammarLevel3", () => {
   it("rejects when not available", async () => {
     const provider = createProvider();
     MockLanguageModel.availability = vi.fn().mockResolvedValue("unavailable");
-    await expect(provider._doCorrectGrammarLevel3("hello world")).rejects.toThrow(
-      "Chrome Free AI not available",
-    );
+    await expect(provider._doCorrectGrammarLevel3("hello world")).rejects.toThrow("Chrome Free AI not available");
   });
 
   it("rejects with AbortError for pre-aborted signal", async () => {
     const provider = createProvider();
     const ac = new AbortController();
     ac.abort();
-    await expect(
-      provider._doCorrectGrammarLevel3("hello world", { signal: ac.signal }),
-    ).rejects.toThrow(Error);
+    await expect(provider._doCorrectGrammarLevel3("hello world", { signal: ac.signal })).rejects.toThrow(Error);
   });
 });

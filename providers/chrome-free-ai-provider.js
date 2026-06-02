@@ -157,7 +157,9 @@ export class ChromeFreeAIProvider extends AbstractProvider {
     if (levelGen !== generation) {
       const stale = this.baseSessionsByLevel.get(level);
       if (stale) {
-        try { stale.destroy(); } catch {}
+        try {
+          stale.destroy();
+        } catch {}
         this.baseSessionsByLevel.delete(level);
       }
       this.baseSessionGenerationByLevel.set(level, generation);
@@ -169,7 +171,9 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       const ttl = this.constructor.baseSessionTTL;
       if (createdAt && Date.now() - createdAt > ttl) {
         log.debug(`Base session level ${level} expired after TTL — recreating`);
-        try { existing.destroy(); } catch {}
+        try {
+          existing.destroy();
+        } catch {}
         this.baseSessionsByLevel.delete(level);
         this._baseSessionCreatedAt.delete(level);
       } else {
@@ -184,7 +188,9 @@ export class ChromeFreeAIProvider extends AbstractProvider {
         const session = await pending;
         signal?.throwIfAborted?.();
         if (this.baseSessionGenerationByLevel.get(level) !== generation) {
-          try { session.destroy(); } catch {}
+          try {
+            session.destroy();
+          } catch {}
           this.baseSessionPromisesByLevel.delete(level);
         } else {
           this.baseSessionsByLevel.set(level, session);
@@ -213,7 +219,9 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       const session = await promise;
       performance.measure("correctly:session:create", { start: createT0, end: performance.now() });
       if (this.baseSessionGenerationByLevel.get(level) !== generation) {
-        try { session.destroy(); } catch {}
+        try {
+          session.destroy();
+        } catch {}
         this.baseSessionGenerationByLevel.set(level, generation);
         this.baseSessionPromisesByLevel.delete(level);
         return this._getBaseSession(level, { signal });
@@ -233,7 +241,11 @@ export class ChromeFreeAIProvider extends AbstractProvider {
     log.debug("Destroying all base sessions");
     this._baseSessionGeneration++;
     for (const session of this.baseSessionsByLevel.values()) {
-      try { session.destroy(); } catch (err) { log.warn("Base session destroy error:", err?.message); }
+      try {
+        session.destroy();
+      } catch (err) {
+        log.warn("Base session destroy error:", err?.message);
+      }
     }
     this.baseSessionsByLevel.clear();
     this.baseSessionPromisesByLevel.clear();
@@ -277,7 +289,9 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       return result;
     } finally {
       this._getSessionMetrics().destroyCount++;
-      try { session.destroy(); } catch {}
+      try {
+        session.destroy();
+      } catch {}
     }
   }
 
