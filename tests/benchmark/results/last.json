@@ -1,6 +1,6 @@
 {
   "tag": "feat/refactor-chrome-ai",
-  "timestamp": "2026-06-02T09:44:57.023Z",
+  "timestamp": "2026-06-02T15:41:37.945Z",
   "scenarios": [
     {
       "scenario": "A",
@@ -18,10 +18,10 @@
         "aborted": 0
       },
       "timing": {
-        "cascadeAvgMs": 52.3,
+        "cascadeAvgMs": 52,
         "sessionCreateAvgMs": 0,
-        "sessionPromptAvgMs": 51.9,
-        "totalMs": 53
+        "sessionPromptAvgMs": 51.7,
+        "totalMs": 52.7
       }
     },
     {
@@ -67,9 +67,9 @@
         "sessionCreateAvgMs": 0,
         "sessionPromptAvgMs": 50.7,
         "checkTimings": [
-          51.4,
-          49.8,
-          51.4
+          51.6,
+          49.9,
+          51.5
         ]
       }
     }

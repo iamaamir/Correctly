@@ -363,4 +363,71 @@ test.describe("Chrome Free AI provider", () => {
       await new Promise((r) => fixture.server.close(r));
     }
   });
+
+  test("E2E-CFAI-007 close tab during in-flight grammar check does not crash extension", async () => {
+    const fixture = await startFixtureServer();
+    const { context, extensionId, userDataDir } = await launchExtensionContext();
+    try {
+      const sw = context.serviceWorkers()[0];
+      // First prompt is slow (5s) so we can close the tab while it's in-flight
+      await injectMockLanguageModel(sw, {
+        slowPromptDelay: 5000,
+        fastPromptDelay: 100,
+        slowPromptCount: 1,
+      });
+
+      await sw.evaluate(async () => {
+        await chrome.storage.local.set({
+          providerId: "chrome-free-ai",
+          apiKey: "noapikeyrequired",
+          model: "chrome-free-ai",
+          baseUrl: "",
+          enabled: true,
+          disabledSites: [],
+        });
+      });
+
+      const popup = await context.newPage();
+      await popup.goto(`chrome-extension://${extensionId}/popup/popup.html`, { waitUntil: "load" });
+      await popup.waitForSelector("#provider-select", { timeout: 10000 });
+      await popup.selectOption("#provider-select", "chrome-free-ai");
+      await popup.waitForTimeout(300);
+
+      const page = await context.newPage();
+      await page.goto(`http://${HOST}:${fixture.port}/tests/e2e/fixtures/editor.html`, { waitUntil: "load" });
+      const editor = page.locator("#editor");
+
+      // Fill to trigger debounce → grammar check (slow prompt holds)
+      await editor.fill("this is text with a mistake");
+      // Wait for debounce (1500ms) + margin so CHECK_GRAMMAR fires
+      await page.waitForTimeout(2000);
+
+      // Close the tab — should trigger tabs.onRemoved → abortActiveCheckForTab
+      await page.close();
+
+      // Wait a moment so the abort propagates
+      await new Promise((r) => setTimeout(r, 1000));
+
+      // Verify the abort was recorded
+      const metrics = await sw.evaluate(() => globalThis.__chromeFreeAiMetrics);
+      assert(metrics, "session metrics should exist");
+      assert(metrics.abortCount >= 1, `expected at least 1 abort on tab close, got ${metrics.abortCount}`);
+
+      // Verify destroyed sessions include the clone
+      assert(metrics.destroyCount >= 1, `expected at least 1 destroy, got ${metrics.destroyCount}`);
+
+      // Open a NEW tab to verify the extension still works after tab-removal cleanup
+      const page2 = await context.newPage();
+      await page2.goto(`http://${HOST}:${fixture.port}/tests/e2e/fixtures/editor.html`, { waitUntil: "load" });
+      const editor2 = page2.locator("#editor");
+      await editor2.fill("this is teh second try");
+      await page2.waitForSelector(".correctly-tooltip.correctly-visible", { timeout: 15000 });
+      const tooltipText = await page2.locator(".correctly-tooltip").innerText();
+      assert(tooltipText.includes("the"), "tooltip should show replacement suggestion after tab close");
+      await page2.click(".correctly-accept").catch(() => {});
+    } finally {
+      await cleanupContext(context, userDataDir).catch(() => {});
+      await new Promise((r) => fixture.server.close(r));
+    }
+  });
 });

@@ -131,11 +131,16 @@ export class ChromeFreeAIProvider extends AbstractProvider {
   //  BASE SESSION CACHE (clone-per-check)
   // ──────────────────────────────────────────────
 
+  static get baseSessionTTL() {
+    return 300000; // 5 minutes
+  }
+
   constructor(...args) {
     super(...args);
     this.baseSessionsByLevel = new Map();
     this.baseSessionPromisesByLevel = new Map();
     this.baseSessionGenerationByLevel = new Map();
+    this._baseSessionCreatedAt = new Map();
     this._baseSessionGeneration = 0;
   }
 
@@ -160,8 +165,17 @@ export class ChromeFreeAIProvider extends AbstractProvider {
 
     const existing = this.baseSessionsByLevel.get(level);
     if (existing) {
-      this._getSessionMetrics().reuseCount++;
-      return existing;
+      const createdAt = this._baseSessionCreatedAt.get(level);
+      const ttl = this.constructor.baseSessionTTL;
+      if (createdAt && Date.now() - createdAt > ttl) {
+        log.debug(`Base session level ${level} expired after TTL — recreating`);
+        try { existing.destroy(); } catch {}
+        this.baseSessionsByLevel.delete(level);
+        this._baseSessionCreatedAt.delete(level);
+      } else {
+        this._getSessionMetrics().reuseCount++;
+        return existing;
+      }
     }
 
     const pending = this.baseSessionPromisesByLevel.get(level);
@@ -175,6 +189,7 @@ export class ChromeFreeAIProvider extends AbstractProvider {
         } else {
           this.baseSessionsByLevel.set(level, session);
           this.baseSessionPromisesByLevel.delete(level);
+          this._baseSessionCreatedAt.set(level, Date.now());
           this._getSessionMetrics().reuseCount++;
           return session;
         }
@@ -205,6 +220,7 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       }
       this.baseSessionsByLevel.set(level, session);
       this.baseSessionPromisesByLevel.delete(level);
+      this._baseSessionCreatedAt.set(level, Date.now());
       return session;
     } catch (e) {
       this.baseSessionPromisesByLevel.delete(level);
@@ -222,6 +238,7 @@ export class ChromeFreeAIProvider extends AbstractProvider {
     this.baseSessionsByLevel.clear();
     this.baseSessionPromisesByLevel.clear();
     this.baseSessionGenerationByLevel.clear();
+    this._baseSessionCreatedAt.clear();
   }
 
   async _runWithSession(text, level, { signal, skipSessionCache = false }) {

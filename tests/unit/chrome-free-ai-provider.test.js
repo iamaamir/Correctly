@@ -169,6 +169,46 @@ describe("_getBaseSession", () => {
     });
     await expect(provider._getBaseSession(1, {})).rejects.toThrow("download failed");
   });
+
+  it("reuses session when TTL has not expired", async () => {
+    const provider = createProvider();
+    const first = await provider._getBaseSession(1, {});
+    const second = await provider._getBaseSession(1, {});
+    expect(second).toBe(first);
+    expect(provider._getSessionMetrics().reuseCount).toBe(1);
+  });
+
+  it("expires session after TTL and creates a new one", async () => {
+    vi.spyOn(ChromeFreeAIProvider, "baseSessionTTL", "get").mockReturnValue(10);
+    const provider = createProvider();
+    const first = await provider._getBaseSession(1, {});
+    await new Promise((r) => setTimeout(r, 30));
+    const second = await provider._getBaseSession(1, {});
+    expect(second).not.toBe(first);
+    expect(first.destroyed).toBe(true);
+    expect(provider._getSessionMetrics().createCount).toBe(2);
+    expect(provider._getSessionMetrics().reuseCount).toBe(0);
+    vi.restoreAllMocks();
+  });
+
+  it("does not expire other levels when one level's TTL passes", async () => {
+    vi.spyOn(ChromeFreeAIProvider, "baseSessionTTL", "get").mockReturnValue(10);
+    const provider = createProvider();
+    // Create l1 at t=0
+    const l1 = await provider._getBaseSession(1, {});
+    // Wait past TTL so l1 expires
+    await new Promise((r) => setTimeout(r, 20));
+    // Create l2 after l1 has expired — l2 is fresh
+    const l2 = await provider._getBaseSession(2, {});
+    // Access both — l1 should be expired (new session), l2 should be reused
+    const l1Again = await provider._getBaseSession(1, {});
+    const l2Again = await provider._getBaseSession(2, {});
+    expect(l1Again).not.toBe(l1);
+    expect(l2Again).toBe(l2);
+    expect(provider._getSessionMetrics().createCount).toBe(3);
+    expect(provider._getSessionMetrics().reuseCount).toBe(1);
+    vi.restoreAllMocks();
+  });
 });
 
 // ── destroySessions ──
