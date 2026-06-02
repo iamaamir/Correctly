@@ -232,7 +232,7 @@ export class ChromeFreeAIProvider extends AbstractProvider {
 
     if (!skipSessionCache) {
       const base = await this._getBaseSession(level, { signal });
-      session = base.clone();
+      session = await base.clone();
       this._getSessionMetrics().cloneCount++;
       log.debug(`Cloned base session level ${level}`);
     } else {
@@ -260,7 +260,7 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       return result;
     } finally {
       this._getSessionMetrics().destroyCount++;
-      session.destroy();
+      try { session.destroy(); } catch {}
     }
   }
 

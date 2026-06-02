@@ -42,7 +42,7 @@ class MockSession {
     });
   }
 
-  clone() {
+  async clone() {
     if (this.destroyed) throw new Error("Cannot clone destroyed session");
     const clone = new MockSession(this.config, `${this.id}.clone`);
     return clone;
