@@ -3,20 +3,25 @@
  * before and after the cancellation + base-session optimization.
  *
  * Usage:
- *   npm run bench:session
+ *   npm run bench:session           # run, compare against baseline if saved
+ *   BENCH_SAVE_BASELINE=1 npm run bench:session  # save current as baseline
  *
- * Save results:
- *   npm run bench:session 2>&1 | tee bench-baseline.txt
- *   ... implement optimization ...
- *   npm run bench:session 2>&1 | tee bench-optimized.txt
+ * Workflow:
+ *   1. First run (before optimization):
+ *        BENCH_SAVE_BASELINE=1 npm run bench:session
+ *      This saves tests/benchmark/results/baseline.json
  *
- * Compare:
- *   grep BENCHJSON bench-baseline.txt > baseline.json
- *   grep BENCHJSON bench-optimized.txt > optimized.json
- *   diff baseline.json optimized.json
+ *   2. Implement optimization changes
+ *
+ *   3. Rerun (after optimization):
+ *        npm run bench:session
+ *      Automatically loads baseline and prints a Δ report comparing every metric.
  */
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { execSync } from "node:child_process";
 import {
   installMockLanguageModel,
   resetMockState,
@@ -30,7 +35,9 @@ const SAMPLE_TEXT = "Their going to theyre house after work.";
 const RAPID_INTERVAL_MS = 200;
 const RAPID_CHECK_COUNT = 5;
 
-// ── Results accumulator ──
+const RESULTS_DIR = join(import.meta.dirname, "results");
+const BASELINE_FILE = join(RESULTS_DIR, "baseline.json");
+const LAST_FILE = join(RESULTS_DIR, "last.json");
 
 const scenarioResults = [];
 
@@ -94,9 +101,175 @@ function emitJSON(tag, data) {
   console.log(`\nBENCHJSON ${line}\n`);
 }
 
-function snapshotTable(label, data, jsonKey) {
+function snapshotTable(label, data) {
   console.log(`\n  ── ${label} ──`);
   console.table(data);
+}
+
+// ── Delta helpers ──
+
+function computeDelta(before, after) {
+  const flat = {};
+  for (const [scenario, currData] of Object.entries(after)) {
+    const prevData = before[scenario] || {};
+    flat[scenario] = {};
+    for (const metrics of Object.values(currData)) {
+      if (typeof metrics !== "object" || metrics === null) continue;
+      for (const [key, curr] of Object.entries(metrics)) {
+        if (typeof curr !== "number") continue;
+        const prev = prevData[key] ?? prevData[key] ?? 0;
+        flat[scenario][key] = {
+          before: prev,
+          after: curr,
+          delta: curr - prev,
+          pct: prev > 0 ? `${Math.round(((curr - prev) / prev) * 100)}%` : curr > 0 ? "new" : "0%",
+        };
+      }
+    }
+  }
+  return flat;
+}
+
+function loadJSON(filePath) {
+  if (!existsSync(filePath)) return null;
+  try {
+    return JSON.parse(readFileSync(filePath, "utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+function loadBaseline() {
+  return loadJSON(BASELINE_FILE);
+}
+
+function metricsEqual(a, b) {
+  if (!a || !b) return false;
+  for (let i = 0; i < Math.max(a.scenarios.length, b.scenarios.length); i++) {
+    const sa = a.scenarios[i];
+    const sb = b.scenarios[i];
+    if (!sa || !sb) return false;
+    for (const key of ["session", "cascade", "requests"]) {
+      const va = JSON.stringify(sa[key]);
+      const vb = JSON.stringify(sb[key]);
+      if (va !== vb) return false;
+    }
+  }
+  return true;
+}
+
+function saveBaseline(summary) {
+  mkdirSync(RESULTS_DIR, { recursive: true });
+  writeFileSync(BASELINE_FILE, JSON.stringify(summary, null, 2));
+  console.log(`\n  ✓ Saved baseline to ${BASELINE_FILE}`);
+}
+
+function printDeltaReport(baseline, current) {
+  const byScenario = {};
+  for (const s of baseline.scenarios) byScenario[s.scenario] = s;
+  for (const s of current.scenarios) byScenario[s.scenario] = byScenario[s.scenario] || {};
+
+  const after = {};
+  for (const s of current.scenarios) after[s.scenario] = s;
+
+  const labelMap = {
+    A: "A: single check",
+    B: "B: rapid typing 5×",
+    C: "C: 3 sequential",
+  };
+
+  console.log("\n╔══════════════════════════════════════════════════╗");
+  console.log("║         BENCHMARK Δ REPORT                       ║");
+  console.log(`║  Baseline: ${baseline.tag || baseline.timestamp}           `);
+  console.log(`║  Current:  ${current.tag || current.timestamp}           `);
+  console.log("╚══════════════════════════════════════════════════╝");
+
+  for (const s of current.scenarios) {
+    const prev = byScenario[s.scenario];
+    const scenarioLabel = labelMap[s.scenario] || s.scenario;
+
+    console.log(`\n  ${scenarioLabel}:`);
+
+    const rows = [];
+    const seen = new Set();
+
+    const allKeys = new Set();
+    const collectKeys = (obj) => {
+      if (!obj || typeof obj !== "object") return;
+      for (const [k, v] of Object.entries(obj)) {
+        if (typeof v === "object" && !Array.isArray(v)) collectKeys(v);
+        else if (typeof v === "number") allKeys.add(k);
+      }
+    };
+    collectKeys(s);
+    collectKeys(prev);
+
+    const keyOrder = [
+      "createCount", "cloneCount", "promptCount", "destroyCount", "alive",
+      "totalSessions", "total", "completed", "aborted", "errors",
+      "calls", "level1Attempts", "level1Successes", "level2Attempts", "level3Attempts",
+      "cascadeAvgMs", "sessionCreateAvgMs", "sessionPromptAvgMs", "totalMs",
+    ];
+
+    for (const key of keyOrder) {
+      if (!allKeys.has(key)) continue;
+      const currV = findNested(s, key);
+      const prevV = prev ? findNested(prev, key) : undefined;
+      if (currV === undefined && prevV === undefined) continue;
+      const b = typeof prevV === "number" ? prevV : 0;
+      const a = typeof currV === "number" ? currV : 0;
+      const delta = Number.isInteger(a) && Number.isInteger(b) ? a - b : Math.round((a - b) * 10) / 10;
+      const deltaStr = delta > 0 ? `+${delta}` : String(delta);
+      rows.push({ metric: key, before: b, after: a, Δ: deltaStr });
+    }
+
+    if (rows.length > 0) console.table(rows);
+  }
+
+  // Summary of key improvements
+  const totalBefore = { create: 0, clone: 0, aborted: 0, completed: 0 };
+  const totalAfter = { create: 0, clone: 0, aborted: 0, completed: 0 };
+
+  for (const s of current.scenarios) {
+    totalAfter.create += findNested(s, "createCount") || 0;
+    totalAfter.clone += findNested(s, "cloneCount") || 0;
+    totalAfter.aborted += findNested(s, "aborted") || 0;
+    if (s.requests) totalAfter.completed += s.requests.aborted || 0;
+  }
+  for (const s of baseline.scenarios) {
+    totalBefore.create += findNested(s, "createCount") || 0;
+    totalBefore.clone += findNested(s, "cloneCount") || 0;
+    totalBefore.aborted += findNested(s, "aborted") || 0;
+    if (s.requests) totalBefore.completed += s.requests.aborted || 0;
+  }
+
+  console.log("\n  Key metrics (all scenarios combined):");
+  const summaryRows = [];
+  if (totalBefore.create || totalAfter.create) {
+    const d = totalAfter.create - totalBefore.create;
+    summaryRows.push({ metric: "Session creates", before: totalBefore.create, after: totalAfter.create, Δ: d > 0 ? `+${d}` : String(d) });
+  }
+  if (totalBefore.clone || totalAfter.clone) {
+    const d = totalAfter.clone - totalBefore.clone;
+    summaryRows.push({ metric: "Session clones", before: totalBefore.clone, after: totalAfter.clone, Δ: d > 0 ? `+${d}` : String(d) });
+  }
+  if (totalBefore.aborted || totalAfter.aborted) {
+    const d = totalAfter.aborted - totalBefore.aborted;
+    summaryRows.push({ metric: "Cascade aborts", before: totalBefore.aborted, after: totalAfter.aborted, Δ: d > 0 ? `+${d}` : String(d) });
+  }
+  if (summaryRows.length > 0) console.table(summaryRows);
+}
+
+function findNested(obj, key) {
+  for (const v of Object.values(obj)) {
+    if (typeof v === "object" && v !== null && key in v) return v[key];
+    if (Array.isArray(v)) {
+      for (const item of v) {
+        if (typeof item === "object" && item !== null && key in item) return item[key];
+      }
+    }
+  }
+  return undefined;
 }
 
 // ── Scenario A: Single check baseline ──
@@ -267,10 +440,22 @@ test("C: sequential reuse (3 back-to-back)", async () => {
   expect(mockCurrent.totalCreated).toBe(mockCurrent.destroyed + mockCurrent.alive);
 });
 
-// ── Final summary ──
+// ── Final summary with auto-compare ──
 
 test.afterAll(() => {
-  const tag = process.env.BENCH_TAG || "unknown";
+  let tag = process.env.BENCH_TAG;
+  if (!tag) {
+    try {
+      tag = execSync("git rev-parse --abbrev-ref HEAD", {
+        encoding: "utf-8",
+        timeout: 3000,
+        stdio: "pipe",
+      }).trim();
+    } catch {
+      tag = "unknown";
+    }
+  }
+  const saveBaselineFlag = process.env.BENCH_SAVE_BASELINE === "1" || process.env.BENCH_SAVE_BASELINE === "true";
 
   const summary = {
     tag,
@@ -284,6 +469,52 @@ test.afterAll(() => {
   console.log(`  Results: ${scenarioResults.length} scenario(s)`);
   console.log("══════════════════════════════════════\n");
 
-  // Single JSON blob with ALL results, easy to capture
   console.log(`BENCHJSON_SUMMARY ${JSON.stringify(summary)}`);
+
+  // ── Load previous run before overwriting ──
+  const prevRun = loadJSON(LAST_FILE);
+
+  // ── Always persist latest run ──
+  mkdirSync(RESULTS_DIR, { recursive: true });
+  writeFileSync(LAST_FILE, JSON.stringify(summary, null, 2));
+
+  // ── Check if metrics changed since last run ──
+  const metricsChanged = !prevRun || !metricsEqual(summary, prevRun);
+
+  if (!metricsChanged && !saveBaselineFlag) {
+    console.log("\n  No metric changes from previous run — skipping report.\n");
+    return;
+  }
+
+  // ── Compare against baseline ──
+
+  const baseline = loadBaseline();
+
+  if (saveBaselineFlag) {
+    saveBaseline(summary);
+    if (baseline) {
+      console.log("\n  (Overwrote previous baseline — Δ report compares against old baseline)\n");
+      printDeltaReport(baseline, summary);
+    }
+  } else if (baseline) {
+    printDeltaReport(baseline, summary);
+  } else {
+    console.log("\n  No baseline found for comparison.");
+    console.log("  Save this run as baseline before implementing changes:");
+    console.log("    BENCH_SAVE_BASELINE=1 npm run bench:session\n");
+  }
+
+  // ── Generate HTML report ──
+  try {
+    const reportScript = join(import.meta.dirname, "generate-report.mjs");
+    execSync(`node "${reportScript}" 2>/dev/null`, {
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 15000,
+    });
+    const htmlPath = join(RESULTS_DIR, "report.html");
+    console.log(`\n  Report: file://${htmlPath}\n`);
+  } catch {
+    // Report generation requires baseline.json + last.json both exist.
+    // First run has no baseline yet — that's fine.
+  }
 });
