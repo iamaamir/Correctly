@@ -4,5 +4,6 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/benchmark/**"],
+    exclude: ["**/*.json", "**/*.mjs", "**/results/**"],
   },
 });

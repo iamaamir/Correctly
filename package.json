@@ -13,7 +13,11 @@
     "lint:fix": "biome check . --fix",
     "build:clean": "rm -rf dist web-ext-artifacts correctly-chrome.zip correctly-firefox.xpi",
     "build:release": "npm run build:release:chrome && npm run build:release:firefox",
+    "bench": "node tests/benchmark/run-bench.mjs",
     "bench:session": "vitest run --config vitest.bench.config.js --reporter=verbose",
+    "bench:report": "node tests/benchmark/generate-report.mjs",
+    "bench:save": "BENCH_SAVE_BASELINE=1 vitest run --config vitest.bench.config.js --reporter=verbose",
+    "bench:open": "node tests/benchmark/generate-report.mjs",
     "build:release:chrome": "node scripts/build-release.mjs --target=chrome",
     "build:release:firefox": "node scripts/build-release.mjs --target=firefox"
   },
