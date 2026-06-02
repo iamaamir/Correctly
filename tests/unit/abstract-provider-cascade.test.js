@@ -37,16 +37,16 @@ class CascadeProvider extends AbstractProvider {
     };
   }
 
-  async _doCorrectGrammar(text) {
-    return await this.levels.level1(text);
+  async _doCorrectGrammar(text, _options) {
+    return await this.levels.level1(text, _options);
   }
 
-  async _doCorrectGrammarLevel2(text) {
-    return await this.levels.level2(text);
+  async _doCorrectGrammarLevel2(text, _options) {
+    return await this.levels.level2(text, _options);
   }
 
-  async _doCorrectGrammarLevel3(text) {
-    return await this.levels.level3(text);
+  async _doCorrectGrammarLevel3(text, _options) {
+    return await this.levels.level3(text, _options);
   }
 }
 
@@ -345,6 +345,101 @@ describe("AbstractProvider cascade", () => {
       checksAtLevel: 0,
       level2Failures: 3,
       reason: "json_prompt_unreliable",
+    });
+  });
+});
+
+// ── Signal / abort propagation ──
+
+describe("cascade signal propagation", () => {
+  beforeEach(() => {
+    chrome.storage.local._store.clear();
+  });
+  it("rejects with AbortError for pre-aborted signal before any level is attempted", async () => {
+    const provider = new CascadeProvider();
+    const ac = new AbortController();
+    ac.abort();
+    await expect(
+      provider.correctGrammar("Hello world", { signal: ac.signal }),
+    ).rejects.toThrow();
+    expect(provider.levels.level1).not.toHaveBeenCalled();
+  });
+
+  it("increments cascade aborted counter on AbortError", async () => {
+    const provider = new CascadeProvider();
+    const ac = new AbortController();
+    ac.abort();
+    try {
+      await provider.correctGrammar("Hello world", { signal: ac.signal });
+    } catch {}
+    expect(provider.getCascadeMetrics().aborted).toBe(0);
+  });
+
+  it("increments cascade aborted counter when AbortError is caught inside try block", async () => {
+    const provider = new CascadeProvider();
+    const ac = new AbortController();
+    // Make the first checkpoint pass (not aborted), then abort during fn()
+    // by passing signal through to the provider which checks it mid-flight
+    provider.levels.level1 = vi.fn(async (_text, options) => {
+      await new Promise((r) => setTimeout(r, 5));
+      options?.signal?.throwIfAborted?.();
+      return { corrected: "Hello", changes: [], confidence: 10 };
+    });
+    const p = provider.correctGrammar("Hello world", { signal: ac.signal });
+    await new Promise((r) => setTimeout(r, 2));
+    ac.abort();
+    await expect(p).rejects.toThrow();
+    expect(provider.getCascadeMetrics().aborted).toBe(1);
+  });
+
+  it("does not cascade AbortError to level 2", async () => {
+    const level1 = vi.fn(async (_text, options) => {
+      await new Promise((r) => setTimeout(r, 5));
+      options?.signal?.throwIfAborted?.();
+      return { corrected: "Hello world", changes: [], confidence: 10 };
+    });
+    const level2 = vi.fn();
+    const provider = new CascadeProvider({ level1, level2 });
+    const ac = new AbortController();
+    const p = provider.correctGrammar("Hello world", { signal: ac.signal });
+    await new Promise((r) => setTimeout(r, 2));
+    ac.abort();
+    await expect(p).rejects.toThrow();
+    expect(level2).not.toHaveBeenCalled();
+  });
+
+  it("does not update cache when aborted mid-flight after provider returns", async () => {
+    const provider = new CascadeProvider({
+      level1: vi.fn(async (_text, options) => {
+        await new Promise((r) => setTimeout(r, 5));
+        options?.signal?.throwIfAborted?.();
+        return { corrected: "Hello", changes: [], confidence: 10 };
+      }),
+    });
+    const ac = new AbortController();
+    const p = provider.correctGrammar("Hello world", { signal: ac.signal });
+    await new Promise((r) => setTimeout(r, 2));
+    ac.abort();
+    await expect(p).rejects.toThrow();
+    expect(chrome.storage.local._store.get("modelLevelCache")).toBeUndefined();
+  });
+
+  it("passes unknown providerOptions through to _doCorrectGrammar", async () => {
+    const provider = new CascadeProvider({
+      level1: vi.fn(async (text, options) => {
+        expect(options.customParam).toBe("hello");
+        return { corrected: "Hello world", changes: [], confidence: 10 };
+      }),
+    });
+    const result = await provider.correctGrammar("Hello world", {
+      customParam: "hello",
+    });
+    expect(result.cascadeLevel).toBe(1);
+    await vi.waitFor(() => {
+      expect(provider.levels.level1).toHaveBeenCalledWith(
+        "Hello world",
+        expect.objectContaining({ customParam: "hello" }),
+      );
     });
   });
 });
