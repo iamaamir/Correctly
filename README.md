@@ -36,6 +36,7 @@ A minimalist browser extension that checks grammar, spelling, and punctuation us
   
 ## Using Providers:
   
+   - **Chrome Free AI**: see [Using Chrome Free AI](#using-chrome-free-ai) below
    - **Ollama**: see [Using Ollama](#using-ollama) below
    - **LM Studio**: see [Using LM Studio](#using-lm-studio) below
    - **OpenAI Compatible**: see [Using OpenAI Compatible](#using-openai-compatible) below
@@ -71,6 +72,14 @@ Correctly supports [LM Studio](https://lmstudio.ai) for local grammar checking. 
 1. Open LM Studio, load a model, and start the local inference server (default port 1234)
 2. Make sure **Local CORS** is turned off in LM Studio's settings
 3. In the extension popup, select **LM Studio**, choose a model, and save
+
+## Using Chrome Free AI
+
+Correctly supports [Chrome's built-in Gemini Nano](https://developer.chrome.com/docs/ai/built-in) ("Chrome Free AI"). No API key needed — everything runs on-device and no data leaves your machine.
+
+1. You need Chrome 131+ with the Prompt API enabled. See the [Chrome guide](https://developer.chrome.com/docs/ai/built-in#get-started) for setup steps.
+2. In the extension popup, select **Chrome Free AI** from the provider dropdown.
+3. Click **Save** — no API key is required. The extension will verify availability and download the model if needed.
 
 ## Using OpenAI Compatible
 
