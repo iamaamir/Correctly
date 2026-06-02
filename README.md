@@ -5,8 +5,8 @@ A minimalist browser extension that checks grammar, spelling, and punctuation us
 
 <img alt="image" src="./social-card.png" />
 
-![Release](https://www.shieldcn.dev/github/release/iamaamir/Correctly.svg?size=sm&mode=light&theme=zinc)
-![CI](https://www.shieldcn.dev/github/ci/iamaamir/Correctly.svg?variant=secondary&size=sm&mode=light&theme=zinc)
+[![Release](https://www.shieldcn.dev/github/release/iamaamir/Correctly.svg?size=sm&mode=light&theme=zinc)](https://github.com/iamaamir/Correctly/releases)
+[![CI](https://www.shieldcn.dev/github/ci/iamaamir/Correctly.svg?variant=secondary&size=sm&mode=light&theme=zinc)](https://github.com/iamaamir/Correctly/actions)
 
 
 ## Features
@@ -147,4 +147,4 @@ correctly/
 
 
 ## License
-![License](https://www.shieldcn.dev/github/license/iamaamir/Correctly.svg?variant=ghost&size=sm&mode=light&theme=zinc)
+[![License](https://www.shieldcn.dev/github/license/iamaamir/Correctly.svg?variant=ghost&size=sm&mode=light&theme=zinc)](https://github.com/iamaamir/Correctly?tab=BSD-3-Clause-1-ov-file)
