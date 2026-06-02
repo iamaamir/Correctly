@@ -52,7 +52,24 @@ export class AbstractProvider {
 
     this.apiKey = apiKey;
     this.model = model || new.target.defaultModel;
+    this._cascadeMetrics = this._createCascadeMetrics();
     log.debug(`Instantiated ${new.target.displayName} with model: ${this.model}`);
+  }
+
+  // ──────────────────────────────────────────────
+  //  CASCADE METRICS (instrumentation / benchmark)
+  // ──────────────────────────────────────────────
+
+  _createCascadeMetrics() {
+    return { calls: 0, levelAttempts: [0, 0, 0], levelSuccesses: [0, 0, 0], aborted: 0 };
+  }
+
+  getCascadeMetrics() {
+    return { ...(this._cascadeMetrics ?? this._createCascadeMetrics()) };
+  }
+
+  resetCascadeMetrics() {
+    this._cascadeMetrics = this._createCascadeMetrics();
   }
 
   // ──────────────────────────────────────────────
@@ -192,9 +209,9 @@ export class AbstractProvider {
     }
 
     const levels = [
-      { fn: () => this._doCorrectGrammar(text), status: "checking" },
-      { fn: () => this._doCorrectGrammarLevel2(text), status: "retrying" },
-      { fn: () => this._doCorrectGrammarLevel3(text), status: "fallback" },
+      { fn: () => this._doCorrectGrammar(text, {}), status: "checking" },
+      { fn: () => this._doCorrectGrammarLevel2(text, {}), status: "retrying" },
+      { fn: () => this._doCorrectGrammarLevel3(text, {}), status: "fallback" },
     ];
 
     const startLevel = await this._getStartLevel();
@@ -202,15 +219,25 @@ export class AbstractProvider {
     let cacheLevelHint = null;
     let cacheReason = null;
     let level2CascadeFailed = false;
+    this._cascadeMetrics.calls++;
 
     for (let i = startLevel - 1; i < levels.length; i++) {
       const { fn, status } = levels[i];
       onProgress?.({ status });
+      this._cascadeMetrics.levelAttempts[i]++;
+      const levelLabel = `correctly:cascade:L${i + 1}`;
+      performance.mark(`${levelLabel}:start`);
       log.debug(`Cascade level ${i + 1} — ${status}`);
       try {
+        if (this._cascadeMetrics.aborted > 0) {
+          status; // reference to keep lint happy
+        }
         const t0 = performance.now();
         const result = await fn();
         result.responseTimeMs = Math.round(performance.now() - t0);
+        performance.mark(`${levelLabel}:end`);
+        performance.measure(levelLabel, `${levelLabel}:start`, `${levelLabel}:end`);
+        this._cascadeMetrics.levelSuccesses[i]++;
         const validated = this._validateResponse(result, text, i + 1);
 
         // Stage 3 & 4: Score response + extract display-safe changes
@@ -266,6 +293,10 @@ export class AbstractProvider {
         });
         return validated;
       } catch (err) {
+        if (err.name === "AbortError") {
+          this._cascadeMetrics.aborted++;
+          throw err;
+        }
         if (!this._isCascadeableError(err)) throw err;
         const classification = classifyProviderFailure(err);
         log.debug(`Level ${i + 1} cascadeable error: ${err.message} (kind: ${classification.kind})`);
@@ -278,6 +309,9 @@ export class AbstractProvider {
         if (i === 1 && classification.kind === "json_not_followed") {
           level2CascadeFailed = true;
         }
+      } finally {
+        performance.clearMarks(`${levelLabel}:start`);
+        performance.clearMarks(`${levelLabel}:end`);
       }
     }
 
