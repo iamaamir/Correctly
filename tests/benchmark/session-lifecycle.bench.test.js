@@ -318,7 +318,7 @@ test("A: single check baseline", async () => {
   emitJSON("A-complete", { scenario: "A: single check", session: sessionData, cascade: cascadeData, timing: timingData });
 
   const mockCurrent = getSessionMetrics();
-  expect(mockCurrent.destroyed).toBe(mockCurrent.totalCreated);
+  expect(mockCurrent.totalCreated).toBe(mockCurrent.destroyed + mockCurrent.alive);
 });
 
 // ── Scenario B: Rapid typing (cancellation pressure) ──

@@ -127,15 +127,153 @@ export class ChromeFreeAIProvider extends AbstractProvider {
     this._sessionMetrics = null;
   }
 
+  // ──────────────────────────────────────────────
+  //  BASE SESSION CACHE (clone-per-check)
+  // ──────────────────────────────────────────────
+
+  constructor(...args) {
+    super(...args);
+    this.baseSessionsByLevel = new Map();
+    this.baseSessionPromisesByLevel = new Map();
+    this.baseSessionGenerationByLevel = new Map();
+    this._baseSessionGeneration = 0;
+  }
+
+  _getSystemPrompt(level) {
+    if (level === 1) return SYSTEM_PROMPT;
+    if (level === 2) return SYSTEM_PROMPT_L2;
+    return SYSTEM_PROMPT_L3;
+  }
+
+  async _getBaseSession(level, { signal }) {
+    const generation = this._baseSessionGeneration;
+    const levelGen = this.baseSessionGenerationByLevel.get(level);
+
+    if (levelGen !== generation) {
+      const stale = this.baseSessionsByLevel.get(level);
+      if (stale) {
+        try { stale.destroy(); } catch {}
+        this.baseSessionsByLevel.delete(level);
+      }
+      this.baseSessionGenerationByLevel.set(level, generation);
+    }
+
+    const existing = this.baseSessionsByLevel.get(level);
+    if (existing) {
+      this._getSessionMetrics().reuseCount++;
+      return existing;
+    }
+
+    const pending = this.baseSessionPromisesByLevel.get(level);
+    if (pending) {
+      try {
+        const session = await pending;
+        signal?.throwIfAborted?.();
+        if (this.baseSessionGenerationByLevel.get(level) !== generation) {
+          try { session.destroy(); } catch {}
+          this.baseSessionPromisesByLevel.delete(level);
+        } else {
+          this.baseSessionsByLevel.set(level, session);
+          this.baseSessionPromisesByLevel.delete(level);
+          this._getSessionMetrics().reuseCount++;
+          return session;
+        }
+      } catch {
+        this.baseSessionPromisesByLevel.delete(level);
+      }
+    }
+
+    const systemPrompt = this._getSystemPrompt(level);
+    this._getSessionMetrics().createCount++;
+    const createT0 = performance.now();
+    log.debug(`Creating base session level ${level}`);
+
+    const promise = LanguageModel.create({
+      initialPrompts: [{ role: "system", content: systemPrompt }],
+      signal,
+    });
+    this.baseSessionPromisesByLevel.set(level, promise);
+
+    try {
+      const session = await promise;
+      performance.measure("correctly:session:create", { start: createT0, end: performance.now() });
+      if (this.baseSessionGenerationByLevel.get(level) !== generation) {
+        try { session.destroy(); } catch {}
+        this.baseSessionGenerationByLevel.set(level, generation);
+        this.baseSessionPromisesByLevel.delete(level);
+        return this._getBaseSession(level, { signal });
+      }
+      this.baseSessionsByLevel.set(level, session);
+      this.baseSessionPromisesByLevel.delete(level);
+      return session;
+    } catch (e) {
+      this.baseSessionPromisesByLevel.delete(level);
+      this.baseSessionGenerationByLevel.delete(level);
+      throw e;
+    }
+  }
+
+  async destroySessions() {
+    log.debug("Destroying all base sessions");
+    this._baseSessionGeneration++;
+    for (const session of this.baseSessionsByLevel.values()) {
+      try { session.destroy(); } catch (err) { log.warn("Base session destroy error:", err?.message); }
+    }
+    this.baseSessionsByLevel.clear();
+    this.baseSessionPromisesByLevel.clear();
+    this.baseSessionGenerationByLevel.clear();
+  }
+
+  async _runWithSession(text, level, { signal, skipSessionCache = false }) {
+    const endTimer = log.time("chrome-free-ai-call");
+    const systemPrompt = this._getSystemPrompt(level);
+
+    let session;
+
+    if (!skipSessionCache) {
+      const base = await this._getBaseSession(level, { signal });
+      session = base.clone();
+      this._getSessionMetrics().cloneCount++;
+      log.debug(`Cloned base session level ${level}`);
+    } else {
+      this._getSessionMetrics().createCount++;
+      const createT0 = performance.now();
+      log.debug(`Creating one-shot session level ${level}`);
+      session = await LanguageModel.create({
+        initialPrompts: [{ role: "system", content: systemPrompt }],
+        signal,
+      });
+      performance.measure("correctly:session:create", { start: createT0, end: performance.now() });
+    }
+
+    try {
+      this._getSessionMetrics().promptCount++;
+      const promptT0 = performance.now();
+      log.debug("Calling session.prompt");
+
+      const isLevel1 = level === 1;
+      const result = await session.prompt(text, isLevel1 ? { responseConstraint: GRAMMAR_SCHEMA, signal } : { signal });
+
+      performance.measure("correctly:session:prompt", { start: promptT0, end: performance.now() });
+      endTimer();
+
+      return result;
+    } finally {
+      this._getSessionMetrics().destroyCount++;
+      session.destroy();
+    }
+  }
+
   static get CHROME_FLAGS_HELP() {
     return "Enable chrome://flags/#optimization-guide-on-device-model and chrome://flags/#prompt-api-for-gemini-nano";
   }
 
-  async _doCorrectGrammar(text) {
-    const endTimer = log.time("chrome-free-ai-call");
+  async _doCorrectGrammar(text, { signal, skipSessionCache = false } = {}) {
     log.info(`Starting grammar check`, { inputLength: text.length });
 
+    signal?.throwIfAborted?.();
     const status = await ChromeFreeAIProvider.getStatus();
+    signal?.throwIfAborted?.();
     log.info(`Grammar check status: "${status}"`);
     if (status === ChromeFreeAIProvider.STATUS.UNAVAILABLE) {
       throw new Error(`Chrome Free AI not available. ${ChromeFreeAIProvider.CHROME_FLAGS_HELP}`);
@@ -147,25 +285,8 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       throw new Error("Chrome Free AI model still downloading. Try again soon.");
     }
 
-    this._getSessionMetrics().createCount++;
-    const createT0 = performance.now();
-    log.debug("Creating LanguageModel session");
-    const session = await LanguageModel.create({
-      initialPrompts: [{ role: "system", content: SYSTEM_PROMPT }],
-    });
-    performance.measure("correctly:session:create", { start: createT0, end: performance.now() });
-    log.debug(`Session created — context window: ${session.contextWindow}, usage: ${session.contextUsage}`);
-
     try {
-      this._getSessionMetrics().promptCount++;
-      const promptT0 = performance.now();
-      log.debug("Calling session.prompt with responseConstraint");
-      const result = await session.prompt(text, {
-        responseConstraint: GRAMMAR_SCHEMA,
-      });
-      performance.measure("correctly:session:prompt", { start: promptT0, end: performance.now() });
-
-      endTimer();
+      const result = await this._runWithSession(text, 1, { signal, skipSessionCache });
 
       log.debug("Raw response from Prompt API:", result);
 
@@ -181,83 +302,70 @@ export class ChromeFreeAIProvider extends AbstractProvider {
 
       return parsed;
     } catch (e) {
-      endTimer();
+      if (e.name === "AbortError" || signal?.aborted) {
+        this._getSessionMetrics().abortCount++;
+        throw e;
+      }
       log.error("Grammar check failed:", e.message);
       if (e instanceof SyntaxError) {
         log.error("JSON parse error — response was not valid JSON despite responseConstraint");
       }
       throw new Error(`Chrome Free AI error: ${e.message}`);
-    } finally {
-      this._getSessionMetrics().destroyCount++;
-      log.debug("Destroying session");
-      session.destroy();
     }
   }
 
-  async _doCorrectGrammarLevel2(text) {
+  async _doCorrectGrammarLevel2(text, { signal, skipSessionCache = false } = {}) {
     const log = createLogger(this.providerId);
     log.info(`L2 grammar check start`, { inputLength: text.length });
 
+    signal?.throwIfAborted?.();
     const status = await ChromeFreeAIProvider.getStatus();
+    signal?.throwIfAborted?.();
     if (status !== ChromeFreeAIProvider.STATUS.AVAILABLE) {
       throw new Error(`Chrome Free AI not available`);
     }
 
-    this._getSessionMetrics().createCount++;
-    log.debug("Creating LanguageModel session for L2");
-    const session = await LanguageModel.create({
-      initialPrompts: [{ role: "system", content: SYSTEM_PROMPT_L2 }],
-    });
-
     try {
-      this._getSessionMetrics().promptCount++;
-      log.debug("Calling session.prompt without responseConstraint");
-      const result = await session.prompt(text);
+      const result = await this._runWithSession(text, 2, { signal, skipSessionCache });
       log.debug("Raw L2 response:", result);
       const parsed = this._extractJsonFromText(result);
       log.info(`L2 parsed — ${parsed.changes?.length || 0} corrections`);
       return parsed;
     } catch (e) {
+      if (e.name === "AbortError" || signal?.aborted) {
+        this._getSessionMetrics().abortCount++;
+        throw e;
+      }
       log.error("L2 grammar check failed:", e.message);
       if (e instanceof SyntaxError || e.message.includes("Failed to parse")) {
         throw new Error("Failed to parse grammar correction response");
       }
       throw new Error(`Chrome Free AI error: ${e.message}`);
-    } finally {
-      this._getSessionMetrics().destroyCount++;
-      log.debug("Destroying L2 session");
-      session.destroy();
     }
   }
 
-  async _doCorrectGrammarLevel3(text) {
+  async _doCorrectGrammarLevel3(text, { signal, skipSessionCache = false } = {}) {
     const log = createLogger(this.providerId);
     log.info(`L3 grammar check start`, { inputLength: text.length });
 
+    signal?.throwIfAborted?.();
     const status = await ChromeFreeAIProvider.getStatus();
+    signal?.throwIfAborted?.();
     if (status !== ChromeFreeAIProvider.STATUS.AVAILABLE) {
       throw new Error(`Chrome Free AI not available`);
     }
 
-    this._getSessionMetrics().createCount++;
-    log.debug("Creating LanguageModel session for L3");
-    const session = await LanguageModel.create({
-      initialPrompts: [{ role: "system", content: SYSTEM_PROMPT_L3 }],
-    });
-
     try {
-      this._getSessionMetrics().promptCount++;
-      log.debug("Calling session.prompt for plain text");
-      const result = await session.prompt(text);
+      const result = await this._runWithSession(text, 3, { signal, skipSessionCache });
       log.debug("Raw L3 response:", result);
       return { corrected: result.trim(), changes: [], confidence: 5 };
     } catch (e) {
+      if (e.name === "AbortError" || signal?.aborted) {
+        this._getSessionMetrics().abortCount++;
+        throw e;
+      }
       log.error("L3 grammar check failed:", e.message);
       throw new Error(`Chrome Free AI error: ${e.message}`);
-    } finally {
-      this._getSessionMetrics().destroyCount++;
-      log.debug("Destroying L3 session");
-      session.destroy();
     }
   }
 }

@@ -199,7 +199,8 @@ export class AbstractProvider {
    * @param {{ onProgress?: (status: string) => void }} [options]
    * @returns {Promise<{corrected: string, changes: Array}>}
    */
-  async correctGrammar(text, { onProgress } = {}) {
+  async correctGrammar(text, { onProgress, ...providerOptions } = {}) {
+    const { signal } = providerOptions;
     log.debug(`correctGrammar called — ${text?.length || 0} chars`);
     this.validateApiKey();
 
@@ -209,9 +210,9 @@ export class AbstractProvider {
     }
 
     const levels = [
-      { fn: () => this._doCorrectGrammar(text, {}), status: "checking" },
-      { fn: () => this._doCorrectGrammarLevel2(text, {}), status: "retrying" },
-      { fn: () => this._doCorrectGrammarLevel3(text, {}), status: "fallback" },
+      { fn: () => this._doCorrectGrammar(text, providerOptions), status: "checking" },
+      { fn: () => this._doCorrectGrammarLevel2(text, providerOptions), status: "retrying" },
+      { fn: () => this._doCorrectGrammarLevel3(text, providerOptions), status: "fallback" },
     ];
 
     const startLevel = await this._getStartLevel();
@@ -223,6 +224,7 @@ export class AbstractProvider {
 
     for (let i = startLevel - 1; i < levels.length; i++) {
       const { fn, status } = levels[i];
+      signal?.throwIfAborted?.();
       onProgress?.({ status });
       this._cascadeMetrics.levelAttempts[i]++;
       const levelLabel = `correctly:cascade:L${i + 1}`;
@@ -234,6 +236,7 @@ export class AbstractProvider {
         }
         const t0 = performance.now();
         const result = await fn();
+        signal?.throwIfAborted?.();
         result.responseTimeMs = Math.round(performance.now() - t0);
         performance.mark(`${levelLabel}:end`);
         performance.measure(levelLabel, `${levelLabel}:start`, `${levelLabel}:end`);
@@ -242,6 +245,7 @@ export class AbstractProvider {
 
         // Stage 3 & 4: Score response + extract display-safe changes
         const scored = await scoreResponse(validated, text, i + 1);
+        signal?.throwIfAborted?.();
         if (scored.score < 60 && i < 2) {
           log.debug(`Level ${i + 1}: score ${scored.score} < 60, cascading`);
           continue;
@@ -257,6 +261,7 @@ export class AbstractProvider {
 
         // Stage 5: Merge confidence for the user-facing score
         const displayConfidence = await mergeConfidence(validated.confidence, scored.score);
+        signal?.throwIfAborted?.();
         onProgress?.({ status, confidence: displayConfidence });
 
         // Update cache on success
@@ -266,11 +271,14 @@ export class AbstractProvider {
         // - Level 3 plain-text fallback: plain_text_only
         // - Score-based cascade: do NOT downgrade cache
         if (i >= 2 && cacheLevelHint !== null) {
+          signal?.throwIfAborted?.();
           await this._updateCacheOnSuccess(startLevel, 3, "plain_text_only");
         } else if (i + 1 <= startLevel) {
+          signal?.throwIfAborted?.();
           const reason = i + 1 === 1 && this._noStructuredOutput ? "level_1_no_schema_supported" : undefined;
           await this._updateCacheOnSuccess(startLevel, i + 1, reason);
         } else if (cacheLevelHint !== null) {
+          signal?.throwIfAborted?.();
           await this._updateCacheOnSuccess(startLevel, i + 1, cacheReason);
         } else {
           log.debug(`Level ${i + 1}: not downgrading cache without capability signal`);
@@ -279,12 +287,14 @@ export class AbstractProvider {
         // Record Level 2 JSON failure before returning L3 success
         // (persisted on top of cache entry, preserving existing reason/level)
         if (i >= 2 && level2CascadeFailed) {
+          signal?.throwIfAborted?.();
           await this._recordLevel2Failure();
           level2CascadeFailed = false;
         }
 
         validated.confidence = i >= 2 ? Math.min(Math.max(displayConfidence, 45), 55) : displayConfidence;
         validated.cascadeLevel = i + 1;
+        signal?.throwIfAborted?.();
         onProgress?.({
           status: "done",
           confidence: validated.confidence,
@@ -293,7 +303,7 @@ export class AbstractProvider {
         });
         return validated;
       } catch (err) {
-        if (err.name === "AbortError") {
+        if (err.name === "AbortError" || signal?.aborted) {
           this._cascadeMetrics.aborted++;
           throw err;
         }
@@ -327,7 +337,7 @@ export class AbstractProvider {
    * @param {string} text — non-empty, already validated
    * @returns {Promise<{corrected: string, changes: Array}>}
    */
-  async _doCorrectGrammar(_text) {
+  async _doCorrectGrammar(_text, _options = {}) {
     throw new Error(`${this.constructor.name} must implement _doCorrectGrammar(text)`);
   }
 
@@ -339,7 +349,7 @@ export class AbstractProvider {
    * @param {string} _text — non-empty, already validated
    * @returns {Promise<{corrected: string, changes: Array}>}
    */
-  async _doCorrectGrammarLevel2(_text) {
+  async _doCorrectGrammarLevel2(_text, _options = {}) {
     throw new Error(`${this.constructor.name} does not support cascade level 2 — override _doCorrectGrammarLevel2`);
   }
 
@@ -351,7 +361,7 @@ export class AbstractProvider {
    * @param {string} _text — non-empty, already validated
    * @returns {Promise<{corrected: string, changes: Array}>}
    */
-  async _doCorrectGrammarLevel3(_text) {
+  async _doCorrectGrammarLevel3(_text, _options = {}) {
     throw new Error(`${this.constructor.name} does not support cascade level 3 — override _doCorrectGrammarLevel3`);
   }
 

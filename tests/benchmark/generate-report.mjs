@@ -205,7 +205,10 @@ const html = `<!DOCTYPE html>
   .delta-zero { color: #8e8e93; }
   .delta-up { color: #30b158; font-weight: 600; }
   .delta-down { color: #ff9500; font-weight: 600; }
-
+</style>
+</head>
+<body>
+<div class="container">
 
 <h1>Correctly Session Benchmark</h1>
 <p class="subtitle">Comparing performance before and after lifecycle optimization</p>

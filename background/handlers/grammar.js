@@ -2,6 +2,27 @@ import { getSettings } from "../../lib/settings.js";
 import { createProvider } from "../../providers/provider-registry.js";
 import { BADGE_DURATION_ERROR, BADGE_DURATION_ISSUES, BADGE_DURATION_OK, updateBadge } from "./badge.js";
 
+// ── Per-tab cancellation registry ──
+
+const activeChecksByTabId = new Map();
+
+function createRequestId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function isActiveRequest(tabId, requestId) {
+  const entry = activeChecksByTabId.get(tabId);
+  return entry?.requestId === requestId;
+}
+
+export function abortActiveCheckForTab(tabId) {
+  const entry = activeChecksByTabId.get(tabId);
+  if (entry) {
+    entry.controller.abort();
+    activeChecksByTabId.delete(tabId);
+  }
+}
+
 const TOKEN_USAGE_KEY = "sessionTokenUsage";
 
 function createEmptyUsage() {
@@ -78,25 +99,26 @@ function getOrCreateProvider(providerId, apiKey, model, baseUrl, log) {
   return cachedProvider;
 }
 
-async function handleGrammarCheck(text, log, { tabId } = {}) {
+async function createGrammarContext(log) {
   const { providerId, apiKey, model, baseUrl, enabled } = await getSettings();
-
   log.debug("Settings loaded", {
     providerId,
     model: model || "default",
     enabled,
     hasKey: Boolean(apiKey),
   });
-
   if (!enabled) throw new Error("Correctly is disabled");
   if (!apiKey) throw new Error("No API key configured. Click the Correctly icon to set one up.");
-
   const provider = getOrCreateProvider(providerId, apiKey, model, baseUrl, log);
   log.info(`Using provider: ${provider.providerName}, model: ${provider.model}`);
+  return { provider };
+}
 
+async function runGrammarCheck(text, { tabId, provider, signal, requestId }) {
   const result = await provider.correctGrammar(text, {
+    signal,
     onProgress: (info) => {
-      if (tabId) {
+      if (tabId && !signal?.aborted && isActiveRequest(tabId, requestId)) {
         chrome.tabs.sendMessage(tabId, { type: "CHECK_PROGRESS", status: info.status }).catch(() => {});
       }
     },
@@ -130,21 +152,57 @@ export function registerGrammarHandlers(handlers, { log }) {
     });
     const endTimer = log.time("grammar-check");
 
+    if (tabId) {
+      abortActiveCheckForTab(tabId);
+    }
+
     updateBadge(tabId, "checking");
 
     try {
-      const result = await handleGrammarCheck(message.text, log, { tabId: sender.tab?.id });
-      endTimer();
-      const hasIssues = result.changes?.length > 0;
-      updateBadge(tabId, hasIssues ? "found" : "ok");
-      setTimeout(() => updateBadge(tabId, "ready"), hasIssues ? BADGE_DURATION_ISSUES : BADGE_DURATION_OK);
-      log.group("CHECK_GRAMMAR result", () => {
-        log.info(`Changes found: ${result.changes?.length || 0}`);
-        if (result.changes?.length > 0) log.table(result.changes);
-      });
-      sendResponse({ success: true, data: result });
+      const { provider } = await createGrammarContext(log);
+
+      const controller = new AbortController();
+      const requestId = createRequestId();
+
+      if (tabId) {
+        activeChecksByTabId.set(tabId, { controller, provider, requestId });
+      }
+
+      try {
+        const result = await runGrammarCheck(message.text, {
+          tabId,
+          provider,
+          signal: controller.signal,
+          requestId,
+        });
+
+        endTimer();
+        const hasIssues = result.changes?.length > 0;
+        if (!tabId || isActiveRequest(tabId, requestId)) {
+          updateBadge(tabId, hasIssues ? "found" : "ok");
+          setTimeout(() => updateBadge(tabId, "ready"), hasIssues ? BADGE_DURATION_ISSUES : BADGE_DURATION_OK);
+          log.group("CHECK_GRAMMAR result", () => {
+            log.info(`Changes found: ${result.changes?.length || 0}`);
+            if (result.changes?.length > 0) log.table(result.changes);
+          });
+          sendResponse({ success: true, data: result });
+        }
+      } finally {
+        const entry = activeChecksByTabId.get(tabId);
+        if (entry?.requestId === requestId && entry?.controller === controller) {
+          activeChecksByTabId.delete(tabId);
+        }
+      }
     } catch (err) {
       endTimer();
+      if (err.name === "AbortError") {
+        if (tabId) {
+          updateBadge(tabId, "ready");
+        }
+        log.debug("CHECK_GRAMMAR cancelled");
+        sendResponse({ success: false, cancelled: true, error: "Request cancelled" });
+        return true;
+      }
       updateBadge(tabId, "error");
       setTimeout(() => updateBadge(tabId, "ready"), BADGE_DURATION_ERROR);
       log.error("CHECK_GRAMMAR failed:", err.message);
@@ -168,11 +226,21 @@ export function registerGrammarHandlers(handlers, { log }) {
 }
 
 export async function invalidateProviderCache(log) {
+  const oldProvider = cachedProvider;
   cachedProvider = null;
   cachedProviderKey = "";
   await flushTokenUsage();
   chrome.storage.session.remove(TOKEN_USAGE_KEY);
   log.debug("Provider cache invalidated — token usage cleared");
+
+  for (const [tabId, entry] of activeChecksByTabId) {
+    if (entry.provider === oldProvider) {
+      entry.controller.abort();
+      activeChecksByTabId.delete(tabId);
+    }
+  }
+
+  await oldProvider?.destroySessions?.();
 }
 
 export function collectProviderMetrics() {
@@ -214,6 +282,6 @@ export function collectProviderMetrics() {
       sessionMetrics,
       cascadeMetrics,
     },
-    activeChecks: typeof activeChecksByTabId !== "undefined" ? activeChecksByTabId.size : 0,
+    activeChecks: activeChecksByTabId.size,
   };
 }

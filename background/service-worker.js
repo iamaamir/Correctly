@@ -3,7 +3,12 @@ import { clearSettingsCache, getSettings } from "../lib/settings.js";
 import { unloadProviderModel } from "../providers/provider-registry.js";
 import { updateBadge } from "./handlers/badge.js";
 import { registerChromeFreeAIHandlers } from "./handlers/chrome-free-ai.js";
-import { invalidateProviderCache, registerGrammarHandlers, collectProviderMetrics } from "./handlers/grammar.js";
+import {
+  abortActiveCheckForTab,
+  collectProviderMetrics,
+  invalidateProviderCache,
+  registerGrammarHandlers,
+} from "./handlers/grammar.js";
 import { registerSettingsHandlers } from "./handlers/settings.js";
 
 const log = createLogger("bg");
@@ -44,6 +49,12 @@ chrome.storage.onChanged.addListener((changes) => {
     else if (!enabled) updateBadge(null, "off");
     else updateBadge(null, "ready");
   });
+});
+
+// ── Tab cleanup — abort in-flight checks when tab is closed ──
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  abortActiveCheckForTab(tabId);
 });
 
 // ── Message router ──
