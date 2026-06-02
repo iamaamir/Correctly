@@ -18,7 +18,7 @@ jobs:
     uses: ./.github/workflows/test.yml
 
   derive-version:
-    # needs: test
+    needs: test
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.bump.outputs.version }}
