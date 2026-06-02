@@ -18,15 +18,11 @@
  *      Automatically loads baseline and prints a Δ report comparing every metric.
  */
 
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { execSync } from "node:child_process";
-import {
-  installMockLanguageModel,
-  resetMockState,
-  getSessionMetrics,
-} from "../mocks/language-model.js";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { getSessionMetrics, installMockLanguageModel, resetMockState } from "../mocks/language-model.js";
 
 let ChromeFreeAIProvider;
 let uninstallMock;
@@ -77,15 +73,9 @@ function invokeResolver(promise) {
 // ── Collectors ──
 
 function collectMeasures() {
-  const cascade = performance
-    .getEntriesByType("measure")
-    .filter((m) => m.name.startsWith("correctly:cascade:"));
-  const sessionCreate = performance
-    .getEntriesByType("measure")
-    .filter((m) => m.name === "correctly:session:create");
-  const sessionPrompt = performance
-    .getEntriesByType("measure")
-    .filter((m) => m.name === "correctly:session:prompt");
+  const cascade = performance.getEntriesByType("measure").filter((m) => m.name.startsWith("correctly:cascade:"));
+  const sessionCreate = performance.getEntriesByType("measure").filter((m) => m.name === "correctly:session:create");
+  const sessionPrompt = performance.getEntriesByType("measure").filter((m) => m.name === "correctly:session:prompt");
   return { cascade, sessionCreate, sessionPrompt };
 }
 
@@ -205,10 +195,25 @@ function printDeltaReport(baseline, current) {
     collectKeys(prev);
 
     const keyOrder = [
-      "createCount", "cloneCount", "promptCount", "destroyCount", "alive",
-      "totalSessions", "total", "completed", "aborted", "errors",
-      "calls", "level1Attempts", "level1Successes", "level2Attempts", "level3Attempts",
-      "cascadeAvgMs", "sessionCreateAvgMs", "sessionPromptAvgMs", "totalMs",
+      "createCount",
+      "cloneCount",
+      "promptCount",
+      "destroyCount",
+      "alive",
+      "totalSessions",
+      "total",
+      "completed",
+      "aborted",
+      "errors",
+      "calls",
+      "level1Attempts",
+      "level1Successes",
+      "level2Attempts",
+      "level3Attempts",
+      "cascadeAvgMs",
+      "sessionCreateAvgMs",
+      "sessionPromptAvgMs",
+      "totalMs",
     ];
 
     for (const key of keyOrder) {
@@ -247,15 +252,30 @@ function printDeltaReport(baseline, current) {
   const summaryRows = [];
   if (totalBefore.create || totalAfter.create) {
     const d = totalAfter.create - totalBefore.create;
-    summaryRows.push({ metric: "Session creates", before: totalBefore.create, after: totalAfter.create, Δ: d > 0 ? `+${d}` : String(d) });
+    summaryRows.push({
+      metric: "Session creates",
+      before: totalBefore.create,
+      after: totalAfter.create,
+      Δ: d > 0 ? `+${d}` : String(d),
+    });
   }
   if (totalBefore.clone || totalAfter.clone) {
     const d = totalAfter.clone - totalBefore.clone;
-    summaryRows.push({ metric: "Session clones", before: totalBefore.clone, after: totalAfter.clone, Δ: d > 0 ? `+${d}` : String(d) });
+    summaryRows.push({
+      metric: "Session clones",
+      before: totalBefore.clone,
+      after: totalAfter.clone,
+      Δ: d > 0 ? `+${d}` : String(d),
+    });
   }
   if (totalBefore.aborted || totalAfter.aborted) {
     const d = totalAfter.aborted - totalBefore.aborted;
-    summaryRows.push({ metric: "Cascade aborts", before: totalBefore.aborted, after: totalAfter.aborted, Δ: d > 0 ? `+${d}` : String(d) });
+    summaryRows.push({
+      metric: "Cascade aborts",
+      before: totalBefore.aborted,
+      after: totalAfter.aborted,
+      Δ: d > 0 ? `+${d}` : String(d),
+    });
   }
   if (summaryRows.length > 0) console.table(summaryRows);
 }
@@ -315,7 +335,12 @@ test("A: single check baseline", async () => {
   snapshotTable("PerformanceMeasures", timingData);
 
   recordResult("A", { session: sessionData, cascade: cascadeData, timing: timingData });
-  emitJSON("A-complete", { scenario: "A: single check", session: sessionData, cascade: cascadeData, timing: timingData });
+  emitJSON("A-complete", {
+    scenario: "A: single check",
+    session: sessionData,
+    cascade: cascadeData,
+    timing: timingData,
+  });
 
   const mockCurrent = getSessionMetrics();
   expect(mockCurrent.destroyed).toBe(mockCurrent.totalCreated);
@@ -381,7 +406,12 @@ test("B: rapid typing cancellation", async () => {
   snapshotTable("Cascade metrics", cascadeData);
 
   recordResult("B", { requests: requestData, session: sessionData, cascade: cascadeData });
-  emitJSON("B-complete", { scenario: "B: rapid typing", requests: requestData, session: sessionData, cascade: cascadeData });
+  emitJSON("B-complete", {
+    scenario: "B: rapid typing",
+    requests: requestData,
+    session: sessionData,
+    cascade: cascadeData,
+  });
 
   const mockCurrent = getSessionMetrics();
   expect(mockCurrent.totalCreated).toBe(mockCurrent.destroyed + mockCurrent.alive);
@@ -434,7 +464,12 @@ test("C: sequential reuse (3 back-to-back)", async () => {
   snapshotTable("PerformanceMeasures", timingData);
 
   recordResult("C", { session: sessionData, cascade: cascadeData, timing: timingData });
-  emitJSON("C-complete", { scenario: "C: sequential reuse", session: sessionData, cascade: cascadeData, timing: timingData });
+  emitJSON("C-complete", {
+    scenario: "C: sequential reuse",
+    session: sessionData,
+    cascade: cascadeData,
+    timing: timingData,
+  });
 
   const mockCurrent = getSessionMetrics();
   expect(mockCurrent.totalCreated).toBe(mockCurrent.destroyed + mockCurrent.alive);

@@ -10,10 +10,10 @@
  * Opens the report in the default browser on macOS.
  */
 
-import { readFileSync, existsSync, writeFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 const RESULTS = join(DIR, "results");
@@ -101,10 +101,25 @@ for (const [id, label] of Object.entries(scenarioLabels)) {
 
   metrics.sort((a, b) => {
     const order = [
-      "createCount", "cloneCount", "promptCount", "destroyCount", "alive",
-      "totalSessions", "total", "completed", "aborted", "errors",
-      "calls", "level1Attempts", "level1Successes", "level2Attempts", "level3Attempts",
-      "cascadeAvgMs", "sessionCreateAvgMs", "sessionPromptAvgMs", "totalMs",
+      "createCount",
+      "cloneCount",
+      "promptCount",
+      "destroyCount",
+      "alive",
+      "totalSessions",
+      "total",
+      "completed",
+      "aborted",
+      "errors",
+      "calls",
+      "level1Attempts",
+      "level1Successes",
+      "level2Attempts",
+      "level3Attempts",
+      "cascadeAvgMs",
+      "sessionCreateAvgMs",
+      "sessionPromptAvgMs",
+      "totalMs",
     ];
     return order.indexOf(a.key) - order.indexOf(b.key);
   });
@@ -225,23 +240,32 @@ const html = `<!DOCTYPE html>
 
 <h2>Key metrics (all scenarios combined)</h2>
 <div class="summary-grid">
-  ${summary.map((m) => {
-    const dir = ["cloneCount", "aborted"].includes(m.key) ? -1 : 1;
-    const diff = m.delta * dir;
-    const cls = diff < 0 ? "bad" : diff > 0 ? "good" : "neutral";
-    const arrow = diff > 0 ? "↑" : diff < 0 ? "↓" : "→";
-    const labelMap = { createCount: "Session creates", cloneCount: "Session clones", aborted: "Cancellations", alive: "Leaked sessions" };
-    return `<div class="summary-card">
+  ${summary
+    .map((m) => {
+      const dir = ["cloneCount", "aborted"].includes(m.key) ? -1 : 1;
+      const diff = m.delta * dir;
+      const cls = diff < 0 ? "bad" : diff > 0 ? "good" : "neutral";
+      const arrow = diff > 0 ? "↑" : diff < 0 ? "↓" : "→";
+      const labelMap = {
+        createCount: "Session creates",
+        cloneCount: "Session clones",
+        aborted: "Cancellations",
+        alive: "Leaked sessions",
+      };
+      return `<div class="summary-card">
       <div class="label">${labelMap[m.key] || m.key}</div>
       <div class="value">${m.after}</div>
       <div class="sub ${cls}">${arrow} ${m.delta > 0 ? "+" : ""}${m.delta} from ${m.before}</div>
     </div>`;
-  }).join("\n  ")}
+    })
+    .join("\n  ")}
 </div>
 
 <h2>Per-scenario breakdown</h2>
 
-${scenarios.map((s) => `
+${scenarios
+  .map(
+    (s) => `
 <h3>${s.id}: ${s.label}</h3>
 <table>
   <thead><tr>
@@ -254,7 +278,9 @@ ${scenarios.map((s) => `
     ${metricRows(s.metrics)}
   </tbody>
 </table>
-`).join("\n")}
+`,
+  )
+  .join("\n")}
 
 </div>
 </body>

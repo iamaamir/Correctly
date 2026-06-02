@@ -3,7 +3,7 @@ import { clearSettingsCache, getSettings } from "../lib/settings.js";
 import { unloadProviderModel } from "../providers/provider-registry.js";
 import { updateBadge } from "./handlers/badge.js";
 import { registerChromeFreeAIHandlers } from "./handlers/chrome-free-ai.js";
-import { invalidateProviderCache, registerGrammarHandlers, collectProviderMetrics } from "./handlers/grammar.js";
+import { collectProviderMetrics, invalidateProviderCache, registerGrammarHandlers } from "./handlers/grammar.js";
 import { registerSettingsHandlers } from "./handlers/settings.js";
 
 const log = createLogger("bg");

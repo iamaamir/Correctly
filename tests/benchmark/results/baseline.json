@@ -66,11 +66,7 @@
         "cascadeAvgMs": 51,
         "sessionCreateAvgMs": 0,
         "sessionPromptAvgMs": 50.9,
-        "checkTimings": [
-          51.9,
-          50.3,
-          51.5
-        ]
+        "checkTimings": [51.9, 50.3, 51.5]
       }
     }
   ]
