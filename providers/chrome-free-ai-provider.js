@@ -101,6 +101,32 @@ export class ChromeFreeAIProvider extends AbstractProvider {
     session.destroy();
   }
 
+  // ──────────────────────────────────────────────
+  //  SESSION METRICS (instrumentation / benchmark)
+  // ──────────────────────────────────────────────
+
+  _getSessionMetrics() {
+    if (!this._sessionMetrics) {
+      this._sessionMetrics = {
+        createCount: 0,
+        cloneCount: 0,
+        destroyCount: 0,
+        promptCount: 0,
+        abortCount: 0,
+        reuseCount: 0,
+      };
+    }
+    return this._sessionMetrics;
+  }
+
+  getSessionMetrics() {
+    return { ...(this._sessionMetrics ?? this._getSessionMetrics()) };
+  }
+
+  resetSessionMetrics() {
+    this._sessionMetrics = null;
+  }
+
   static get CHROME_FLAGS_HELP() {
     return "Enable chrome://flags/#optimization-guide-on-device-model and chrome://flags/#prompt-api-for-gemini-nano";
   }
@@ -121,17 +147,23 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       throw new Error("Chrome Free AI model still downloading. Try again soon.");
     }
 
+    this._getSessionMetrics().createCount++;
+    const createT0 = performance.now();
     log.debug("Creating LanguageModel session");
     const session = await LanguageModel.create({
       initialPrompts: [{ role: "system", content: SYSTEM_PROMPT }],
     });
+    performance.measure("correctly:session:create", { start: createT0, end: performance.now() });
     log.debug(`Session created — context window: ${session.contextWindow}, usage: ${session.contextUsage}`);
 
     try {
+      this._getSessionMetrics().promptCount++;
+      const promptT0 = performance.now();
       log.debug("Calling session.prompt with responseConstraint");
       const result = await session.prompt(text, {
         responseConstraint: GRAMMAR_SCHEMA,
       });
+      performance.measure("correctly:session:prompt", { start: promptT0, end: performance.now() });
 
       endTimer();
 
@@ -156,6 +188,7 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       }
       throw new Error(`Chrome Free AI error: ${e.message}`);
     } finally {
+      this._getSessionMetrics().destroyCount++;
       log.debug("Destroying session");
       session.destroy();
     }
@@ -170,12 +203,14 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       throw new Error(`Chrome Free AI not available`);
     }
 
+    this._getSessionMetrics().createCount++;
     log.debug("Creating LanguageModel session for L2");
     const session = await LanguageModel.create({
       initialPrompts: [{ role: "system", content: SYSTEM_PROMPT_L2 }],
     });
 
     try {
+      this._getSessionMetrics().promptCount++;
       log.debug("Calling session.prompt without responseConstraint");
       const result = await session.prompt(text);
       log.debug("Raw L2 response:", result);
@@ -189,6 +224,7 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       }
       throw new Error(`Chrome Free AI error: ${e.message}`);
     } finally {
+      this._getSessionMetrics().destroyCount++;
       log.debug("Destroying L2 session");
       session.destroy();
     }
@@ -203,12 +239,14 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       throw new Error(`Chrome Free AI not available`);
     }
 
+    this._getSessionMetrics().createCount++;
     log.debug("Creating LanguageModel session for L3");
     const session = await LanguageModel.create({
       initialPrompts: [{ role: "system", content: SYSTEM_PROMPT_L3 }],
     });
 
     try {
+      this._getSessionMetrics().promptCount++;
       log.debug("Calling session.prompt for plain text");
       const result = await session.prompt(text);
       log.debug("Raw L3 response:", result);
@@ -217,6 +255,7 @@ export class ChromeFreeAIProvider extends AbstractProvider {
       log.error("L3 grammar check failed:", e.message);
       throw new Error(`Chrome Free AI error: ${e.message}`);
     } finally {
+      this._getSessionMetrics().destroyCount++;
       log.debug("Destroying L3 session");
       session.destroy();
     }
