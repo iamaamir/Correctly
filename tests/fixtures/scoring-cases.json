@@ -1,0 +1,27 @@
+[
+  {
+    "id": "standalone-i-hidden-punctuation",
+    "original": "so i didnt had any time tolarend",
+    "level": 1,
+    "rawResponse": {
+      "corrected": "So I didn't have any time to learn.",
+      "changes": [
+        { "original": "so", "replacement": "So", "explanation": "Capitalize first word of sentence." },
+        { "original": "i", "replacement": "I", "explanation": "Pronoun I should be capitalized." },
+        { "original": "didnt", "replacement": "didn't", "explanation": "Add apostrophe for contraction." },
+        { "original": "had", "replacement": "have", "explanation": "Use base verb after didn't." },
+        { "original": "tolarend", "replacement": "learn", "explanation": "Correct misspelled word." },
+        { "original": "", "replacement": ".", "explanation": "Add terminal period." }
+      ],
+      "confidence": 10
+    },
+    "expected": {
+      "accept": true,
+      "corrected": "So I didn't have any time to learn.",
+      "displayChanges": [{ "original": "i", "replacement": "I" }, { "original": "tolarend", "replacement": "learn" }],
+      "hiddenChangeCount": 1,
+      "minAcceptanceScore": 60
+    },
+    "notes": "Standalone i must not match inside time; punctuation insertion is hidden but full correction accepted."
+  }
+]

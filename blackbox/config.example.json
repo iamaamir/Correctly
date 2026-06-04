@@ -1,0 +1,24 @@
+{
+  "runName": "local-scoring-research",
+  "caseCount": 10,
+  "outputDir": "blackbox/runs",
+  "seed": "grammar edge cases for email and chat text",
+  "generator": {
+    "baseUrl": "http://localhost:11434/v1",
+    "apiKey": "ollama",
+    "model": "llama3",
+    "temperature": 0.8
+  },
+  "fixer": {
+    "providerId": "ollama",
+    "apiKey": "",
+    "model": "llama3",
+    "baseUrl": ""
+  },
+  "judge": {
+    "baseUrl": "http://localhost:11434/v1",
+    "apiKey": "ollama",
+    "model": "llama3",
+    "temperature": 0.1
+  }
+}

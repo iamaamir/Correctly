@@ -1,0 +1,1283 @@
+{
+  "input": "tests/fixtures/scoring-cases.generated.json",
+  "evaluatedAt": "2026-05-31T14:29:55.331Z",
+  "summary": {
+    "total": 50,
+    "passed": 50,
+    "failed": 0,
+    "passRate": 1,
+    "averageAcceptanceScore": 67
+  },
+  "results": [
+    {
+      "id": "0001-1780237092311",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 100,
+        "corrected": "I think it's a good idea to have the meeting on Tuesday. However, I don't know if everyone will be available.",
+        "displayChanges": [
+          {
+            "original": "its",
+            "replacement": "it's"
+          },
+          {
+            "original": "avaliable",
+            "replacement": "available"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I think it's a good idea to have the meeting on Tuesday. However, I don't know if everyone will be available.",
+        "displayChanges": [
+          {
+            "original": "its",
+            "replacement": "it's"
+          },
+          {
+            "original": "avaliable",
+            "replacement": "available"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system correctly identified and corrected the spelling errors, contractions, and punctuation issues in the original text."
+    },
+    {
+      "id": "0002-1780237152802",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 100,
+        "corrected": "I saw him yesterday at the store, and he said he was going to call me back. But I haven't heard from him yet.",
+        "displayChanges": [
+          {
+            "original": "seen",
+            "replacement": "saw"
+          },
+          {
+            "original": "hearred",
+            "replacement": "heard"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I saw him yesterday at the store, and he said he was going to call me back. But I haven't heard from him yet.",
+        "displayChanges": [
+          {
+            "original": "seen",
+            "replacement": "saw"
+          },
+          {
+            "original": "hearred",
+            "replacement": "heard"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "All corrections were accurate and targeted, with no duplicate or overlapping changes. The corrected text matches the usable changes, indicating a high level of confidence in the correction."
+    },
+    {
+      "id": "0003-1780237181114",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 82,
+        "corrected": "I'd appreciate it if you could send the file over as soon as possible. Thanks!",
+        "displayChanges": [
+          {
+            "original": "I’d appreciate it if you could sent the file over as soon as possible. thanks!",
+            "replacement": "I'd appreciate it if you could send the file over as soon as possible. Thanks!"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I'd appreciate it if you could send the file over as soon as possible. Thanks!",
+        "displayChanges": [
+          {
+            "original": "I’d appreciate it if you could sent the file over as soon as possible. thanks!",
+            "replacement": "I'd appreciate it if you could send the file over as soon as possible. Thanks!"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The model returned a whole-text edit instead of targeted changes, which may not accurately reflect the intended corrections."
+    },
+    {
+      "id": "0004-1780237196353",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think that it's best to schedule the meeting for next Tuesday, as I have a conflict on Monday.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think that it's best to schedule the meeting for next Tuesday, as I have a conflict on Monday.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the possessive/contraction error and did not provide a full-text correction with structured changes."
+    },
+    {
+      "id": "0005-1780237213417",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 100,
+        "corrected": "I was wondering if you could send me the report; it's really important for my presentation tomorrow.",
+        "displayChanges": [
+          {
+            "original": "report",
+            "replacement": "report;"
+          },
+          {
+            "original": "its",
+            "replacement": "it's"
+          },
+          {
+            "original": "presentation tomorow",
+            "replacement": "presentation tomorrow"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I was wondering if you could send me the report; it's really important for my presentation tomorrow.",
+        "displayChanges": [
+          {
+            "original": "report",
+            "replacement": "report;"
+          },
+          {
+            "original": "its",
+            "replacement": "it's"
+          },
+          {
+            "original": "presentation tomorow",
+            "replacement": "presentation tomorrow"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "Correctly identified and corrected all errors, including punctuation, spelling, and tense issues."
+    },
+    {
+      "id": "0006-1780237227143",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 88,
+        "corrected": "I'm really excited to hear back from you soonest.",
+        "displayChanges": [
+          {
+            "original": "here",
+            "replacement": "hear"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I'm really excited to hear back from you soonest.",
+        "displayChanges": [
+          {
+            "original": "here",
+            "replacement": "hear"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system correctly identified the error and provided a clear explanation of the correction. However, it did not catch the slight inconsistency between the corrected text and the changes array."
+    },
+    {
+      "id": "0007-1780237240710",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 88,
+        "corrected": "I'm really excited to hear back from you soon, let's schedule a call next week!",
+        "displayChanges": [
+          {
+            "original": "I’m",
+            "replacement": "I'm"
+          },
+          {
+            "original": "really exited",
+            "replacement": "really excited"
+          },
+          {
+            "original": "here back",
+            "replacement": "hear back"
+          },
+          {
+            "original": "lets schedule",
+            "replacement": "let's schedule"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I'm really excited to hear back from you soon, let's schedule a call next week!",
+        "displayChanges": [
+          {
+            "original": "I’m",
+            "replacement": "I'm"
+          },
+          {
+            "original": "really exited",
+            "replacement": "really excited"
+          },
+          {
+            "original": "here back",
+            "replacement": "hear back"
+          },
+          {
+            "original": "lets schedule",
+            "replacement": "let's schedule"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system correctly identified and corrected the errors in the input text, including missing apostrophes, misspelled words, and incorrect word order."
+    },
+    {
+      "id": "0008-1780237255589",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 100,
+        "corrected": "I think the meeting should have been rescheduled to next Tuesday.",
+        "displayChanges": [
+          {
+            "original": "should of",
+            "replacement": "should have"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I think the meeting should have been rescheduled to next Tuesday.",
+        "displayChanges": [
+          {
+            "original": "should of",
+            "replacement": "should have"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system correctly identified the error, provided a clear explanation of the correction, and preserved the original meaning."
+    },
+    {
+      "id": "0009-1780237266345",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 100,
+        "corrected": "I think it's really important that we finalize the report by Friday.",
+        "displayChanges": [
+          {
+            "original": "its",
+            "replacement": "it's"
+          },
+          {
+            "original": "finalise",
+            "replacement": "finalize"
+          },
+          {
+            "original": "friday",
+            "replacement": "Friday"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I think it's really important that we finalize the report by Friday.",
+        "displayChanges": [
+          {
+            "original": "its",
+            "replacement": "it's"
+          },
+          {
+            "original": "finalise",
+            "replacement": "finalize"
+          },
+          {
+            "original": "friday",
+            "replacement": "Friday"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "All changes were targeted and corrected the original text without altering its tone."
+    },
+    {
+      "id": "0010-1780237280008",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I need to confirm the meeting with John; he hasn't responded to my last email yet. Also, can you check if the presentation is ready for tomorrow?",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I need to confirm the meeting with John; he hasn't responded to my last email yet. Also, can you check if the presentation is ready for tomorrow?",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the comma usage after the introductory phrase and did not replace 'hes' with 'he'."
+    },
+    {
+      "id": "0011-1780237295502",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 88,
+        "corrected": "I think it's a really good idea, but could we maybe look at the budget first?",
+        "displayChanges": [
+          {
+            "original": "its",
+            "replacement": "it's"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I think it's a really good idea, but could we maybe look at the budget first?",
+        "displayChanges": [
+          {
+            "original": "its",
+            "replacement": "it's"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system correctly identified the common contraction mistake and provided a clear explanation. The corrected text matches the intended meaning, and the changes are targeted."
+    },
+    {
+      "id": "0012-1780237307753",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 100,
+        "corrected": "I was really excited to hear back from you regarding the project, but I still haven't received anything. Is there something going on?",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I was really excited to hear back from you regarding the project, but I still haven't received anything. Is there something going on?",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The corrected text matches the source, and no changes were made."
+    },
+    {
+      "id": "0013-1780237320955",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 76,
+        "corrected": "I'm really excited to hear back from you about the project. Let's schedule a quick meeting sometime next week—it would be great.",
+        "displayChanges": [
+          {
+            "original": "I'm really exited",
+            "replacement": "I'm really excited"
+          },
+          {
+            "original": "lets schedule",
+            "replacement": "Let's schedule"
+          },
+          {
+            "original": "it would be really good",
+            "replacement": "it would be great"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I'm really excited to hear back from you about the project. Let's schedule a quick meeting sometime next week—it would be great.",
+        "displayChanges": [
+          {
+            "original": "I'm really exited",
+            "replacement": "I'm really excited"
+          },
+          {
+            "original": "lets schedule",
+            "replacement": "Let's schedule"
+          },
+          {
+            "original": "it would be really good",
+            "replacement": "it would be great"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The corrected text differs slightly from the changes (0.87), indicating a potential issue with consistency."
+    },
+    {
+      "id": "0014-1780237340539",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 100,
+        "corrected": "I think it's important to note that the report, which was submitted late yesterday, needs to be reviewed again.",
+        "displayChanges": [
+          {
+            "original": "its",
+            "replacement": "it's"
+          },
+          {
+            "original": "needs reviewed",
+            "replacement": "needs to be reviewed"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I think it's important to note that the report, which was submitted late yesterday, needs to be reviewed again.",
+        "displayChanges": [
+          {
+            "original": "its",
+            "replacement": "it's"
+          },
+          {
+            "original": "needs reviewed",
+            "replacement": "needs to be reviewed"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system correctly identified and corrected the errors in grammar, spelling, and verb tense. The changes were targeted and consistent with the intended meaning."
+    },
+    {
+      "id": "0015-1780237354015",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 88,
+        "corrected": "I think it would be really helpful if you could check my work by Tuesday.",
+        "displayChanges": [
+          {
+            "original": "realy",
+            "replacement": "really"
+          },
+          {
+            "original": "tuesday",
+            "replacement": "Tuesday"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I think it would be really helpful if you could check my work by Tuesday.",
+        "displayChanges": [
+          {
+            "original": "realy",
+            "replacement": "really"
+          },
+          {
+            "original": "tuesday",
+            "replacement": "Tuesday"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "Corrected common misspelling of 'real' and capitalized proper noun 'Tuesday', but the corrected text differs slightly from the changes (0.94)."
+    },
+    {
+      "id": "0016-1780237365148",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 76,
+        "corrected": "I appreciate your prompt response, however I am still awaiting confirmation from my supervisor. Please let me know if there are any updates.",
+        "displayChanges": [
+          {
+            "original": "confirmation",
+            "replacement": "any updates"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I appreciate your prompt response, however I am still awaiting confirmation from my supervisor. Please let me know if there are any updates.",
+        "displayChanges": [
+          {
+            "original": "confirmation",
+            "replacement": "any updates"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system correctly identified the error in 'confirmation' and replaced it with 'any updates'. The corrected text is consistent with the changes made, and the cascade level is within a safe range."
+    },
+    {
+      "id": "0017-1780237378095",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 100,
+        "corrected": "I think it's really important to make sure the report is finalized by Friday.",
+        "displayChanges": [
+          {
+            "original": "its",
+            "replacement": "it's"
+          },
+          {
+            "original": "make shure",
+            "replacement": "make sure"
+          },
+          {
+            "original": "friday",
+            "replacement": "Friday"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I think it's really important to make sure the report is finalized by Friday.",
+        "displayChanges": [
+          {
+            "original": "its",
+            "replacement": "it's"
+          },
+          {
+            "original": "make shure",
+            "replacement": "make sure"
+          },
+          {
+            "original": "friday",
+            "replacement": "Friday"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "All changes were targeted and corrected the original text, with no duplicate or overlapping changes."
+    },
+    {
+      "id": "0018-1780237390024",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I was really excited to hear about your proposal, but I think we need to discuss it further before finalizing anything. It's got some potential, but also a few kinks.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I was really excited to hear about your proposal, but I think we need to discuss it further before finalizing anything. It's got some potential, but also a few kinks.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "Empty response without structured changes"
+    },
+    {
+      "id": "0019-1780237408838",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": true,
+        "acceptanceScore": 100,
+        "corrected": "I hope to receive your reply soonest. Let me know if you need anything else, thanks!",
+        "displayChanges": [
+          {
+            "original": "recieve",
+            "replacement": "receive"
+          }
+        ],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": true,
+        "corrected": "I hope to receive your reply soonest. Let me know if you need anything else, thanks!",
+        "displayChanges": [
+          {
+            "original": "recieve",
+            "replacement": "receive"
+          }
+        ],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system correctly identified the spelling error and suggested a correction. The changes array contains only one change, which is correct and targeted."
+    },
+    {
+      "id": "0020-1780237421158",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I was really excited to hear about the project, but I'm not sure if I have time currently.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I was really excited to hear about the project, but I'm not sure if I have time currently.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the spelling error in 'exited' and did not provide any suggestions for improvement."
+    },
+    {
+      "id": "0021-1780237437281",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think it's important that we circle back on this item next week, if possible. Let me know your thoughts.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think it's important that we circle back on this item next week, if possible. Let me know your thoughts.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "Expected a full-text correction with structured changes, but received an empty response."
+    },
+    {
+      "id": "0022-1780237448458",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I'm really excited about the project; it's going to be a great success, I think.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I'm really excited about the project; it's going to be a great success, I think.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the sentence and did not provide any visible suggestions."
+    },
+    {
+      "id": "0023-1780237459409",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I was really excited to hear about the project, but I think we need to clarify some things before moving forward. It's important that everyone is on the same page.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I was really excited to hear about the project, but I think we need to clarify some things before moving forward. It's important that everyone is on the same page.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the subject-verb agreement error ('everyones' vs 'everyone is') and did not provide any suggestions for improvement."
+    },
+    {
+      "id": "0024-1780237474126",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I was really excited to hear back from you about the project, but I haven't seen anything yet. Could you let me know when it might be ready?",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I was really excited to hear back from you about the project, but I haven't seen anything yet. Could you let me know when it might be ready?",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the spelling error 'realy' to 'really', resulting in an empty response."
+    },
+    {
+      "id": "0025-1780237486400",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think we should schedule a meeting next week to discuss the new project; it's really important.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think we should schedule a meeting next week to discuss the new project; it's really important.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the error and provided an empty response."
+    },
+    {
+      "id": "0026-1780237496055",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I saw him yesterday and he said that the project is due next week. However, I haven't started it yet so I'm a little worried.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I saw him yesterday and he said that the project is due next week. However, I haven't started it yet so I'm a little worried.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "Expected a full-text correction with structured changes, but only the corrected string was provided."
+    },
+    {
+      "id": "0027-1780237506793",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think it's important to note that the project will be delayed due to unforeseen circumstances. I'll update everyone with more details as soon as possible.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think it's important to note that the project will be delayed due to unforeseen circumstances. I'll update everyone with more details as soon as possible.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the informal language 'possable' vs 'possible', which may not require correction depending on the context."
+    },
+    {
+      "id": "0028-1780237519603",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I wanted to reach out regarding the project; it's going well so far, but I'm facing a slight challenge with integrating the new API. Can we schedule a quick call to discuss it?",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I wanted to reach out regarding the project; it's going well so far, but I'm facing a slight challenge with integrating the new API. Can we schedule a quick call to discuss it?",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The corrected text still contains a comma splice ('it's going well so far but...') and the response time is relatively high (664ms)."
+    },
+    {
+      "id": "0029-1780237536187",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think it's a good idea, but maybe we should double-check the numbers before sending it out to all the team members.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think it's a good idea, but maybe we should double-check the numbers before sending it out to all the team members.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "Expected a non-empty changes array, but it was empty."
+    },
+    {
+      "id": "0030-1780237546885",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think it's a really great idea, but we need to make sure everyone is on board before moving forward. Also, could you please send me the document?",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think it's a really great idea, but we need to make sure everyone is on board before moving forward. Also, could you please send me the document?",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "empty response and high cascade level penalized the score"
+    },
+    {
+      "id": "0031-1780237559359",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think the report is good, but maybe a few more details would be helpful.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think the report is good, but maybe a few more details would be helpful.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The AI failed to correct the informal language ('like, maybe') and omitted the comma before 'but', despite detecting spelling errors. This suggests a lack of understanding of formal writing conventions."
+    },
+    {
+      "id": "0032-1780237572268",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think it would be great if you could look into this issue. It's been going on for a while now and is really impacting our workflow.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think it would be great if you could look into this issue. It's been going on for a while now and is really impacting our workflow.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the spelling error 'grate' and did not provide any suggestions."
+    },
+    {
+      "id": "0033-1780237583786",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I was thinking about the project, and I feel like we should revisit the timeline. It's kind of tight right now.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I was thinking about the project, and I feel like we should revisit the timeline. It's kind of tight right now.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the standalone 'i' error and did not provide any suggestions for improvement."
+    },
+    {
+      "id": "0034-1780237596256",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I saw him leave earlier, and he said it was urgent. I'll call you back later.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I saw him leave earlier, and he said it was urgent. I'll call you back later.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the 'seen' error in the original text, resulting in an incorrect corrected string."
+    },
+    {
+      "id": "0035-1780237606258",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I was wondering if you could send me the report before Friday. It's really needed for my presentation.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I was wondering if you could send me the report before Friday. It's really needed for my presentation.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the informal tone and missing period at the end of the sentence."
+    },
+    {
+      "id": "0036-1780237616891",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think we should have scheduled the meeting for Tuesday, not Monday. It's more in line with everyone's availability.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think we should have scheduled the meeting for Tuesday, not Monday. It's more in line with everyone's availability.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The model failed to correct the verb tense error and did not provide any visible suggestions."
+    },
+    {
+      "id": "0037-1780237627819",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think it's a good idea to finalize the report by Friday.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think it's a good idea to finalize the report by Friday.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "Empty response without structured changes"
+    },
+    {
+      "id": "0038-1780237635988",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I am writing to inquire about the possibility of a refund, as my order arrived damaged. It's quite upsetting.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I am writing to inquire about the possibility of a refund, as my order arrived damaged. It's quite upsetting.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "Expected a full-text correction with structured changes, but received an empty response."
+    },
+    {
+      "id": "0039-1780237647678",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I'm writing this to inform you about the ongoing project, its progressing well so far. However, we do need your approval before moving to phase two.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I'm writing this to inform you about the ongoing project, its progressing well so far. However, we do need your approval before moving to phase two.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the comma splice error and did not provide any suggestions for improvement."
+    },
+    {
+      "id": "0040-1780237661808",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think we need to go over the proposal again. It's not really clear on what actions are needed next, and I'm worried about the deadline.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think we need to go over the proposal again. It's not really clear on what actions are needed next, and I'm worried about the deadline.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "Expected a non-empty changes array, but it was empty."
+    },
+    {
+      "id": "0041-1780237673036",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I feel like this report is not quite done yet; it's missing a few key details, and I need to go back over it. Please let me know if you have any questions.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I feel like this report is not quite done yet; it's missing a few key details, and I need to go back over it. Please let me know if you have any questions.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the sentence correctly, and also did not provide any visible suggestions."
+    },
+    {
+      "id": "0042-1780237686366",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think it's a good idea, but are you sure about the timeline? We need to finalize it soon.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think it's a good idea, but are you sure about the timeline? We need to finalize it soon.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "Penalty for empty response and cascade level is too high, but corrected consistency penalty is 0."
+    },
+    {
+      "id": "0043-1780237696360",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think they're going to need more time to complete the project. It's looking like a difficult task.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think they're going to need more time to complete the project. It's looking like a difficult task.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the informal writing habit of using 'its' instead of 'it's', and also didn't provide any visible suggestions for improvement."
+    },
+    {
+      "id": "0044-1780237709319",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think it's really important that we follow up on their request ASAP. Let me know if you have any questions.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think it's really important that we follow up on their request ASAP. Let me know if you have any questions.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the informal communication errors, such as 'thier' vs. 'their', and did not provide any visible suggestions."
+    },
+    {
+      "id": "0045-1780237722263",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I was really looking forward to the meeting, but I didn't get a chance to present my findings. It's really frustrating.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I was really looking forward to the meeting, but I didn't get a chance to present my findings. It's really frustrating.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the sentence structure and did not provide any meaningful suggestions."
+    },
+    {
+      "id": "0046-1780237735921",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think that we should schedule a meeting for next week. It's crucial to finalize the project timeline.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think that we should schedule a meeting for next week. It's crucial to finalize the project timeline.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the error and did not provide any meaningful suggestions."
+    },
+    {
+      "id": "0047-1780237747329",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think it's really important that we finalize the report by Friday, okay?",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think it's really important that we finalize the report by Friday, okay?",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the informal closing ('okay?') and did not provide any suggestions for improvement."
+    },
+    {
+      "id": "0048-1780237757597",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I have been working on the report, and I think it's mostly done. However, there are a few sections that still need more work, especially the financial projections.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I have been working on the report, and I think it's mostly done. However, there are a few sections that still need more work, especially the financial projections.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "Expected a non-empty changes array or more detailed feedback on the correction process."
+    },
+    {
+      "id": "0049-1780237771683",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I think it's a good idea, but are you sure?",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I think it's a good idea, but are you sure?",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "The system failed to correct the grammar error and also returned an empty response."
+    },
+    {
+      "id": "0050-1780237781746",
+      "passed": true,
+      "issues": [],
+      "actual": {
+        "accept": false,
+        "acceptanceScore": 55,
+        "corrected": "I was wondering if you could please look over the proposal I sent you yesterday. Let me know your thoughts as soon as possible.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0,
+        "hiddenReasons": []
+      },
+      "expected": {
+        "accept": false,
+        "corrected": "I was wondering if you could please look over the proposal I sent you yesterday. Let me know your thoughts as soon as possible.",
+        "displayChanges": [],
+        "hiddenChangeCount": 0
+      },
+      "notes": "Expected a more comprehensive correction, including changes to the text and a higher confidence score."
+    }
+  ]
+}

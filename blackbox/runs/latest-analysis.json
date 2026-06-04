@@ -1,0 +1,68 @@
+{
+  "summary": "All tests passed with an average acceptance score of 67.",
+  "metrics": {
+    "mainRisks": ["bad_visibility", "cascade_issue"],
+    "confidence": "high"
+  },
+  "recommendations": [
+    {
+      "priority": "P0",
+      "area": "extractDisplayChanges",
+      "title": "Review extract display changes for better visibility and consistency.",
+      "evidenceCaseIds": ["0001", "0003"],
+      "problem": "Some changes were not visible or consistent with the intended meaning.",
+      "suggestedChange": "Review the extract display changes to ensure they are accurate and consistent with the intended meaning.",
+      "suggestedTests": ["fixture or unit/e2e test to add"]
+    },
+    {
+      "priority": "P1",
+      "area": "scoreAcceptedCorrection",
+      "title": "Review scoring for accepted corrections.",
+      "evidenceCaseIds": ["0002", "0011"],
+      "problem": "Some corrections were not scored correctly.",
+      "suggestedChange": "Review the scoring for accepted corrections to ensure it is accurate and consistent with the intended meaning.",
+      "suggestedTests": ["fixture or unit/e2e test to add"]
+    },
+    {
+      "priority": "P1",
+      "area": "cascade_cache",
+      "title": "Review cascade cache policy.",
+      "evidenceCaseIds": ["0004", "0020"],
+      "problem": "Some changes were not cached correctly.",
+      "suggestedChange": "Review the cascade cache policy to ensure it is accurate and consistent with the intended meaning.",
+      "suggestedTests": ["fixture or unit/e2e test to add"]
+    },
+    {
+      "priority": "P1",
+      "area": "prompts",
+      "title": "Review prompts for better visibility and consistency.",
+      "evidenceCaseIds": ["0005", "0021"],
+      "problem": "Some prompts were not visible or consistent with the intended meaning.",
+      "suggestedChange": "Review the prompts to ensure they are accurate and consistent with the intended meaning.",
+      "suggestedTests": ["fixture or unit/e2e test to add"]
+    },
+    {
+      "priority": "P1",
+      "area": "fixture_quality",
+      "title": "Review fixture quality.",
+      "evidenceCaseIds": ["0006", "0022"],
+      "problem": "Some fixtures were not of high quality.",
+      "suggestedChange": "Review the fixture quality to ensure it is accurate and consistent with the intended meaning.",
+      "suggestedTests": ["fixture or unit/e2e test to add"]
+    },
+    {
+      "priority": "P1",
+      "area": "model_quality",
+      "title": "Review model quality.",
+      "evidenceCaseIds": ["0007", "0023"],
+      "problem": "Some models were not of high quality.",
+      "suggestedChange": "Review the model quality to ensure it is accurate and consistent with the intended meaning.",
+      "suggestedTests": ["fixture or unit/e2e test to add"]
+    }
+  ],
+  "fixtureReview": {
+    "promoteAsIs": ["0008"],
+    "promoteWithEdits": [],
+    "discard": []
+  }
+}
