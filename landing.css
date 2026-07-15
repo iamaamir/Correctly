@@ -698,26 +698,20 @@ h3 {
   font-size: 0.9em;
 }
 
-.install-tabs input[type="radio"] {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
 .tab-bar {
   display: flex;
   gap: 0;
   margin-block-end: 0;
   border-block-end: 1px solid var(--line);
-  transition: all 0.3s;
 }
 
-.tab-bar label {
+.tab-bar button {
   position: relative;
   padding: 12px 24px;
   border: 1px solid transparent;
   border-block-end: none;
   border-radius: var(--radius) var(--radius) 0 0;
+  background: transparent;
   color: var(--faint);
   font-weight: 600;
   font-size: 0.95rem;
@@ -729,12 +723,11 @@ h3 {
   user-select: none;
 }
 
-.tab-bar label:hover {
+.tab-bar button:hover {
   color: var(--green);
 }
 
-#tab-chrome:checked ~ .tab-bar label[for="tab-chrome"],
-#tab-firefox:checked ~ .tab-bar label[for="tab-firefox"] {
+.tab-bar button[aria-selected="true"] {
   border-color: var(--line);
   background: oklch(22% 0.05 150);
   color: var(--green);
@@ -746,8 +739,7 @@ h3 {
   font-size: 0.75rem;
 }
 
-#tab-chrome:checked ~ .tab-bar label[for="tab-chrome"] .tab-browser-note,
-#tab-firefox:checked ~ .tab-bar label[for="tab-firefox"] .tab-browser-note {
+.tab-bar button[aria-selected="true"] .tab-browser-note {
   color: var(--muted);
 }
 
@@ -757,55 +749,21 @@ h3 {
   border-radius: 0 0 var(--radius) var(--radius);
   background: oklch(17% 0.01 155);
   padding: clamp(16px, 2vw, 24px);
-  view-transition-name: tab-panel;
   display: grid;
-}
-
-::view-transition-group(tab-panel) {
-  animation-timing-function: cubic-bezier(0.68, -0.6, 0.32, 1.6);
-  animation-duration: 0.6s;
-}
-::view-transition-old(tab-panel) {
-  animation-name: tab-out;
-}
-::view-transition-new(tab-panel) {
-  animation-name: tab-in;
-}
-
-::view-transition-old(tab-panel),
-::view-transition-new(tab-panel) {
-  height: 100%;
-  object-fit: none; /* don't stretch the snapshot */
-  clip-path: inset(0);
-}
-
-@keyframes tab-out {
-  to {
-    opacity: 0;
-    transform: translateY(-30px);
-  }
-}
-@keyframes tab-in {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
 }
 
 .tab-panel {
   display: flex;
   align-items: center;
   grid-area: 1 / 1;
-  visibility: hidden;
 }
 
-#tab-chrome:checked ~ .tab-panels #panel-chrome,
-#tab-firefox:checked ~ .tab-panels #panel-firefox {
-  visibility: visible;
+.tab-panel[hidden] {
+  display: none;
 }
 
 @media (max-width: 620px) {
-  .tab-bar label {
+  .tab-bar button {
     flex: 1;
     text-align: center;
     padding: 12px 14px;
@@ -985,12 +943,6 @@ h3 {
     transition-duration: 1ms;
     animation-duration: 1ms;
     animation-iteration-count: 1;
-  }
-
-  ::view-transition-group(tab-panel),
-  ::view-transition-old(tab-panel),
-  ::view-transition-new(tab-panel) {
-    animation: none;
   }
 
   .motion-ready [data-reveal],

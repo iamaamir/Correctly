@@ -22,3 +22,5 @@ jobs:
           version: 2.4.16
       - name: Run Biome
         run: biome ci .
+      - name: Verify inlined landing CSS
+        run: npm run check:landing-css
