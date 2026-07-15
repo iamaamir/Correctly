@@ -15,7 +15,7 @@ const manifest = loadManifestForTarget(target, versionOverride);
 rmSync("dist", { recursive: true, force: true });
 
 mkdirSync("dist/correctly", { recursive: true });
-writeFileSync("dist/correctly/manifest.json", JSON.stringify(manifest, null, 2) + "\n");
+writeFileSync("dist/correctly/manifest.json", `${JSON.stringify(manifest, null, 2)}\n`);
 
 cpSync("background", "dist/correctly/background", { recursive: true });
 cpSync("content", "dist/correctly/content", { recursive: true });
