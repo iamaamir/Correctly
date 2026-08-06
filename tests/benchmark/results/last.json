@@ -1,0 +1,73 @@
+{
+  "tag": "feat/refactor-chrome-ai",
+  "timestamp": "2026-06-02T15:41:37.945Z",
+  "scenarios": [
+    {
+      "scenario": "A",
+      "session": {
+        "createCount": 1,
+        "cloneCount": 1,
+        "promptCount": 1,
+        "destroyCount": 1,
+        "alive": 1
+      },
+      "cascade": {
+        "calls": 1,
+        "level1Attempts": 1,
+        "level1Successes": 1,
+        "aborted": 0
+      },
+      "timing": {
+        "cascadeAvgMs": 52,
+        "sessionCreateAvgMs": 0,
+        "sessionPromptAvgMs": 51.7,
+        "totalMs": 52.7
+      }
+    },
+    {
+      "scenario": "B",
+      "requests": {
+        "total": 5,
+        "completed": 5,
+        "aborted": 0,
+        "errors": 0
+      },
+      "session": {
+        "createCount": 1,
+        "cloneCount": 5,
+        "promptCount": 5,
+        "destroyCount": 5,
+        "alive": 1
+      },
+      "cascade": {
+        "calls": 5,
+        "level1Attempts": 5,
+        "level1Successes": 5,
+        "aborted": 0
+      }
+    },
+    {
+      "scenario": "C",
+      "session": {
+        "createCount": 1,
+        "cloneCount": 3,
+        "promptCount": 3,
+        "destroyCount": 3,
+        "alive": 1,
+        "totalSessions": 4
+      },
+      "cascade": {
+        "calls": 3,
+        "level1Attempts": 3,
+        "level1Successes": 3,
+        "aborted": 0
+      },
+      "timing": {
+        "cascadeAvgMs": 50.8,
+        "sessionCreateAvgMs": 0,
+        "sessionPromptAvgMs": 50.7,
+        "checkTimings": [51.6, 49.9, 51.5]
+      }
+    }
+  ]
+}

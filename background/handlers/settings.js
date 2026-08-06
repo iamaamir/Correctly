@@ -10,7 +10,7 @@ async function verifySettings(providerId, apiKey, model, baseUrl, log, { onProgr
     const provider = createProvider(providerId || "openai", apiKey, model, baseUrl);
 
     // Run the grammar check (cascade may trigger progress callbacks)
-    const result = await provider.correctGrammar(VERIFY_TEXT, { onProgress });
+    const result = await provider.correctGrammar(VERIFY_TEXT, { onProgress, skipSessionCache: true });
 
     if (!result || typeof result.corrected !== "string") {
       return { success: false, error: "Unexpected response from provider" };

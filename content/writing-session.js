@@ -111,6 +111,10 @@
           return;
         }
         this.removeIndicator();
+        if (response.cancelled) {
+          this.log?.debug(`Check generation ${gen} cancelled — removed indicator`);
+          return;
+        }
         if (response.success) {
           this.lastCheckedText.set(element, text);
           const count = this.getCorrectionCount(response.data, text);
