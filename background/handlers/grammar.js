@@ -174,3 +174,46 @@ export async function invalidateProviderCache(log) {
   chrome.storage.session.remove(TOKEN_USAGE_KEY);
   log.debug("Provider cache invalidated — token usage cleared");
 }
+
+export function collectProviderMetrics() {
+  const measures = performance.getEntriesByType("measure");
+  const correctly = measures.filter((m) => m.name.startsWith("correctly:"));
+
+  const groups = {};
+  for (const m of correctly) {
+    if (!groups[m.name]) groups[m.name] = [];
+    groups[m.name].push(m.duration);
+  }
+
+  const summarized = {};
+  for (const [name, durations] of Object.entries(groups)) {
+    const sorted = [...durations].sort((a, b) => a - b);
+    summarized[name] = {
+      count: durations.length,
+      totalMs: Math.round(durations.reduce((s, d) => s + d, 0) * 10) / 10,
+      avgMs: Math.round((durations.reduce((s, d) => s + d, 0) / durations.length) * 10) / 10,
+      minMs: Math.round(sorted[0] * 10) / 10,
+      maxMs: Math.round(sorted[sorted.length - 1] * 10) / 10,
+    };
+  }
+
+  let sessionMetrics = null;
+  let cascadeMetrics = null;
+  if (cachedProvider && typeof cachedProvider.getSessionMetrics === "function") {
+    sessionMetrics = cachedProvider.getSessionMetrics();
+  }
+  if (cachedProvider && typeof cachedProvider.getCascadeMetrics === "function") {
+    cascadeMetrics = cachedProvider.getCascadeMetrics();
+  }
+
+  return {
+    performanceMeasures: summarized,
+    provider: {
+      id: cachedProvider?.providerId ?? null,
+      model: cachedProvider?.model ?? null,
+      sessionMetrics,
+      cascadeMetrics,
+    },
+    activeChecks: typeof activeChecksByTabId !== "undefined" ? activeChecksByTabId.size : 0,
+  };
+}
