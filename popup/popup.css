@@ -467,13 +467,6 @@ input:focus {
   width: 100%;
 }
 
-.base-url-hint {
-  font-size: 11px;
-  color: #737373;
-  margin-top: 4px;
-  min-height: 14px;
-}
-
 .btn-secondary {
   padding: 10px 14px;
   background: #e8e8e8;
@@ -719,7 +712,6 @@ input:focus {
   }
 
   .model-hint,
-  .base-url-hint,
   .site-host,
   .subtitle {
     color: #999;
