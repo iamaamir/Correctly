@@ -242,17 +242,44 @@ async function loadSavedUrls() {
   savedUrlsLoaded = true;
 }
 
+// Curated OpenAI-compatible endpoints, shown alongside the user's saved URLs
+// in the Base URL autocomplete. Base URLs take the `/chat/completions` and
+// `/models` paths appended (see GenericOpenAIProvider / FETCH_MODELS).
+const KNOWN_ENDPOINT_PRESETS = [
+  { name: "OpenRouter", url: "https://openrouter.ai/api/v1" },
+  { name: "Groq", url: "https://api.groq.com/openai/v1" },
+  { name: "Together AI", url: "https://api.together.xyz/v1" },
+  { name: "Fireworks AI", url: "https://api.fireworks.ai/inference/v1" },
+  { name: "DeepSeek", url: "https://api.deepseek.com/v1" },
+  { name: "xAI", url: "https://api.x.ai/v1" },
+  { name: "Mistral", url: "https://api.mistral.ai/v1" },
+  { name: "Google AI Studio", url: "https://generativelanguage.googleapis.com/v1beta/openai" },
+  { name: "OpenAI", url: "https://api.openai.com/v1" },
+  { name: "Ollama (local)", url: "http://localhost:11434/v1" },
+  { name: "LM Studio (local)", url: "http://localhost:1234/v1" },
+];
+
 async function populateBaseUrlSuggestions() {
   const datalist = document.getElementById("base-url-suggestions");
   if (!datalist) return;
   await loadSavedUrls();
-  datalist.replaceChildren(
-    ...Array.from(SAVED_URLS_SET).map((url) => {
-      const option = document.createElement("option");
-      option.value = url;
-      return option;
-    }),
-  );
+  const seen = new Set();
+  const options = [];
+  for (const { name, url } of KNOWN_ENDPOINT_PRESETS) {
+    seen.add(url);
+    const option = document.createElement("option");
+    option.value = url;
+    option.label = name;
+    options.push(option);
+  }
+  for (const url of SAVED_URLS_SET) {
+    if (seen.has(url)) continue;
+    seen.add(url);
+    const option = document.createElement("option");
+    option.value = url;
+    options.push(option);
+  }
+  datalist.replaceChildren(...options.slice(0, 30));
 }
 
 async function saveBaseUrlSuggestion(url) {
