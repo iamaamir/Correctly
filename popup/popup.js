@@ -246,14 +246,12 @@ async function populateBaseUrlSuggestions() {
   const datalist = document.getElementById("base-url-suggestions");
   if (!datalist) return;
   await loadSavedUrls();
-  const options = mergeEndpointSuggestions(KNOWN_ENDPOINT_PRESETS, Array.from(SAVED_URLS_SET)).map(
-    ({ name, url }) => {
-      const option = document.createElement("option");
-      option.value = url;
-      if (name) option.label = name;
-      return option;
-    },
-  );
+  const options = mergeEndpointSuggestions(KNOWN_ENDPOINT_PRESETS, Array.from(SAVED_URLS_SET)).map(({ name, url }) => {
+    const option = document.createElement("option");
+    option.value = url;
+    if (name) option.label = name;
+    return option;
+  });
   datalist.replaceChildren(...options);
 }
 
@@ -397,7 +395,7 @@ function clearModelStatus() {
 let stashedApiKey = "";
 
 function updateKeySectionVisibility(provider) {
-  const needsKey = !provider || provider.requiresApiKey !== false;
+  const needsKey = provider?.requiresApiKey !== false;
   if (!needsKey) {
     const current = apiKeyInput.value.trim();
     if (current && current !== NO_API_KEY_SENTINEL) stashedApiKey = apiKeyInput.value;
