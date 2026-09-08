@@ -2,6 +2,7 @@ import { createLogger } from "../lib/logger.js";
 import { getSettings, setSettings } from "../lib/settings.js";
 import { sanitizeBaseUrl, validateBaseUrl } from "../lib/url-utils.js";
 import { createProvider, getAvailableProviders } from "../providers/provider-registry.js";
+import { KNOWN_ENDPOINT_PRESETS } from "./endpoint-presets.js";
 
 const log = createLogger("popup");
 
@@ -241,23 +242,6 @@ async function loadSavedUrls() {
   for (const url of saved) SAVED_URLS_SET.add(url);
   savedUrlsLoaded = true;
 }
-
-// Curated OpenAI-compatible endpoints, shown alongside the user's saved URLs
-// in the Base URL autocomplete. Base URLs take the `/chat/completions` and
-// `/models` paths appended (see GenericOpenAIProvider / FETCH_MODELS).
-const KNOWN_ENDPOINT_PRESETS = [
-  { name: "OpenRouter", url: "https://openrouter.ai/api/v1" },
-  { name: "Groq", url: "https://api.groq.com/openai/v1" },
-  { name: "Together AI", url: "https://api.together.xyz/v1" },
-  { name: "Fireworks AI", url: "https://api.fireworks.ai/inference/v1" },
-  { name: "DeepSeek", url: "https://api.deepseek.com/v1" },
-  { name: "xAI", url: "https://api.x.ai/v1" },
-  { name: "Mistral", url: "https://api.mistral.ai/v1" },
-  { name: "Google AI Studio", url: "https://generativelanguage.googleapis.com/v1beta/openai" },
-  { name: "OpenAI", url: "https://api.openai.com/v1" },
-  { name: "Ollama (local)", url: "http://localhost:11434/v1" },
-  { name: "LM Studio (local)", url: "http://localhost:1234/v1" },
-];
 
 async function populateBaseUrlSuggestions() {
   const datalist = document.getElementById("base-url-suggestions");
