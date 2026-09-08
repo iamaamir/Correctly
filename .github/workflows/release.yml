@@ -127,8 +127,10 @@ jobs:
           VERSION="${{ needs.derive-version.outputs.version }}"
           BRANCH="chore/bump-v${VERSION}"
 
-          jq --arg v "${VERSION}" '.version = $v' manifest.base.json > manifest.base.json.tmp
-          mv manifest.base.json.tmp manifest.base.json
+           # Update only the version value in place. (jq rewrites the whole file
+           # and breaks `biome ci` formatting on the next bump PR.)
+           sed -i -E 's/^([[:space:]]*"version": ")[^"]*"/\1'"${VERSION}"'"/' manifest.base.json
+           grep '"version"' manifest.base.json
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
