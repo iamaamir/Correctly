@@ -41,7 +41,8 @@ header h1 {
   margin-top: 2px;
 }
 
-label {
+label,
+.section-title {
   display: block;
   font-size: 12px;
   font-weight: 600;
@@ -104,6 +105,12 @@ input:focus {
   color: #737373;
   margin-top: 4px;
   min-height: 14px;
+}
+
+.field-caption {
+  font-size: 11px;
+  color: #737373;
+  margin-top: 4px;
 }
 
 #model-select.model-select--loaded {
@@ -467,13 +474,6 @@ input:focus {
   width: 100%;
 }
 
-.base-url-hint {
-  font-size: 11px;
-  color: #737373;
-  margin-top: 4px;
-  min-height: 14px;
-}
-
 .btn-secondary {
   padding: 10px 14px;
   background: #e8e8e8;
@@ -714,12 +714,13 @@ input:focus {
     border-color: #3da55e;
   }
 
-  label {
+  label,
+  .section-title {
     color: #999;
   }
 
   .model-hint,
-  .base-url-hint,
+  .field-caption,
   .site-host,
   .subtitle {
     color: #999;

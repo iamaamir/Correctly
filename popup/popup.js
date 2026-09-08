@@ -2,6 +2,7 @@ import { createLogger } from "../lib/logger.js";
 import { getSettings, setSettings } from "../lib/settings.js";
 import { sanitizeBaseUrl, validateBaseUrl } from "../lib/url-utils.js";
 import { createProvider, getAvailableProviders } from "../providers/provider-registry.js";
+import { KNOWN_ENDPOINT_PRESETS } from "./endpoint-presets.js";
 
 const log = createLogger("popup");
 
@@ -29,7 +30,7 @@ const aiStatusSection = document.getElementById("ai-status-section");
 const aiStatusContent = document.getElementById("ai-status-content");
 const baseUrlSection = document.getElementById("base-url-section");
 const baseUrlInput = document.getElementById("base-url");
-const baseUrlHint = document.getElementById("base-url-hint");
+const keySection = document.getElementById("key-section");
 
 let currentHostname = null;
 
@@ -93,11 +94,14 @@ function cancelModelFetchFlow() {
 
 function applyFetchedModels(provider, models, selectedModel) {
   const fetched = models || [];
-  const limited = fetched.slice(0, 20);
-  if (provider) provider.models = limited;
-  renderModelDropdown(limited, selectedModel || limited[0]?.id, provider?.defaultModel);
+  if (provider) provider.models = fetched;
+  if (fetched.length === 0) {
+    setModelStatus("No models found for this endpoint");
+  } else {
+    clearModelStatus();
+  }
+  renderModelDropdown(fetched, selectedModel || fetched[0]?.id, provider?.defaultModel);
   highlightModelSelect(fetched.length > 0);
-  baseUrlHint.textContent = fetched.length > 0 ? "Models loaded" : "No models found for this endpoint";
 }
 
 function highlightModelSelect(shouldHighlight) {
@@ -121,7 +125,7 @@ async function doFetchModels(baseUrl, apiKey, selectedModel = null) {
 
   const now = Date.now();
   if (lastModelFetchFailure.key === cacheKey && now - lastModelFetchFailure.timestamp < MODEL_FETCH_RETRY_COOLDOWN_MS) {
-    baseUrlHint.textContent = "Model loading paused after a failed attempt. Save will retry.";
+    setModelStatus("Model loading paused after a failed attempt. Save will retry.");
     return false;
   }
 
@@ -137,7 +141,7 @@ async function doFetchModels(baseUrl, apiKey, selectedModel = null) {
     return true;
   }
 
-  baseUrlHint.textContent = "Loading models...";
+  setModelStatus("Loading models...");
   modelSelect.classList.remove("model-select--loaded");
 
   activeModelFetchKey = cacheKey;
@@ -152,7 +156,7 @@ async function doFetchModels(baseUrl, apiKey, selectedModel = null) {
 
     if (!result.success) {
       lastModelFetchFailure = { key: cacheKey, timestamp: Date.now() };
-      baseUrlHint.textContent = `Could not load models: ${result.error}`;
+      setModelStatus(`Could not load models: ${result.error}`);
       return false;
     }
 
@@ -161,7 +165,6 @@ async function doFetchModels(baseUrl, apiKey, selectedModel = null) {
     applyFetchedModels(provider, result.data, selectedModel);
     loadedModelsKey = cacheKey;
     lastModelFetchFailure = { key: "", timestamp: 0 };
-    modelHint.textContent = "Models loaded. Choose one from the list, or select Custom model.";
     return true;
   })();
 
@@ -184,23 +187,20 @@ function scheduleModelFetch() {
   modelSelect.classList.remove("model-select--loaded");
 
   if (!baseUrl) {
-    baseUrlHint.textContent = "Models load after URL and API key are entered";
-    modelHint.textContent = "Enter endpoint details to load available models";
+    setModelStatus("Enter a base URL and API key to load models");
     loadedModelsKey = "";
     return;
   }
 
   const validation = validateBaseUrl(baseUrl);
   if (!validation.valid) {
-    baseUrlHint.textContent = "Enter a valid base URL to load models";
-    modelHint.textContent = "Enter endpoint details to load available models";
+    setModelStatus("Enter a valid base URL to load models");
     loadedModelsKey = "";
     return;
   }
 
   if (!apiKey) {
-    baseUrlHint.textContent = "Enter an API key to load models";
-    modelHint.textContent = "Enter endpoint details to load available models";
+    setModelStatus("Enter an API key to load models");
     loadedModelsKey = "";
     return;
   }
@@ -210,17 +210,15 @@ function scheduleModelFetch() {
   if (lastModelFetchFailure.key === cacheKey) {
     const elapsed = Date.now() - lastModelFetchFailure.timestamp;
     if (elapsed < MODEL_FETCH_RETRY_COOLDOWN_MS) {
-      baseUrlHint.textContent = "Model loading paused after a failed attempt. Save will retry.";
-      modelHint.textContent = "Select Custom model to type a model ID.";
+      setModelStatus("Model loading paused after a failed attempt. Save will retry.");
       return;
     }
   }
 
-  baseUrlHint.textContent = "Models load automatically after you stop typing";
-  modelHint.textContent = "Waiting for endpoint details to settle...";
+  setModelStatus("Models load automatically after you stop typing");
   modelFetchTimer = setTimeout(() => {
     doFetchModels(validation.sanitized, apiKey).catch((err) => {
-      baseUrlHint.textContent = `Could not load models: ${err.message}`;
+      setModelStatus(`Could not load models: ${err.message}`);
     });
   }, MODEL_FETCH_DEBOUNCE_MS);
 }
@@ -248,13 +246,13 @@ async function populateBaseUrlSuggestions() {
   const datalist = document.getElementById("base-url-suggestions");
   if (!datalist) return;
   await loadSavedUrls();
-  datalist.replaceChildren(
-    ...Array.from(SAVED_URLS_SET).map((url) => {
-      const option = document.createElement("option");
-      option.value = url;
-      return option;
-    }),
-  );
+  const options = mergeEndpointSuggestions(KNOWN_ENDPOINT_PRESETS, Array.from(SAVED_URLS_SET)).map(({ name, url }) => {
+    const option = document.createElement("option");
+    option.value = url;
+    if (name) option.label = name;
+    return option;
+  });
+  datalist.replaceChildren(...options);
 }
 
 async function saveBaseUrlSuggestion(url) {
@@ -378,9 +376,38 @@ function setCustomInputVisibility(show) {
   }
 }
 
+// Sticky model-loading status (OpenAI-compatible flow). While set, it takes
+// precedence over the per-model description so the two never fight over one line.
+let modelStatusOverride = "";
+
+function setModelStatus(message) {
+  modelStatusOverride = message;
+  modelHint.textContent = message;
+}
+
+function clearModelStatus() {
+  modelStatusOverride = "";
+  updateModelHint();
+}
+
+// Last key typed for a key-requiring provider, kept in memory so exploratory
+// toggles to a keyless provider and back don't force re-typing.
+let stashedApiKey = "";
+
+function updateKeySectionVisibility(provider) {
+  const needsKey = provider?.requiresApiKey !== false;
+  if (!needsKey) {
+    const current = apiKeyInput.value.trim();
+    if (current && current !== NO_API_KEY_SENTINEL) stashedApiKey = apiKeyInput.value;
+    apiKeyInput.value = "";
+  } else if (!apiKeyInput.value && stashedApiKey) {
+    apiKeyInput.value = stashedApiKey;
+  }
+  keySection.hidden = !needsKey;
+}
+
 function renderModelDropdown(models, selectedModel, defaultModel) {
   modelSelect.replaceChildren();
-  modelHint.textContent = "";
   customModelInput.value = "";
   setCustomInputVisibility(false);
 
@@ -439,6 +466,10 @@ async function populateModels(providerId, selectedModel) {
 }
 
 function updateModelHint() {
+  if (modelStatusOverride) {
+    modelHint.textContent = modelStatusOverride;
+    return;
+  }
   if (isCustomSelected()) {
     modelHint.textContent = "Enter any model ID supported by this provider";
     return;
@@ -541,12 +572,11 @@ async function populateProviders() {
     if (provider) {
       log.info(`Provider changed to: ${provider.name} (${provider.id})`);
       clearCompatibilityScore();
+      clearModelStatus();
       apiKeyInput.placeholder = provider.keyPlaceholder;
+      updateKeySectionVisibility(provider);
       const isGeneric = provider.id === OPENAI_COMPATIBLE_ID;
       baseUrlSection.hidden = !isGeneric;
-      if (isGeneric) {
-        baseUrlHint.textContent = "Models load after URL and API key are entered";
-      }
       await populateModels(provider.id, null);
       if (isGeneric) scheduleModelFetch();
       showAiStatus(provider.id);
@@ -564,7 +594,7 @@ async function populateProviders() {
 
   document.getElementById("reset-cache-btn").addEventListener("click", async () => {
     await chrome.storage.local.remove("modelLevelCache");
-    showStatus("Model cache cleared", "info");
+    showStatus("Compatibility memory cleared", "info");
     log.info("Model level cache cleared");
   });
 
@@ -598,7 +628,9 @@ async function loadSettings() {
     hasKey: Boolean(apiKey),
   });
   providerSelect.value = providerId;
-  apiKeyInput.placeholder = providers.find((p) => p.id === providerId)?.keyPlaceholder || "sk-...";
+  const activeProvider = providers.find((p) => p.id === providerId);
+  apiKeyInput.placeholder = activeProvider?.keyPlaceholder || "sk-...";
+  updateKeySectionVisibility(activeProvider);
 
   const isGeneric = providerId === OPENAI_COMPATIBLE_ID;
   baseUrlSection.hidden = !isGeneric;
@@ -614,14 +646,17 @@ async function loadSettings() {
     } else {
       await populateModels(providerId, model);
       doFetchModels(baseUrl, apiKey, model).catch((err) => {
-        baseUrlHint.textContent = `Could not load models: ${err.message}`;
+        setModelStatus(`Could not load models: ${err.message}`);
       });
     }
   } else {
     await populateModels(providerId, model);
+    // Generic provider with nothing to fetch yet (no URL/key): surface the
+    // same guidance the provider-switch path shows via scheduleModelFetch.
+    if (isGeneric) scheduleModelFetch();
   }
 
-  if (apiKey && apiKey !== NO_API_KEY_SENTINEL) apiKeyInput.value = apiKey;
+  if (apiKey && apiKey !== NO_API_KEY_SENTINEL && !keySection.hidden) apiKeyInput.value = apiKey;
   enabledToggle.checked = enabled;
   showAiStatus(providerId);
   captureSavedState();

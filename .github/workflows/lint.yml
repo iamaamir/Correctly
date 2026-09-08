@@ -19,7 +19,7 @@ jobs:
       - name: Setup Biome
         uses: biomejs/setup-biome@v2
         with:
-          version: 2.4.16
+          version: 2.5.12
       - name: Run Biome
         run: biome ci .
       - name: Verify inlined landing CSS

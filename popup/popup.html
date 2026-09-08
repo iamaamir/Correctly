@@ -23,8 +23,8 @@
       <label for="model-select">Model</label>
       <select id="model-select"></select>
       <input type="text" id="custom-model" placeholder="e.g. gpt-5.6-sol" autocomplete="off" hidden />
-      <p class="model-hint" id="model-hint"></p>
-      <button type="button" id="reset-cache-btn" class="btn-link">Reset model cache</button>
+      <p class="model-hint" id="model-hint" aria-live="polite"></p>
+      <button type="button" id="reset-cache-btn" class="btn-link">Reset compatibility memory</button>
       <div id="verify-confidence" class="model-quality" hidden aria-live="polite">
         <div class="model-quality__label">MODEL COMPATIBILITY</div>
         <div class="model-quality__row">
@@ -41,15 +41,15 @@
       <div class="base-url-wrapper">
         <input type="text" id="base-url" placeholder="https://api.groq.com/openai/v1" autocomplete="off" list="base-url-suggestions" />
       </div>
-      <p class="base-url-hint" id="base-url-hint">Models load after URL and API key are entered</p>
       <datalist id="base-url-suggestions"></datalist>
+      <p class="field-caption">Pick a preset, or paste any OpenAI-compatible base URL.</p>
     </section>
 
     <section class="ai-status-section" id="ai-status-section" hidden>
       <div id="ai-status-content"></div>
     </section>
 
-    <section class="key-section">
+    <section class="key-section" id="key-section">
       <label for="api-key">API Key</label>
       <div class="key-input-wrapper">
         <input type="password" id="api-key" autocomplete="off" />
@@ -84,7 +84,7 @@
     </section>
 
     <section class="usage-section" id="usage-section" hidden>
-      <label>Session Usage</label>
+      <span class="section-title">Session Usage</span>
       <div class="usage-stats" id="usage-stats"></div>
     </section>
 
