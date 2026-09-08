@@ -17,20 +17,33 @@ export class OpenAIProvider extends AbstractOpenAICompatibleProvider {
   }
 
   static get defaultModel() {
-    return "gpt-4o-mini";
+    return "gpt-5.4-mini";
   }
 
   static get models() {
     return [
-      { id: "gpt-4o-mini", label: "GPT-4o Mini", hint: "Fast & cheap" },
-      { id: "gpt-4o", label: "GPT-4o", hint: "Best quality" },
       {
-        id: "gpt-4.1-nano",
-        label: "GPT-4.1 Nano",
+        id: "gpt-5.4-nano",
+        label: "GPT-5.4 Nano",
         hint: "Fastest, lowest cost",
       },
-      { id: "gpt-4.1-mini", label: "GPT-4.1 Mini", hint: "Balanced" },
-      { id: "gpt-4.1", label: "GPT-4.1", hint: "Most capable" },
+      { id: "gpt-5.4-mini", label: "GPT-5.4 Mini", hint: "Fast & cheap" },
+      { id: "gpt-5.5", label: "GPT-5.5", hint: "Balanced" },
+      {
+        id: "gpt-5.6-luna",
+        label: "GPT-5.6 Luna",
+        hint: "Flagship quality, low cost",
+      },
+      {
+        id: "gpt-5.6-terra",
+        label: "GPT-5.6 Terra",
+        hint: "Flagship, balanced",
+      },
+      {
+        id: "gpt-5.6-sol",
+        label: "GPT-5.6 Sol",
+        hint: "Most capable",
+      },
     ];
   }
 
