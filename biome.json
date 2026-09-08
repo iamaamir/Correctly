@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.16/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
   "assist": {
     "actions": {
       "source": {
@@ -32,6 +32,9 @@
       "**",
       "!**/.github",
       "!**/_metadata",
+      "!**/.pi",
+      "!**/.pi-subagents",
+      "!.bifrost-patterns.json",
       "!test-results",
       "!playwright-report",
       "!blob-report",

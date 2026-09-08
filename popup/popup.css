@@ -41,7 +41,8 @@ header h1 {
   margin-top: 2px;
 }
 
-label {
+label,
+.section-title {
   display: block;
   font-size: 12px;
   font-weight: 600;
@@ -713,7 +714,8 @@ input:focus {
     border-color: #3da55e;
   }
 
-  label {
+  label,
+  .section-title {
     color: #999;
   }
 
