@@ -106,6 +106,12 @@ input:focus {
   min-height: 14px;
 }
 
+.field-caption {
+  font-size: 11px;
+  color: #737373;
+  margin-top: 4px;
+}
+
 #model-select.model-select--loaded {
   animation: model-select-loaded 1.6s var(--ease-out-expo);
 }
@@ -712,6 +718,7 @@ input:focus {
   }
 
   .model-hint,
+  .field-caption,
   .site-host,
   .subtitle {
     color: #999;
