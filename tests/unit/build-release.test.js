@@ -17,6 +17,7 @@ describe("build release", () => {
   it("builds chrome target", { timeout: TIMEOUT }, () => {
     execFileSync("node", [buildScript, "--target=chrome"], { stdio: "pipe" });
     expect(existsSync("dist/correctly/manifest.json")).toBe(true);
+    expect(existsSync("dist/correctly/popup/endpoint-presets.js")).toBe(true);
   });
 
   it("builds firefox target", { timeout: TIMEOUT }, () => {

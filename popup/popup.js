@@ -246,23 +246,15 @@ async function populateBaseUrlSuggestions() {
   const datalist = document.getElementById("base-url-suggestions");
   if (!datalist) return;
   await loadSavedUrls();
-  const seen = new Set();
-  const options = [];
-  for (const { name, url } of KNOWN_ENDPOINT_PRESETS) {
-    seen.add(url);
-    const option = document.createElement("option");
-    option.value = url;
-    option.label = name;
-    options.push(option);
-  }
-  for (const url of SAVED_URLS_SET) {
-    if (seen.has(url)) continue;
-    seen.add(url);
-    const option = document.createElement("option");
-    option.value = url;
-    options.push(option);
-  }
-  datalist.replaceChildren(...options.slice(0, 30));
+  const options = mergeEndpointSuggestions(KNOWN_ENDPOINT_PRESETS, Array.from(SAVED_URLS_SET)).map(
+    ({ name, url }) => {
+      const option = document.createElement("option");
+      option.value = url;
+      if (name) option.label = name;
+      return option;
+    },
+  );
+  datalist.replaceChildren(...options);
 }
 
 async function saveBaseUrlSuggestion(url) {
@@ -400,10 +392,20 @@ function clearModelStatus() {
   updateModelHint();
 }
 
+// Last key typed for a key-requiring provider, kept in memory so exploratory
+// toggles to a keyless provider and back don't force re-typing.
+let stashedApiKey = "";
+
 function updateKeySectionVisibility(provider) {
   const needsKey = !provider || provider.requiresApiKey !== false;
+  if (!needsKey) {
+    const current = apiKeyInput.value.trim();
+    if (current && current !== NO_API_KEY_SENTINEL) stashedApiKey = apiKeyInput.value;
+    apiKeyInput.value = "";
+  } else if (!apiKeyInput.value && stashedApiKey) {
+    apiKeyInput.value = stashedApiKey;
+  }
   keySection.hidden = !needsKey;
-  if (!needsKey) apiKeyInput.value = "";
 }
 
 function renderModelDropdown(models, selectedModel, defaultModel) {
@@ -651,6 +653,9 @@ async function loadSettings() {
     }
   } else {
     await populateModels(providerId, model);
+    // Generic provider with nothing to fetch yet (no URL/key): surface the
+    // same guidance the provider-switch path shows via scheduleModelFetch.
+    if (isGeneric) scheduleModelFetch();
   }
 
   if (apiKey && apiKey !== NO_API_KEY_SENTINEL && !keySection.hidden) apiKeyInput.value = apiKey;
