@@ -94,14 +94,13 @@ function cancelModelFetchFlow() {
 
 function applyFetchedModels(provider, models, selectedModel) {
   const fetched = models || [];
-  const limited = fetched.slice(0, 20);
-  if (provider) provider.models = limited;
+  if (provider) provider.models = fetched;
   if (fetched.length === 0) {
     setModelStatus("No models found for this endpoint");
   } else {
     clearModelStatus();
   }
-  renderModelDropdown(limited, selectedModel || limited[0]?.id, provider?.defaultModel);
+  renderModelDropdown(fetched, selectedModel || fetched[0]?.id, provider?.defaultModel);
   highlightModelSelect(fetched.length > 0);
 }
 
