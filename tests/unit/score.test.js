@@ -101,64 +101,60 @@ describe("extractDisplayChanges", () => {
     expect(result.hiddenChanges).toEqual([]);
   });
 
-  it("keeps grounded changes in displayChanges", () => {
-    const result = extractDisplayChanges(
-      {
-        corrected: "Hello world.",
-        changes: [
-          { original: "hello", replacement: "Hello", explanation: "Capitalize first word." },
-          { original: "world", replacement: "Earth", explanation: "Use proper noun." },
-        ],
-      },
-      "hello world",
-    );
-    expect(result.displayChanges).toHaveLength(2);
-    expect(result.hiddenChanges).toHaveLength(0);
-  });
+  const displayCases = [
+    {
+      name: "grounded changes",
+      corrected: "Hello world.",
+      changes: [
+        { original: "hello", replacement: "Hello", explanation: "Capitalize first word." },
+        { original: "world", replacement: "Earth", explanation: "Use proper noun." },
+      ],
+      source: "hello world",
+      display: 2,
+      hidden: 0,
+    },
+    {
+      name: "original not found in source",
+      corrected: "Hello world.",
+      changes: [{ original: "nonexistent", replacement: "something", explanation: "fix typo" }],
+      source: "Hello world",
+      display: 0,
+      hidden: 1,
+      reason: "original not found in source text",
+    },
+    {
+      name: "insertion-only punctuation",
+      corrected: "Hello world.",
+      changes: [
+        { original: "hello", replacement: "Hello", explanation: "Capitalize." },
+        { original: "", replacement: ".", explanation: "Add period." },
+      ],
+      source: "hello world",
+      display: 1,
+      hidden: 1,
+      reason: "insertion-only punctuation",
+    },
+    {
+      name: "original equals replacement",
+      corrected: "Hello world.",
+      changes: [
+        { original: "hello", replacement: "Hello", explanation: "Capitalize." },
+        { original: "world", replacement: "world", explanation: "no change" },
+      ],
+      source: "hello world",
+      display: 1,
+      hidden: 1,
+      reason: "original equals replacement",
+    },
+  ];
 
-  it("hides changes whose original is not found in source", () => {
-    const result = extractDisplayChanges(
-      {
-        corrected: "Hello world.",
-        changes: [{ original: "nonexistent", replacement: "something", explanation: "fix typo" }],
-      },
-      "Hello world",
-    );
-    expect(result.displayChanges).toHaveLength(0);
-    expect(result.hiddenChanges).toHaveLength(1);
-    expect(result.hiddenChanges[0].reason).toContain("original not found in source text");
-  });
-
-  it("hides insertion-only punctuation changes as benign", () => {
-    const result = extractDisplayChanges(
-      {
-        corrected: "Hello world.",
-        changes: [
-          { original: "hello", replacement: "Hello", explanation: "Capitalize." },
-          { original: "", replacement: ".", explanation: "Add period." },
-        ],
-      },
-      "hello world",
-    );
-    expect(result.displayChanges).toHaveLength(1);
-    expect(result.hiddenChanges).toHaveLength(1);
-    expect(result.hiddenChanges[0].reason).toContain("insertion-only punctuation");
-  });
-
-  it("hides equal original/replacement changes", () => {
-    const result = extractDisplayChanges(
-      {
-        corrected: "Hello world.",
-        changes: [
-          { original: "hello", replacement: "Hello", explanation: "Capitalize." },
-          { original: "world", replacement: "world", explanation: "no change" },
-        ],
-      },
-      "hello world",
-    );
-    expect(result.displayChanges).toHaveLength(1);
-    expect(result.hiddenChanges).toHaveLength(1);
-    expect(result.hiddenChanges[0].reason).toContain("original equals replacement");
+  it.each(displayCases)("keeps/hides $name changes", ({ corrected, changes, source, display, hidden, reason }) => {
+    const result = extractDisplayChanges({ corrected, changes }, source);
+    expect(result.displayChanges).toHaveLength(display);
+    expect(result.hiddenChanges).toHaveLength(hidden);
+    if (reason !== undefined) {
+      expect(result.hiddenChanges[0].reason).toContain(reason);
+    }
   });
 });
 
@@ -220,50 +216,66 @@ function theirThereTheyreResponse() {
   };
 }
 
+const scoreAtLevel = (corrected, changes, source, level = 1) => scoreResponse({ corrected, changes }, source, level);
+
+async function expectAcceptedScore(response, source, { usable, suppressed, suppressedIssue, tier } = {}) {
+  const result = await scoreResponse(response, source, 1);
+  expect(result.score).toBeGreaterThanOrEqual(60);
+  if (tier !== undefined) expect(result.tier).toBe(tier);
+  if (usable !== undefined) expect(result.usable).toHaveLength(usable);
+  if (suppressed !== undefined) expect(result.suppressed).toHaveLength(suppressed);
+  if (suppressedIssue !== undefined) {
+    expect(result.suppressed[0]._issues).toContain(suppressedIssue);
+  }
+  return result;
+}
+
+async function expectFailingCheck(response, source, checkName) {
+  const result = await scoreResponse(response, source, 1);
+  const check = result.checks.find((c) => c.name === checkName);
+  expect(check).toBeDefined();
+  expect(check.pass).toBe(false);
+  return result;
+}
+
 describe("scoreResponse", () => {
   it("empty response with unchanged text scores high", async () => {
-    const result = await scoreResponse({ corrected: "Hello world", changes: [] }, "Hello world", 1);
+    const result = await scoreAtLevel("Hello world", [], "Hello world");
     expect(result.score).toBeGreaterThanOrEqual(80);
     expect(result.tier).toBe("high");
     expect(result.usable).toEqual([]);
   });
 
   it("corrected text changed with empty changes scores low before level 3", async () => {
-    const result = await scoreResponse({ corrected: "Hello there world", changes: [] }, "Hello world", 1);
+    const result = await scoreAtLevel("Hello there world", [], "Hello world");
     expect(result.score).toBeLessThan(35);
     expect(result.tier).toBe("low");
   });
 
   it("corrected text changed with empty changes scores better at level 3", async () => {
-    const result = await scoreResponse({ corrected: "Hello there world", changes: [] }, "Hello world", 3);
+    const result = await scoreAtLevel("Hello there world", [], "Hello world", 3);
     expect(result.score).toBeGreaterThanOrEqual(25);
     expect(result.tier).toBe("low");
   });
 
   it("phrase not found in source is suppressed", async () => {
-    const result = await scoreResponse(
-      {
-        corrected: "Hello world",
-        changes: [{ original: "nonexistent", replacement: "ghost", explanation: "fix typo" }],
-      },
+    const result = await scoreAtLevel(
       "Hello world",
-      1,
+      [{ original: "nonexistent", replacement: "ghost", explanation: "fix typo" }],
+      "Hello world",
     );
     expect(result.suppressed).toHaveLength(1);
     expect(result.suppressed[0]._issues).toContain("phrase not found in source");
   });
 
   it("duplicate changes penalize score", async () => {
-    const result = await scoreResponse(
-      {
-        corrected: "Hello world and universe",
-        changes: [
-          { original: "world", replacement: "earth", explanation: "fix terminology" },
-          { original: "world", replacement: "earth", explanation: "fix terminology again" },
-        ],
-      },
+    const result = await scoreAtLevel(
       "Hello world and universe",
-      1,
+      [
+        { original: "world", replacement: "earth", explanation: "fix terminology" },
+        { original: "world", replacement: "earth", explanation: "fix terminology again" },
+      ],
+      "Hello world and universe",
     );
     const dupCheck = result.checks.find((c) => c.name === "duplicate changes");
     expect(dupCheck).toBeDefined();
@@ -271,16 +283,13 @@ describe("scoreResponse", () => {
   });
 
   it("overlapping changes penalize score", async () => {
-    const result = await scoreResponse(
-      {
-        corrected: "Hello big wide world",
-        changes: [
-          { original: "big wide", replacement: "huge", explanation: "shorter" },
-          { original: "big wide world", replacement: "massive globe", explanation: "rewrite" },
-        ],
-      },
+    const result = await scoreAtLevel(
       "Hello big wide world",
-      1,
+      [
+        { original: "big wide", replacement: "huge", explanation: "shorter" },
+        { original: "big wide world", replacement: "massive globe", explanation: "rewrite" },
+      ],
+      "Hello big wide world",
     );
     const overlapCheck = result.checks.find((c) => c.name === "overlapping changes");
     expect(overlapCheck).toBeDefined();
@@ -288,13 +297,10 @@ describe("scoreResponse", () => {
   });
 
   it("usable changes reconstruct corrected text", async () => {
-    const result = await scoreResponse(
-      {
-        corrected: "Hello earth",
-        changes: [{ original: "world", replacement: "earth", explanation: "fix terminology" }],
-      },
+    const result = await scoreAtLevel(
+      "Hello earth",
+      [{ original: "world", replacement: "earth", explanation: "fix terminology" }],
       "Hello world",
-      1,
     );
     expect(result.usable).toHaveLength(1);
     expect(result.score).toBeGreaterThanOrEqual(60);
@@ -346,55 +352,67 @@ describe("scoreResponse", () => {
 });
 
 describe("classifyProviderFailure", () => {
-  it("classifies structured_output_unsupported for response_format rejection", () => {
-    const result = classifyProviderFailure(new Error("This model does not support response_format json_schema"));
-    expect(result.kind).toBe("structured_output_unsupported");
-    expect(result.cascadeable).toBe(true);
-    expect(result.cacheLevelHint).toBe(2);
-  });
+  const cases = [
+    {
+      name: "structured_output_unsupported for response_format rejection",
+      message: "This model does not support response_format json_schema",
+      kind: "structured_output_unsupported",
+      cascadeable: true,
+      cacheLevelHint: 2,
+    },
+    {
+      name: "json_not_followed for parse failure",
+      message: "Failed to parse grammar correction response",
+      kind: "json_not_followed",
+      cascadeable: true,
+      cacheLevelHint: null,
+    },
+    {
+      name: "network_or_auth_failure for API key errors",
+      message: "API key is required",
+      kind: "network_or_auth_failure",
+      cascadeable: false,
+    },
+    {
+      name: "network_or_auth_failure for timeout",
+      message: "Request timeout",
+      kind: "network_or_auth_failure",
+      cascadeable: false,
+    },
+    {
+      name: "network_or_auth_failure for 401",
+      message: "OpenAI API error: 401",
+      kind: "network_or_auth_failure",
+      cascadeable: false,
+    },
+    {
+      name: "rate_limit separately from network errors",
+      message: "API rate limit exceeded",
+      kind: "rate_limit",
+      cascadeable: false,
+    },
+    {
+      name: "429 errors as non-cascadeable rate limits",
+      message: "OpenAI Compatible API error: 429",
+      kind: "rate_limit",
+      cascadeable: false,
+    },
+    {
+      name: "unknown_failure as non-cascadeable for unrecognized errors",
+      message: "Something completely unexpected",
+      kind: "unknown_failure",
+      cascadeable: false,
+      cacheLevelHint: null,
+    },
+  ];
 
-  it("classifies json_not_followed for parse failure", () => {
-    const result = classifyProviderFailure(new Error("Failed to parse grammar correction response"));
-    expect(result.kind).toBe("json_not_followed");
-    expect(result.cascadeable).toBe(true);
-    expect(result.cacheLevelHint).toBeNull();
-  });
-
-  it("classifies network_or_auth_failure for API key errors", () => {
-    const result = classifyProviderFailure(new Error("API key is required"));
-    expect(result.kind).toBe("network_or_auth_failure");
-    expect(result.cascadeable).toBe(false);
-  });
-
-  it("classifies network_or_auth_failure for timeout", () => {
-    const result = classifyProviderFailure(new Error("Request timeout"));
-    expect(result.kind).toBe("network_or_auth_failure");
-    expect(result.cascadeable).toBe(false);
-  });
-
-  it("classifies network_or_auth_failure for 401", () => {
-    const result = classifyProviderFailure(new Error("OpenAI API error: 401"));
-    expect(result.kind).toBe("network_or_auth_failure");
-    expect(result.cascadeable).toBe(false);
-  });
-
-  it("classifies rate_limit separately from network errors", () => {
-    const result = classifyProviderFailure(new Error("API rate limit exceeded"));
-    expect(result.kind).toBe("rate_limit");
-    expect(result.cascadeable).toBe(false);
-  });
-
-  it("classifies 429 errors as non-cascadeable rate limits", () => {
-    const result = classifyProviderFailure(new Error("OpenAI Compatible API error: 429"));
-    expect(result.kind).toBe("rate_limit");
-    expect(result.cascadeable).toBe(false);
-  });
-
-  it("classifies unknown_failure as non-cascadeable for unrecognized errors", () => {
-    const result = classifyProviderFailure(new Error("Something completely unexpected"));
-    expect(result.kind).toBe("unknown_failure");
-    expect(result.cascadeable).toBe(false);
-    expect(result.cacheLevelHint).toBeNull();
+  it.each(cases)("classifies $name", ({ message, kind, cascadeable, cacheLevelHint }) => {
+    const result = classifyProviderFailure(new Error(message));
+    expect(result.kind).toBe(kind);
+    expect(result.cascadeable).toBe(cascadeable);
+    if (cacheLevelHint !== undefined) {
+      expect(result.cacheLevelHint).toBe(cacheLevelHint);
+    }
   });
 
   it("handles null/undefined error gracefully", () => {
@@ -405,19 +423,15 @@ describe("classifyProviderFailure", () => {
 
 describe("scoring acceptance — real examples from logs", () => {
   it("accepts Their/There/They're correction with grounded changes", async () => {
-    const result = await scoreResponse(
+    await expectAcceptedScore(
       theirThereTheyreResponse(),
       "Their going to they're house after work, and then there meeting us their for dinner.",
-      1,
+      { usable: 4, tier: "medium" },
     );
-
-    expect(result.score).toBeGreaterThanOrEqual(60);
-    expect(result.tier).toBe("medium");
-    expect(result.usable.length).toBe(4);
   });
 
   it("accepts 'i could care less' idiom correction", async () => {
-    const result = await scoreResponse(
+    await expectAcceptedScore(
       {
         corrected: "I couldn't care less.",
         changes: [
@@ -428,17 +442,12 @@ describe("scoring acceptance — real examples from logs", () => {
         confidence: 10,
       },
       "i could care less",
-      1,
+      { usable: 2, suppressed: 1, suppressedIssue: "insertion-only change" },
     );
-
-    expect(result.score).toBeGreaterThanOrEqual(60);
-    expect(result.usable).toHaveLength(2);
-    expect(result.suppressed).toHaveLength(1);
-    expect(result.suppressed[0]._issues).toContain("insertion-only change");
   });
 
   it("accepts 'There is less people' with is->are and less->fewer", async () => {
-    const result = await scoreResponse(
+    await expectAcceptedScore(
       {
         corrected: "There are fewer people here today.",
         changes: [
@@ -448,16 +457,12 @@ describe("scoring acceptance — real examples from logs", () => {
         confidence: 10,
       },
       "There is less people here today.",
-      1,
+      { usable: 2, suppressed: 0 },
     );
-
-    expect(result.score).toBeGreaterThanOrEqual(60);
-    expect(result.usable).toHaveLength(2);
-    expect(result.suppressed).toHaveLength(0);
   });
 
   it("accepts 'so i didnt had any time tolarend' real example", async () => {
-    const result = await scoreResponse(
+    const result = await expectAcceptedScore(
       {
         corrected: "So I didn't have any time to learn.",
         changes: [
@@ -471,18 +476,15 @@ describe("scoring acceptance — real examples from logs", () => {
         confidence: 10,
       },
       "so i didnt had any time tolarend",
-      1,
+      { usable: 5, suppressed: 1 },
     );
-
-    expect(result.score).toBeGreaterThanOrEqual(60);
-    expect(result.usable).toHaveLength(5);
-    expect(result.suppressed).toHaveLength(1);
+    expect(result.usable.find((c) => c.original === "i" && c.replacement === "I")).toBeTruthy();
   });
 });
 
 describe("scoring rejection", () => {
   it("rejects whole-text rewrite as a single change", async () => {
-    const result = await scoreResponse(
+    const result = await expectFailingCheck(
       {
         corrected: "The quick brown fox jumps over the lazy dog near the riverbank.",
         changes: [
@@ -495,17 +497,13 @@ describe("scoring rejection", () => {
         confidence: 10,
       },
       "The quick brown fox jumps over the lazy dog",
-      1,
+      "granularity",
     );
-
-    const wholeTextCheck = result.checks.find((c) => c.name === "granularity");
-    expect(wholeTextCheck).toBeDefined();
-    expect(wholeTextCheck.pass).toBe(false);
     expect(result.score).toBe(82);
   });
 
   it("penalizes broad rewrite replacement", async () => {
-    const result = await scoreResponse(
+    const result = await expectFailingCheck(
       {
         corrected: "The meeting has been rescheduled to next Tuesday at 2 PM.",
         changes: [
@@ -518,17 +516,13 @@ describe("scoring rejection", () => {
         confidence: 10,
       },
       "The meeting is now moved to Tues",
-      1,
+      "granularity",
     );
-
-    const granularityCheck = result.checks.find((c) => c.name === "granularity");
-    expect(granularityCheck).toBeDefined();
-    expect(granularityCheck.pass).toBe(false);
     expect(result.score).toBe(82);
   });
 
   it("penalizes corrected text that contradicts usable changes", async () => {
-    const result = await scoreResponse(
+    const result = await expectFailingCheck(
       {
         corrected: "She went to the store.",
         changes: [
@@ -538,12 +532,8 @@ describe("scoring rejection", () => {
         confidence: 10,
       },
       "He went to the store yesterday.",
-      1,
+      "corrected consistency",
     );
-
-    const consistencyCheck = result.checks.find((c) => c.name === "corrected consistency");
-    expect(consistencyCheck).toBeDefined();
-    expect(consistencyCheck.pass).toBe(false);
     expect(result.score).toBeLessThan(80);
   });
 });

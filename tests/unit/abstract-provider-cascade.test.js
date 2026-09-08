@@ -55,21 +55,30 @@ describe("AbstractProvider cascade", () => {
     vi.stubGlobal("chrome", createChromeStub());
   });
 
+  const earthCorrection = () => ({
+    corrected: "Hello earth",
+    changes: [{ original: "world", replacement: "earth", explanation: "Use the intended noun." }],
+    confidence: 10,
+  });
+
+  function expectLevelsCalled(provider, { level1, level2, level3 }) {
+    if (level1) expect(provider.levels.level1).toHaveBeenCalledOnce();
+    else expect(provider.levels.level1).not.toHaveBeenCalled();
+    if (level2) expect(provider.levels.level2).toHaveBeenCalledOnce();
+    else expect(provider.levels.level2).not.toHaveBeenCalled();
+    if (level3) expect(provider.levels.level3).toHaveBeenCalledOnce();
+    else expect(provider.levels.level3).not.toHaveBeenCalled();
+  }
+
   it("accepts a valid level 1 response and increments level 1 cache", async () => {
     const provider = new CascadeProvider({
-      level1: vi.fn(async () => ({
-        corrected: "Hello earth",
-        changes: [{ original: "world", replacement: "earth", explanation: "Use the intended noun." }],
-        confidence: 10,
-      })),
+      level1: vi.fn(async () => earthCorrection()),
     });
 
     const result = await provider.correctGrammar("Hello world");
 
     expect(result.cascadeLevel).toBe(1);
-    expect(provider.levels.level1).toHaveBeenCalledOnce();
-    expect(provider.levels.level2).not.toHaveBeenCalled();
-    expect(provider.levels.level3).not.toHaveBeenCalled();
+    expectLevelsCalled(provider, { level1: true, level2: false, level3: false });
     expect(chrome.storage.local._store.get("modelLevelCache")).toEqual({
       "cascade-test:cascade-model": {
         level: 1,
@@ -83,19 +92,13 @@ describe("AbstractProvider cascade", () => {
   it("cascades from level 1 to level 2 on invalid structured response without downgrading cache", async () => {
     const provider = new CascadeProvider({
       level1: vi.fn(async () => ({ changes: [], confidence: 10 })),
-      level2: vi.fn(async () => ({
-        corrected: "Hello earth",
-        changes: [{ original: "world", replacement: "earth", explanation: "Use the intended noun." }],
-        confidence: 10,
-      })),
+      level2: vi.fn(async () => earthCorrection()),
     });
 
     const result = await provider.correctGrammar("Hello world");
 
     expect(result.cascadeLevel).toBe(2);
-    expect(provider.levels.level1).toHaveBeenCalledOnce();
-    expect(provider.levels.level2).toHaveBeenCalledOnce();
-    expect(provider.levels.level3).not.toHaveBeenCalled();
+    expectLevelsCalled(provider, { level1: true, level2: true, level3: false });
     expect(chrome.storage.local._store.get("modelLevelCache")).toBeUndefined();
   });
 
@@ -114,9 +117,7 @@ describe("AbstractProvider cascade", () => {
       cascadeLevel: 3,
       confidence: 55,
     });
-    expect(provider.levels.level1).toHaveBeenCalledOnce();
-    expect(provider.levels.level2).toHaveBeenCalledOnce();
-    expect(provider.levels.level3).toHaveBeenCalledOnce();
+    expectLevelsCalled(provider, { level1: true, level2: true, level3: true });
     // Validation failures (missing fields) are score-based, not capability-based,
     // so no plain_text_only cached. But L2 json_not_followed IS tracked.
     expect(chrome.storage.local._store.get("modelLevelCache")).toEqual({
@@ -136,58 +137,30 @@ describe("AbstractProvider cascade", () => {
       },
     });
     const provider = new CascadeProvider({
-      level2: vi.fn(async () => ({
-        corrected: "Hello earth",
-        changes: [{ original: "world", replacement: "earth", explanation: "Use the intended noun." }],
-        confidence: 10,
-      })),
+      level2: vi.fn(async () => earthCorrection()),
     });
 
     const result = await provider.correctGrammar("Hello world");
 
     expect(result.cascadeLevel).toBe(2);
-    expect(provider.levels.level1).not.toHaveBeenCalled();
-    expect(provider.levels.level2).toHaveBeenCalledOnce();
-    expect(provider.levels.level3).not.toHaveBeenCalled();
+    expectLevelsCalled(provider, { level1: false, level2: true, level3: false });
   });
 
-  it("does not cascade non-cascadeable errors", async () => {
+  const nonCascadeableErrors = [
+    { name: "non-cascadeable errors", message: "API key is required" },
+    { name: "unknown provider errors", message: "Unexpected provider bug" },
+    { name: "429 rate-limit errors", message: "Provider API error: 429" },
+  ];
+
+  it.each(nonCascadeableErrors)("does not cascade $name", async ({ message }) => {
     const provider = new CascadeProvider({
       level1: vi.fn(async () => {
-        throw new Error("API key is required");
+        throw new Error(message);
       }),
     });
 
-    await expect(provider.correctGrammar("Hello world")).rejects.toThrow("API key is required");
-    expect(provider.levels.level1).toHaveBeenCalledOnce();
-    expect(provider.levels.level2).not.toHaveBeenCalled();
-    expect(provider.levels.level3).not.toHaveBeenCalled();
-  });
-
-  it("does not cascade unknown provider errors", async () => {
-    const provider = new CascadeProvider({
-      level1: vi.fn(async () => {
-        throw new Error("Unexpected provider bug");
-      }),
-    });
-
-    await expect(provider.correctGrammar("Hello world")).rejects.toThrow("Unexpected provider bug");
-    expect(provider.levels.level1).toHaveBeenCalledOnce();
-    expect(provider.levels.level2).not.toHaveBeenCalled();
-    expect(provider.levels.level3).not.toHaveBeenCalled();
-  });
-
-  it("does not cascade 429 rate-limit errors", async () => {
-    const provider = new CascadeProvider({
-      level1: vi.fn(async () => {
-        throw new Error("Provider API error: 429");
-      }),
-    });
-
-    await expect(provider.correctGrammar("Hello world")).rejects.toThrow("Provider API error: 429");
-    expect(provider.levels.level1).toHaveBeenCalledOnce();
-    expect(provider.levels.level2).not.toHaveBeenCalled();
-    expect(provider.levels.level3).not.toHaveBeenCalled();
+    await expect(provider.correctGrammar("Hello world")).rejects.toThrow(message);
+    expectLevelsCalled(provider, { level1: true, level2: false, level3: false });
   });
 
   it("downgrades cache only when a capability hint is present", async () => {
@@ -198,11 +171,7 @@ describe("AbstractProvider cascade", () => {
       level1: vi.fn(async () => {
         throw err;
       }),
-      level2: vi.fn(async () => ({
-        corrected: "Hello earth",
-        changes: [{ original: "world", replacement: "earth", explanation: "Use the intended noun." }],
-        confidence: 10,
-      })),
+      level2: vi.fn(async () => earthCorrection()),
     });
 
     const result = await provider.correctGrammar("Hello world");
@@ -240,9 +209,7 @@ describe("AbstractProvider cascade", () => {
     const result = await provider.correctGrammar("Hello world");
 
     expect(result.cascadeLevel).toBe(3);
-    expect(provider.levels.level1).toHaveBeenCalledOnce();
-    expect(provider.levels.level2).toHaveBeenCalledOnce();
-    expect(provider.levels.level3).toHaveBeenCalledOnce();
+    expectLevelsCalled(provider, { level1: true, level2: true, level3: true });
     expect(chrome.storage.local._store.get("modelLevelCache")).toBeUndefined();
   });
 
